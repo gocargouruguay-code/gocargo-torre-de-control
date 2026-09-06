@@ -87,6 +87,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
 <script>
 const API_BASE_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-admin";
 const API_BASE_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-admin";
+const API_BASE_RYR_DATOS = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-datos";
 let PASSWORD = "";
 let REVIEWS = [];
 let DASHBOARD = null;
@@ -120,6 +121,62 @@ async function apiProvider(provider,action,{method="GET",body=null,query={}}={})
   return data;
 }
 const api=(action,opts={})=>apiProvider("UES",action,opts);
+async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(API_BASE_RYR_DATOS+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,data,provider:"RYR"});
+  return data;
+}
+
+function esCasoDatosRyr(r){
+  const etapa=norm(r.evento||r.etapa);
+  const motivo=norm(r.motivo);
+  return etapa.includes("validacion")||
+    motivo.includes("no se puede construir la orden ryr")||
+    Array.isArray(r?.datos?.faltantes)||
+    Array.isArray(r?.faltantes_actuales);
+}
+
+async function enriquecerRevisionRyrLive(r){
+  if(!r?.id||!esCasoDatosRyr(r))return r;
+  try{
+    const live=await apiRyrDatos("case",{query:{id:r.id}});
+    if(live.resolved||live.visible===false)return null;
+
+    const enriched={
+      ...r,
+      ...live,
+      provider:"RYR",
+      faltantes_actuales:Array.isArray(live.faltantes_actuales)?live.faltantes_actuales:r.faltantes_actuales,
+      campos_editables:Array.isArray(live.campos_editables)?live.campos_editables:[],
+      datos_sendground_actualizados:live.datos_sendground_actualizados===true
+    };
+
+    // Si el operador ya corrigió el problema directamente en SendGround,
+    // cerramos solamente la alerta de DATOS. No ejecutamos ryr-proxy desde
+    // una actualización de pantalla y no tocamos estados externos.
+    if(Array.isArray(enriched.faltantes_actuales)&&enriched.faltantes_actuales.length===0){
+      try{
+        const rec=await apiRyrDatos("reconcile",{method:"POST",body:{id:r.id}});
+        if(rec.resolved)return null;
+      }catch{}
+    }
+    return enriched;
+  }catch{
+    // Compatibilidad durante despliegue: si ryr-datos todavía no está
+    // publicado, la Torre conserva la revisión actual de ryr-admin.
+    return r;
+  }
+}
 
 async function consultarConteo(){
   const el=document.getElementById("countBadge"),top=document.getElementById("topStatus");
@@ -411,7 +468,11 @@ function abrirDetalleRyr(r){
   const source=String(r.source_type||r.tipo||"");
   const id=Number(r.source_id||r.id||0);
   const resolvable=r.resolvable===true||source==="revision";
-  document.getElementById("detailBody").innerHTML=`<div class="card detail-card"><div class="detail-title">RyR</div><div class="kv"><div class="k">Orden GoCargo</div><div class="v mono">${esc(code)}</div><div class="k">Orden RyR</div><div class="v mono">${esc(ryrCode)}</div><div class="k">Etapa / proceso</div><div class="v">${esc(r.title||r.evento||r.etapa||"—")}</div><div class="k">Fecha</div><div class="v">${fmt(r.date||r.updated_at||r.created_at)}</div></div>${motivo?`<div class="alert ${source==="error"?"err":"warn"}" style="margin-top:12px">${esc(motivo)}</div>`:""}${resolvable&&id>0?`<button class="btn secondary small" style="margin-top:12px" onclick="resolverCaso('RYR',${id},'${esc(code)}')">Marcar resuelto</button>`:'<div class="muted" style="font-size:11px;margin-top:12px">Los estados automáticos de RyR se actualizan desde su propia integración.</div>'}<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Datos técnicos recibidos de ryr-admin</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section></div>`;
+  const esDatos=esCasoDatosRyr(r);
+  const faltantes=faltantesReview(r);
+  const live=Array.isArray(r.faltantes_actuales);
+  const liveBox=esDatos&&id>0?`<div class="alert ${faltantes.length?"warn":"ok"}" style="margin-top:12px"><b>Datos actuales de SendGround</b><br>${faltantes.length?`Faltan: ${esc(faltantes.join(", "))}`:"Los datos obligatorios ya están correctos."}${live?'<br><span class="muted" style="font-size:11px">Verificado en vivo contra SendGround.</span>':""}</div>`:"";
+  document.getElementById("detailBody").innerHTML=`<div class="card detail-card"><div class="detail-title">RyR</div><div class="kv"><div class="k">Orden GoCargo</div><div class="v mono">${esc(code)}</div><div class="k">Orden RyR</div><div class="v mono">${esc(ryrCode)}</div><div class="k">Etapa / proceso</div><div class="v">${esc(r.title||r.evento||r.etapa||"—")}</div><div class="k">Fecha</div><div class="v">${fmt(r.date||r.updated_at||r.created_at)}</div></div>${motivo?`<div class="alert ${source==="error"?"err":"warn"}" style="margin-top:12px">${esc(motivo)}</div>`:""}${liveBox}${!esDatos&&resolvable&&id>0?`<button class="btn secondary small" style="margin-top:12px" onclick="resolverCaso('RYR',${id},'${esc(code)}')">Marcar resuelto</button>`:'<div class="muted" style="font-size:11px;margin-top:12px">${esDatos?"Los casos de datos se resuelven corrigiendo/verificando SendGround, no marcándolos manualmente.":"Los estados automáticos de RyR se actualizan desde su propia integración."}</div>'}<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Datos técnicos recibidos de ryr-admin / ryr-datos</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section></div>`;
 }
 
 async function abrirMetrica(kind,label){
@@ -484,7 +545,7 @@ async function cargarReviews(silent=false){
     const ur=u.status==="fulfilled"?(Array.isArray(u.value)?u.value:[]).map(x=>({
       ...x,provider:"UES",source_type:x.source_type||"revision",resolvable:true
     })):[];
-    const rr=r.status==="fulfilled"?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[])).map(x=>({
+    const rrBase=r.status==="fulfilled"?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[])).map(x=>({
       ...x,
       provider:"RYR",
       id:x.id??x.source_id,
@@ -496,7 +557,19 @@ async function cargarReviews(silent=false){
       source_type:x.source_type||"revision",
       resolvable:x.resolvable!==false
     })):[];
-    REVIEWS=[...ur,...rr].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    const rrLive=(await Promise.all(rrBase.map(enriquecerRevisionRyrLive))).filter(Boolean);
+
+    REVIEWS=[...ur,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+
+    // La tarjeta de revisiones debe reflejar lo que REALMENTE sigue pendiente
+    // después de releer SendGround, no un caso histórico ya corregido.
+    if(DASHBOARD?.metrics){
+      DASHBOARD.metrics.revisionPendiente=REVIEWS.length;
+      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=ur.length;
+      if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rrLive.length;
+      renderDashboard();
+    }
+
     renderReviews();
     document.getElementById("reviewCount").textContent=REVIEWS.length;
     consultarConteo();
@@ -541,6 +614,34 @@ function renderReviews(){
     if(provider==="RYR"){
       const key=`ryr-${r.id}`;
       const open=`abrirReviewRyr('${key}')`;
+      const faltantes=faltantesReview(r);
+      const sincronizado=r.datos_sendground_actualizados===true||Array.isArray(r.faltantes_actuales);
+      const editables=Array.isArray(r.campos_editables)?r.campos_editables:[];
+      const nf=faltantes.map(norm);
+      const necesitaTelefono=editables.includes("telefono")||nf.some(v=>v.includes("telefono"));
+      const necesitaPuerta=editables.includes("numeroPuerta")||nf.some(v=>v.includes("numero de puerta"));
+      const necesitaCalle=editables.includes("calle")||nf.some(v=>v==="calle");
+      const necesitaNombre=editables.includes("nombreDestinatario")||nf.some(v=>v.includes("nombre del destinatario"));
+      const esDatos=esCasoDatosRyr(r);
+      const noEditables=faltantes.filter(v=>{
+        const n=norm(v);
+        return !n.includes("telefono")&&!n.includes("numero de puerta")&&n!=="calle"&&!n.includes("nombre del destinatario");
+      });
+      const motivoVisible=sincronizado
+        ?(faltantes.length?`Faltan datos obligatorios para RyR: ${faltantes.join(", ")}`:"Los datos obligatorios ya están corregidos en SendGround.")
+        :(r.motivo||"");
+      const campos=esDatos?`
+        <div class="phone-row">
+          ${necesitaTelefono?`<div class="data-field"><label>Teléfono</label><input class="input" id="ryr-tel-${r.id}" placeholder="099123123"></div>`:""}
+          ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="ryr-puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
+          ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="ryr-calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
+          ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="ryr-nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
+          <button class="btn primary small" onclick="completarDatosRyr(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
+        </div>
+        ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+        ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
+      `:"";
+
       return `<div class="card review" id="review-${key}">
         <div>
           <span class="badge ${pcls}">RyR</span>
@@ -550,13 +651,14 @@ function renderReviews(){
           <div style="margin-top:7px"><span class="badge ${ageC}">${ageText(r.created_at)}</span></div>
         </div>
         <div>
-          <div class="review-motivo">${esc(r.motivo||"")}</div>
+          <div class="review-motivo">${esc(motivoVisible)}</div>
           <div class="muted" style="font-size:11px;margin-top:5px">Creado: ${fmt(r.created_at)}</div>
+          ${campos}
           <div id="msg-${key}"></div>
         </div>
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
-          ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:'<span class="badge yellow">Automático</span>'}
+          ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
         </div>
       </div>`;
     }
@@ -728,6 +830,31 @@ async function resolverCaso(providerOrId,idOrOrder,maybeOrder){
 }
 
 async function resolverOrden(orderCode){if(!confirm(`¿Marcar TODAS las alertas pendientes de ${orderCode} como resueltas?`))return;try{await api("resolve",{method:"POST",body:{order_code:orderCode}});toast("Alertas resueltas");await cargarReviews();abrirDetalle(orderCode);cargarDashboard(true)}catch(e){toast(e.message)}}
+async function completarDatosRyr(id){
+  const key=`ryr-${id}`;
+  const msg=document.getElementById(`msg-${key}`);
+  const telefono=document.getElementById(`ryr-tel-${id}`)?.value.trim()||"";
+  const numeroPuerta=document.getElementById(`ryr-puerta-${id}`)?.value.trim()||"";
+  const calle=document.getElementById(`ryr-calle-${id}`)?.value.trim()||"";
+  const nombreDestinatario=document.getElementById(`ryr-nombre-${id}`)?.value.trim()||"";
+
+  if(msg)msg.innerHTML='<div class="alert warn">Releyendo SendGround, guardando cambios y validando RyR…</div>';
+  try{
+    const body={id};
+    if(telefono)body.telefono=telefono;
+    if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
+
+    const r=await apiRyrDatos("complete",{method:"POST",body});
+    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`;
+    setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
+  }catch(e){
+    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    setTimeout(()=>cargarReviews(),1600);
+  }
+}
+
 async function completarDatos(id){
   const msg=document.getElementById(`msg-${id}`);
   const telefono=document.getElementById(`tel-${id}`)?.value.trim()||"";

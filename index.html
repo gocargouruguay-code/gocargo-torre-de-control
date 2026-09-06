@@ -23,7 +23,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
 .alert{padding:10px 12px;border-radius:9px;font-size:13px;margin-top:10px}.alert.ok{background:var(--green-bg);color:var(--green)}.alert.warn{background:var(--yellow-bg);color:var(--yellow)}.alert.err{background:var(--red-bg);color:var(--red)}
 .hero{display:flex;align-items:flex-start;gap:18px;margin-bottom:18px}.hero h1{font-size:25px;margin:0;color:var(--navy)}.hero p{margin:5px 0 0;color:var(--muted)}.hero-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 .metrics{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:12px;margin-bottom:16px}.metric{padding:16px}.clickable-card{cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}.clickable-card:hover{transform:translateY(-2px);border-color:#aac1d8;box-shadow:0 12px 30px rgba(19,40,70,.12)}.clickable-card:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,94,168,.10),var(--shadow)}.metric .value{font-size:28px;font-weight:850;color:var(--navy)}.metric .label{font-size:12px;color:var(--muted);margin-top:2px}.metric.warn .value{color:var(--yellow)}.metric.err .value{color:var(--red)}.metric.ok .value{color:var(--green)}
-.health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;align-items:start}.health-card{padding:15px;min-width:0;align-self:start}.health-head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);flex-wrap:wrap}.health-meta{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.55;overflow-wrap:anywhere}.health-error{font-size:12px;color:var(--red);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
+.health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;align-items:start}.health-card{padding:15px;min-width:0;align-self:start}.health-head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);flex-wrap:wrap}.health-meta{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.55;overflow-wrap:anywhere}.health-error{font-size:12px;color:var(--red);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}.health-warning{font-size:12px;color:var(--yellow);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
 .section{margin-top:18px}.section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.section-head h2{font-size:17px;margin:0;color:var(--navy)}.section-head .count{font-size:11px;padding:3px 7px;background:#e7eef6;border-radius:999px;color:var(--navy);font-weight:800}
 .search-card{padding:14px;margin-bottom:18px}.search-row{display:flex;gap:8px}.search-row .input{font-size:15px}.search-results{display:grid;gap:7px;margin-top:10px}.search-result{border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;gap:12px;align-items:center;background:#fff}.search-result:hover{border-color:#aac1d8;background:#f9fbfd}.search-result .code{font-weight:850;color:var(--navy)}.drawer-list{display:grid;gap:8px}.drawer-list .search-result{width:100%}.drawer-summary{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:10px}.queue{display:grid;gap:10px}.review{padding:14px;display:grid;grid-template-columns:170px 1fr auto;gap:14px;align-items:start}.review-code{font-weight:850;color:var(--navy);cursor:pointer}.review-event{font-size:12px;color:var(--muted);margin-top:4px}.review-motivo{font-size:13px;font-weight:650;color:#6b4b0b;line-height:1.45}.review-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.phone-row{display:flex;gap:6px;margin-top:9px;max-width:520px;align-items:end;flex-wrap:wrap}.phone-row .input{padding:7px 9px;font-size:12px}.data-field{flex:1 1 150px;min-width:130px}.data-field label{margin:0 0 4px;font-size:11px}
@@ -104,7 +104,56 @@ document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="E
 
 async function login(){PASSWORD=document.getElementById("password").value;const btn=document.getElementById("loginBtn");btn.disabled=true;document.getElementById("loginMsg").innerHTML="";try{await cargarDashboard();document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");await cargarReviews();autoTimer=setInterval(()=>Promise.all([cargarDashboard(true),cargarReviews(true)]),60000)}catch(e){document.getElementById("loginMsg").innerHTML=`<div class="alert err">${e.status===401?"Contraseña incorrecta":esc(e.message)}</div>`}finally{btn.disabled=false}}
 
-function componentState(h){if(!h)return {c:"gray",t:"Sin datos"};const err=h.last_error_at?new Date(h.last_error_at):null;const ok=h.last_success_at?new Date(h.last_success_at):null;if(err&&(!ok||err>ok))return {c:"red",t:"Error"};if(ok)return {c:"green",t:"Operativo"};return {c:"yellow",t:"Esperando primera ejecución"}}
+function proxyPartialInfo(h){
+  const r=h?.last_result;
+  if(!r || String(r.estado||"").toLowerCase()!=="partial" || !Array.isArray(r.resultados)) return null;
+
+  const incidencias=r.resultados.filter(x=>x && x.ok===false);
+  if(!incidencias.length) return null;
+
+  const revisiones=incidencias.filter(x=>norm(x.accion)==="revision-manual");
+  const codigos=revisiones.map(x=>String(x.orderCode||"").trim()).filter(Boolean);
+  const total=Number(r.tareasEncontradas ?? r.resultados.length ?? 0);
+  const correctas=Math.max(0,total-incidencias.length);
+
+  return {r,incidencias,revisiones,codigos,total,correctas};
+}
+
+function componentFriendlyMessage(h){
+  const p=proxyPartialInfo(h);
+  if(p){
+    if(p.revisiones.length===p.incidencias.length){
+      const n=p.revisiones.length;
+      const ordenes=p.codigos.length ? ` (${p.codigos.join(", ")})` : "";
+      return `Proceso completado con observaciones. ${p.correctas} de ${p.total} órdenes fueron gestionadas sin problemas. ${n===1 ? "1 orden requiere" : "Hay "+n+" órdenes que requieren"} revisión manual${ordenes}.`;
+    }
+
+    const codigos=p.incidencias
+      .map(x=>String(x.orderCode||"").trim())
+      .filter(Boolean);
+    const ordenes=codigos.length ? ` (${codigos.join(", ")})` : "";
+
+    return `Proceso completado parcialmente. ${p.correctas} de ${p.total} órdenes fueron gestionadas sin problemas y ${p.incidencias.length} requieren atención${ordenes}.`;
+  }
+
+  return h?.last_error||"";
+}
+
+function componentState(h){
+  if(!h) return {c:"gray",t:"Sin datos"};
+
+  if(proxyPartialInfo(h)){
+    return {c:"yellow",t:"Atención"};
+  }
+
+  const err=h.last_error_at ? new Date(h.last_error_at) : null;
+  const ok=h.last_success_at ? new Date(h.last_success_at) : null;
+
+  if(err && (!ok || err>ok)) return {c:"red",t:"Error"};
+  if(ok) return {c:"green",t:"Operativo"};
+  return {c:"yellow",t:"Esperando primera ejecución"};
+}
+
 function metric(key,label,value,cls=""){return `<div class="card metric ${cls} clickable-card" role="button" tabindex="0" onclick="abrirMetrica('${esc(key)}','${esc(label)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirMetrica('${esc(key)}','${esc(label)}')}"><div class="value">${esc(value)}</div><div class="label">${esc(label)}</div></div>`}
 
 async function cargarDashboard(silent=false){try{DASHBOARD=await api("dashboard");renderDashboard()}catch(e){if(!silent)throw e;document.getElementById("topStatus").innerHTML='<span class="dot red"></span><span>Error de panel</span>'}}
@@ -125,7 +174,8 @@ function renderDashboard(){
    const h=hb[key],st=componentState(h);if(st.c==="red")anyRed=true;
    const last=key==="ues-webhook"&&DASHBOARD.ultimoWebhook?DASHBOARD.ultimoWebhook.received_at:h?.last_success_at;
    const extra=key==="ues-poller"?'<br>Procesamiento: lotes de 15 hasta recorrer todos los pedidos elegibles':"";
-   return `<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponente('${key}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponente('${key}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${title}<span class="badge ${st.c}">${st.t}</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${schedule}${extra}${key==="ues-webhook"&&DASHBOARD.ultimoWebhook?`<br>Último evento: <b>${esc(DASHBOARD.ultimoWebhook.evento_nombre||"—")}</b> · ${esc(DASHBOARD.ultimoWebhook.order_code||DASHBOARD.ultimoWebhook.tracking_number||"sin mapeo")}`:""}</div>${h?.last_error?`<div class="health-error" title="${esc(h.last_error)}">${esc(h.last_error)}</div>`:""}</div>`;
+    const friendly=componentFriendlyMessage(h);
+   return `<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponente('${key}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponente('${key}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${title}<span class="badge ${st.c}">${st.t}</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${schedule}${extra}${key==="ues-webhook"&&DASHBOARD.ultimoWebhook?`<br>Último evento: <b>${esc(DASHBOARD.ultimoWebhook.evento_nombre||"—")}</b> · ${esc(DASHBOARD.ultimoWebhook.order_code||DASHBOARD.ultimoWebhook.tracking_number||"sin mapeo")}`:""}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}" title="${esc(friendly)}">${esc(friendly)}</div>`:""}</div>`;
  }).join("");
  const warn=(m.revisionPendiente||0)>0||Number(m.erroresPendientes??m.errores24h??0)>0||(m.entregasSinPodHoy||0)>0;
  document.getElementById("topStatus").innerHTML=anyRed?'<span class="dot red"></span><span>Requiere atención</span>':warn?'<span class="dot yellow"></span><span>Operativo con alertas</span>':'<span class="dot green"></span><span>Operativo</span>';
@@ -172,13 +222,14 @@ async function abrirMetrica(kind,label){
 function abrirComponente(key,title,schedule){
  const hb=Object.fromEntries((DASHBOARD?.heartbeats||[]).map(x=>[x.component,x]));
  const h=hb[key]||null,st=componentState(h);
+ const friendly=componentFriendlyMessage(h);
  const ultimo=key==="ues-webhook"?DASHBOARD?.ultimoWebhook:null;
  const last=key==="ues-webhook"&&ultimo?ultimo.received_at:h?.last_success_at;
  abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span>`);
  const lookup=ultimo?rowLookup(ultimo):"";
  const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado</div><div class="v">${ultimo.processing_ok===false?"Error":ultimo.processing_ok===true?"OK":"Recibido"}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
  const result=h?.last_result?`<section class="section"><details open><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Último resultado técnico</summary><pre class="json-box">${esc(JSON.stringify(h.last_result,null,2))}</pre></details></section>`:"";
- document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${h?.last_error?`<div class="alert err"><b>Último error:</b><br>${esc(h.last_error)}</div>`:""}${webhookExtra}${result}`;
+ document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${webhookExtra}${result}`;
 }
 
 async function cargarReviews(silent=false){const el=document.getElementById("reviewList");if(!silent)el.innerHTML='<div class="empty">Cargando…</div>';try{REVIEWS=await api("list");renderReviews();document.getElementById("reviewCount").textContent=REVIEWS.length;consultarConteo()}catch(e){if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`}}

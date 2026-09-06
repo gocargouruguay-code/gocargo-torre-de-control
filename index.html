@@ -120,6 +120,8 @@ function proxyPartialInfo(h){
 }
 
 function componentFriendlyMessage(h){
+  if(h?.health_message)return String(h.health_message);
+
   const p=proxyPartialInfo(h);
   if(p){
     if(p.revisiones.length===p.incidencias.length){
@@ -142,6 +144,10 @@ function componentFriendlyMessage(h){
 function componentState(h){
   if(!h) return {c:"gray",t:"Sin datos"};
 
+  if(h.health_state==="ok")return {c:"green",t:"Operativo"};
+  if(h.health_state==="attention")return {c:"yellow",t:"Atención"};
+  if(h.health_state==="error")return {c:"red",t:"Error"};
+
   if(proxyPartialInfo(h)){
     return {c:"yellow",t:"Atención"};
   }
@@ -149,7 +155,7 @@ function componentState(h){
   const err=h.last_error_at ? new Date(h.last_error_at) : null;
   const ok=h.last_success_at ? new Date(h.last_success_at) : null;
 
-  if(err && (!ok || err>ok)) return {c:"red",t:"Error"};
+  if(h.last_error && err && (!ok || err>ok)) return {c:"red",t:"Error"};
   if(ok) return {c:"green",t:"Operativo"};
   return {c:"yellow",t:"Esperando primera ejecución"};
 }
@@ -227,9 +233,10 @@ function abrirComponente(key,title,schedule){
  const last=key==="ues-webhook"&&ultimo?ultimo.received_at:h?.last_success_at;
  abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span>`);
  const lookup=ultimo?rowLookup(ultimo):"";
- const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado</div><div class="v">${ultimo.processing_ok===false?"Error":ultimo.processing_ok===true?"OK":"Recibido"}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
+ const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado de ese webhook</div><div class="v">${ultimo.processing_ok===false?"No aplicado en ese momento":ultimo.processing_ok===true?"OK":"Recibido"}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
  const result=h?.last_result?`<section class="section"><details open><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Último resultado técnico</summary><pre class="json-box">${esc(JSON.stringify(h.last_result,null,2))}</pre></details></section>`:"";
- document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${webhookExtra}${result}`;
+ const historical=h?.last_error_historico&&h?.operational_issue_active===false&&!h?.last_error?`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--muted)">Incidencia histórica ya superada</summary><div class="event-note" style="margin-top:8px;color:var(--muted)">${esc(h.last_error_historico)}</div></details></section>`:"";
+ document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error registrado</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${webhookExtra}${historical}${result}`;
 }
 
 async function cargarReviews(silent=false){const el=document.getElementById("reviewList");if(!silent)el.innerHTML='<div class="empty">Cargando…</div>';try{REVIEWS=await api("list");renderReviews();document.getElementById("reviewCount").textContent=REVIEWS.length;consultarConteo()}catch(e){if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`}}

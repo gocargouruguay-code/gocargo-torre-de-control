@@ -86,6 +86,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
 
 <script>
 const API_BASE_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-admin";
+const API_BASE_UES_DATOS = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-datos";
 const API_BASE_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-admin";
 const API_BASE_RYR_DATOS = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-datos";
 let PASSWORD = "";
@@ -121,6 +122,25 @@ async function apiProvider(provider,action,{method="GET",body=null,query={}}={})
   return data;
 }
 const api=(action,opts={})=>apiProvider("UES",action,opts);
+
+async function apiUesDatos(action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(API_BASE_UES_DATOS+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{
+    status:res.status,data,provider:"UES"
+  });
+  return data;
+}
+
 async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
   const qs=new URLSearchParams({action,...query});
   const res=await fetch(API_BASE_RYR_DATOS+"?"+qs,{
@@ -135,6 +155,61 @@ async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
   try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
   if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,data,provider:"RYR"});
   return data;
+}
+
+function esCasoDatosUes(r){
+  const motivo=norm(r.motivo);
+  return motivo.includes("faltan datos obligatorios para ues")||
+    motivo.includes("falta telefono valido")||
+    motivo.includes("todavia faltan datos obligatorios para ues")||
+    Array.isArray(r?.datos_pendientes?.faltantes)||
+    Array.isArray(r?.faltantes_actuales);
+}
+
+async function enriquecerRevisionUesLive(r){
+  if(!r?.id||!esCasoDatosUes(r))return r;
+
+  try{
+    const live=await apiUesDatos("case",{query:{id:r.id}});
+
+    if(live.resolved||live.visible===false)return null;
+
+    const enriched={
+      ...r,
+      ...live,
+      provider:"UES",
+      faltantes_actuales:Array.isArray(live.faltantes_actuales)
+        ?live.faltantes_actuales
+        :r.faltantes_actuales,
+      campos_editables:Array.isArray(live.campos_editables)
+        ?live.campos_editables
+        :[],
+      datos_sendground_actualizados:
+        live.datos_sendground_actualizados===true
+    };
+
+    // Igual que RyR: si los datos ya fueron corregidos directamente
+    // en SendGround, cerramos solamente la alerta de DATOS.
+    // Un refresco de la Torre NO ejecuta ues-proxy.
+    if(
+      Array.isArray(enriched.faltantes_actuales)&&
+      enriched.faltantes_actuales.length===0
+    ){
+      try{
+        const rec=await apiUesDatos("reconcile",{
+          method:"POST",
+          body:{id:r.id}
+        });
+        if(rec.resolved)return null;
+      }catch{}
+    }
+
+    return enriched;
+  }catch{
+    // Compatibilidad: si ues-datos no responde, conservamos
+    // la revisión original servida por ues-admin.
+    return r;
+  }
 }
 
 function esCasoDatosRyr(r){
@@ -542,7 +617,7 @@ async function cargarReviews(silent=false){
     ]);
     if(u.status==="rejected"&&r.status==="rejected")throw u.reason||r.reason;
 
-    const ur=u.status==="fulfilled"?(Array.isArray(u.value)?u.value:[]).map(x=>({
+    const urBase=u.status==="fulfilled"?(Array.isArray(u.value)?u.value:[]).map(x=>({
       ...x,provider:"UES",source_type:x.source_type||"revision",resolvable:true
     })):[];
     const rrBase=r.status==="fulfilled"?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[])).map(x=>({
@@ -557,15 +632,20 @@ async function cargarReviews(silent=false){
       source_type:x.source_type||"revision",
       resolvable:x.resolvable!==false
     })):[];
-    const rrLive=(await Promise.all(rrBase.map(enriquecerRevisionRyrLive))).filter(Boolean);
+    const [urLive,rrLive]=await Promise.all([
+      Promise.all(urBase.map(enriquecerRevisionUesLive))
+        .then(rows=>rows.filter(Boolean)),
+      Promise.all(rrBase.map(enriquecerRevisionRyrLive))
+        .then(rows=>rows.filter(Boolean))
+    ]);
 
-    REVIEWS=[...ur,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
     // La tarjeta de revisiones debe reflejar lo que REALMENTE sigue pendiente
     // después de releer SendGround, no un caso histórico ya corregido.
     if(DASHBOARD?.metrics){
       DASHBOARD.metrics.revisionPendiente=REVIEWS.length;
-      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=ur.length;
+      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=urLive.length;
       if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rrLive.length;
       renderDashboard();
     }
@@ -663,24 +743,57 @@ function renderReviews(){
       </div>`;
     }
 
-    // UES conserva la lógica live de campos faltantes.
+    // UES usa ues-datos como fuente live, igual que RyR.
     const faltantes=faltantesReview(r);
-    const sincronizado=Array.isArray(r.faltantes_actuales);
+    const sincronizado=
+      r.datos_sendground_actualizados===true||
+      Array.isArray(r.faltantes_actuales);
+    const editables=Array.isArray(r.campos_editables)?r.campos_editables:[];
     const nf=faltantes.map(norm);
-    const necesitaTelefono=nf.some(v=>v.includes("telefono"));
-    const necesitaPuerta=nf.some(v=>v.includes("numero de puerta"));
-    const esCasoDatos=sincronizado||norm(r.motivo).includes("faltan datos obligatorios para ues")||norm(r.motivo).includes("falta telefono valido");
-    const noEditables=faltantes.filter(v=>{const n=norm(v);return !n.includes("telefono")&&!n.includes("numero de puerta");});
+
+    const necesitaTelefono=
+      editables.includes("telefono")||
+      nf.some(v=>v.includes("telefono"));
+
+    const necesitaPuerta=
+      editables.includes("numeroPuerta")||
+      nf.some(v=>v.includes("numero de puerta"));
+
+    const necesitaCalle=
+      editables.includes("calle")||
+      nf.some(v=>v==="calle");
+
+    const necesitaNombre=
+      editables.includes("nombreDestinatario")||
+      nf.some(v=>v.includes("nombre del destinatario"));
+
+    const esCasoDatos=esCasoDatosUes(r);
+
+    const noEditables=faltantes.filter(v=>{
+      const n=norm(v);
+      return !n.includes("telefono")&&
+        !n.includes("numero de puerta")&&
+        n!=="calle"&&
+        !n.includes("nombre del destinatario");
+    });
+
     const motivoVisible=sincronizado
-      ?(faltantes.length?`Faltan datos obligatorios para UES: ${faltantes.join(", ")}`:"Los datos obligatorios ya están corregidos en SendGround. Verificar y crear el envío.")
+      ?(
+        faltantes.length
+          ?`Faltan datos obligatorios para UES: ${faltantes.join(", ")}`
+          :"Los datos obligatorios ya están corregidos en SendGround."
+      )
       :r.motivo;
+
     const campos=esCasoDatos?`
       <div class="phone-row">
         ${necesitaTelefono?`<div class="data-field"><label>Teléfono</label><input class="input" id="tel-${r.id}" placeholder="099123123"></div>`:""}
         ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
+        ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
+        ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
         <button class="btn primary small" onclick="completarDatos(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
       </div>
-      ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. Luego presioná “Verificar y crear”.</div>`:""}
+      ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
       ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
     `:"";
 
@@ -857,22 +970,48 @@ async function completarDatosRyr(id){
 
 async function completarDatos(id){
   const msg=document.getElementById(`msg-${id}`);
-  const telefono=document.getElementById(`tel-${id}`)?.value.trim()||"";
-  const numeroPuerta=document.getElementById(`puerta-${id}`)?.value.trim()||"";
 
-  msg.innerHTML='<div class="alert warn">Releyendo SendGround y validando datos…</div>';
+  const telefono=
+    document.getElementById(`tel-${id}`)?.value.trim()||"";
+  const numeroPuerta=
+    document.getElementById(`puerta-${id}`)?.value.trim()||"";
+  const calle=
+    document.getElementById(`calle-${id}`)?.value.trim()||"";
+  const nombreDestinatario=
+    document.getElementById(`nombre-${id}`)?.value.trim()||"";
+
+  if(msg)msg.innerHTML=
+    '<div class="alert warn">Releyendo SendGround, guardando cambios y validando UES…</div>';
+
   try{
     const body={id};
+
     if(telefono)body.telefono=telefono;
     if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
-    const r=await api("complete",{method:"POST",body});
-    msg.innerHTML=`<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}${r.warning?`<br>⚠ ${esc(r.warning)}`:""}</div>`;
-    setTimeout(()=>{cargarReviews();cargarDashboard(true)},900);
+    const r=await apiUesDatos("complete",{
+      method:"POST",
+      body
+    });
+
+    if(msg)msg.innerHTML=
+      `<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}</div>`;
+
+    setTimeout(
+      ()=>Promise.all([
+        cargarReviews(),
+        cargarDashboard(true)
+      ]),
+      900
+    );
   }catch(e){
-    msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
-    // Si el backend detectó que alguno de los datos ya fue corregido directamente
-    // en SendGround, la próxima renderización mostrará solo lo que siga faltando.
+    if(msg)msg.innerHTML=
+      `<div class="alert err">${esc(e.message)}</div>`;
+
+    // La próxima recarga usa action=case y vuelve a leer
+    // los datos ACTUALES directamente desde SendGround.
     setTimeout(()=>cargarReviews(),1600);
   }
 }

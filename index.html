@@ -26,6 +26,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
 .health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;align-items:start}.health-card{padding:15px;min-width:0;align-self:start}.health-head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);flex-wrap:wrap}.provider-chip{margin-left:auto}.health-meta{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.55;overflow-wrap:anywhere}.health-error{font-size:12px;color:var(--red);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}.health-warning{font-size:12px;color:var(--yellow);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
 .section{margin-top:18px}.section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.section-head h2{font-size:17px;margin:0;color:var(--navy)}.section-head .count{font-size:11px;padding:3px 7px;background:#e7eef6;border-radius:999px;color:var(--navy);font-weight:800}
 .search-card{padding:14px;margin-bottom:18px}.search-row{display:flex;gap:8px}.search-row .input{font-size:15px}.search-results{display:grid;gap:7px;margin-top:10px}.search-result{border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;gap:12px;align-items:center;background:#fff}.search-result:hover{border-color:#aac1d8;background:#f9fbfd}.search-result .code{font-weight:850;color:var(--navy)}.drawer-list{display:grid;gap:8px}.drawer-list .search-result{width:100%}.drawer-summary{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.manual-card{padding:16px;margin-bottom:18px;border-color:#c9d8e8}.manual-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}.manual-head h2{font-size:17px;color:var(--navy);margin:0}.manual-head p{margin:4px 0 0;font-size:12px;color:var(--muted);line-height:1.45}.manual-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) auto;gap:8px;align-items:end}.manual-preview{margin-top:12px}.manual-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}.manual-summary .detail-card{box-shadow:none}.manual-provider-state{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px}.manual-warning{border-left:4px solid #f59e0b}.manual-success{border-left:4px solid #22c55e}@media(max-width:760px){.manual-row{grid-template-columns:1fr}.manual-summary{grid-template-columns:1fr}}
 .filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:10px}.queue{display:grid;gap:10px}.review{padding:14px;display:grid;grid-template-columns:170px 1fr auto;gap:14px;align-items:start}.review-code{font-weight:850;color:var(--navy);cursor:pointer}.review-event{font-size:12px;color:var(--muted);margin-top:4px}.review-motivo{font-size:13px;font-weight:650;color:#6b4b0b;line-height:1.45}.review-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.phone-row{display:flex;gap:6px;margin-top:9px;max-width:520px;align-items:end;flex-wrap:wrap}.phone-row .input{padding:7px 9px;font-size:12px}.data-field{flex:1 1 150px;min-width:130px}.data-field label{margin:0 0 4px;font-size:11px}
 .badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.badge.green{background:var(--green-bg);color:var(--green)}.badge.yellow{background:var(--yellow-bg);color:var(--yellow)}.badge.red{background:var(--red-bg);color:var(--red)}.badge.gray{background:#eef2f6;color:#64748b}.badge.blue{background:#eaf2fb;color:var(--blue)}
 .empty{text-align:center;color:var(--muted);padding:38px 10px}.footer-note{text-align:center;color:#94a3b8;font-size:11px;margin-top:22px}
@@ -66,6 +67,18 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
       <div id="searchResults" class="search-results"></div>
     </div>
 
+    <div class="card manual-card">
+      <div class="manual-head">
+        <div><h2>Enviar orden manualmente</h2><p>Ingresá una ORD de SendGround, elegí UES o RyR y la Torre verificará ambos proveedores antes de habilitar el envío. Si la Transferencia quedó en otro depósito, la excepción queda auditada para esa ORD + taskId + locationId.</p></div>
+      </div>
+      <div class="manual-row">
+        <div><label style="margin-top:0">Orden SendGround</label><input id="manualOrder" class="input mono" placeholder="ORD3VS0" onkeydown="if(event.key==='Enter') previsualizarOrdenManual()" oninput="limpiarPreviewManual()" /></div>
+        <div><label style="margin-top:0">Proveedor destino</label><select id="manualProvider" class="input" onchange="limpiarPreviewManual()"><option value="RYR">RyR</option><option value="UES">UES</option></select></div>
+        <button class="btn primary" id="manualPreviewBtn" onclick="previsualizarOrdenManual()">Previsualizar</button>
+      </div>
+      <div id="manualResult" class="manual-preview"></div>
+    </div>
+
     <section class="section">
       <div class="section-head"><h2>Requieren atención</h2><span id="reviewCount" class="count">0</span></div>
       <div class="filters">
@@ -95,6 +108,7 @@ let DASHBOARD = null;
 let CURRENT_DETAIL = null;
 let METRIC_ROWS = [];
 let SEARCH_ROWS = [];
+let MANUAL_PREVIEW = null;
 let autoTimer = null;
 
 const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
@@ -155,6 +169,12 @@ async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
   try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
   if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,data,provider:"RYR"});
   return data;
+}
+
+function apiDatosProvider(provider,action,opts={}){
+  return String(provider||"UES").toUpperCase()==="RYR"
+    ?apiRyrDatos(action,opts)
+    :apiUesDatos(action,opts);
 }
 
 function esCasoDatosUes(r){
@@ -601,10 +621,19 @@ function abrirComponente(key,title,schedule){
   const last=key==="ues-webhook"&&ultimo?ultimo.received_at:h?.last_success_at;
   abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span><span class="badge blue">UES</span>`);
   const lookup=ultimo?rowLookup(ultimo):"";
-  const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado de ese webhook</div><div class="v">${ultimo.processing_ok===false?"No aplicado en ese momento":ultimo.processing_ok===true?"OK":"Recibido"}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
-  const result=h?.last_result?`<section class="section"><details open><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Último resultado técnico</summary><pre class="json-box">${esc(JSON.stringify(h.last_result,null,2))}</pre></details></section>`:"";
+  const issueHistorica=h?.operational_issue_active===false&&String(h?.last_result?.status||"")==="operational_issue";
+  const webhookHistoricoSuperado=issueHistorica&&ultimo&&String(ultimo.order_code||"")===String(h?.operational_issue_order_code||"");
+  const resultadoWebhook=ultimo?.processing_ok===false
+    ?(webhookHistoricoSuperado?"No aplicado al recibirlo · situación ya superada":"No aplicado en ese momento")
+    :ultimo?.processing_ok===true?"OK":"Recibido";
+  const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado de ese webhook</div><div class="v">${esc(resultadoWebhook)}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
+  const pollerHistorico=key==="ues-poller"&&h?.poller_operational_partial===true;
+  const resumenPoller=pollerHistorico
+    ?`<div class="alert ${num(h?.poller_operational_active)?"warn":"ok"}" style="margin-top:12px"><b>Resultado de la última corrida</b><br>${num(h?.last_result?.errores)||0} incidencia(s) ocurrieron en esa ejecución · ${num(h?.poller_operational_active)} siguen activas ahora · ${num(h?.poller_operational_resolved)} ya fueron superadas.</div>`
+    :"";
+  const result=h?.last_result&&!issueHistorica?`<section class="section"><details ${pollerHistorico?"":"open"}><summary style="cursor:pointer;font-weight:800;color:var(--navy)">${pollerHistorico?"Resultado técnico histórico de la última corrida":"Último resultado técnico"}</summary><pre class="json-box">${esc(JSON.stringify(h.last_result,null,2))}</pre></details></section>`:"";
   const historical=h?.last_error_historico&&h?.operational_issue_active===false&&!h?.last_error?`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--muted)">Incidencia histórica ya superada</summary><div class="event-note" style="margin-top:8px;color:var(--muted)">${esc(h.last_error_historico)}</div></details></section>`:"";
-  document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error registrado</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${webhookExtra}${historical}${result}`;
+  document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error registrado</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${resumenPoller}${webhookExtra}${historical}${result}`;
 }
 
 async function cargarReviews(silent=false){
@@ -652,7 +681,7 @@ async function cargarReviews(silent=false){
 
     renderReviews();
     document.getElementById("reviewCount").textContent=REVIEWS.length;
-    consultarConteo();
+    if(!PASSWORD)consultarConteo();
   }catch(e){
     if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
   }
@@ -831,6 +860,146 @@ function abrirReviewRyr(key){
     subtitle:r.motivo,
     date:r.updated_at||r.created_at
   });
+}
+
+function limpiarPreviewManual(){
+  MANUAL_PREVIEW=null;
+  const el=document.getElementById("manualResult");
+  if(el)el.innerHTML="";
+}
+
+async function obtenerPreviewsManual(orderCode){
+  const [u,r]=await Promise.allSettled([
+    apiUesDatos("manual-preview",{query:{orderCode}}),
+    apiRyrDatos("manual-preview",{query:{orderCode}})
+  ]);
+
+  if(u.status==="rejected"||r.status==="rejected"){
+    const faltan=[];
+    if(u.status==="rejected")faltan.push(`UES: ${u.reason?.message||"sin respuesta"}`);
+    if(r.status==="rejected")faltan.push(`RyR: ${r.reason?.message||"sin respuesta"}`);
+    throw new Error(`No se pudo verificar ambos proveedores. ${faltan.join(" · ")}`);
+  }
+
+  return {UES:u.value,RYR:r.value};
+}
+
+function validarPreviewManual(pack,provider){
+  const selected=pack[provider];
+  const otherProvider=provider==="RYR"?"UES":"RYR";
+  const other=pack[otherProvider];
+  const problems=[];
+
+  if(other?.alreadyLinked){
+    problems.push(`La orden ya está vinculada a ${otherProvider}${other.providerOrderCode?` (${other.providerOrderCode})`:""}.`);
+  }
+  if(selected?.alreadyLinked){
+    problems.push(`La orden ya está vinculada a ${provider}${selected.providerOrderCode?` (${selected.providerOrderCode})`:""}.`);
+  }
+  if(provider==="RYR"){
+    const dup=selected?.manualDuplicateCheck;
+    if(dup&&dup.complete===false)problems.push("La verificación de posibles cargas manuales en RyR quedó incompleta; por seguridad no se habilita el envío.");
+    if(Array.isArray(dup?.strongCandidates)&&dup.strongCandidates.length){
+      problems.push("RyR tiene una posible carga manual previa con datos coincidentes. Debe revisarse antes de crear.");
+    }
+  }
+  if(!selected?.canProcess&&!selected?.alreadyLinked){
+    problems.push(selected?.detalle||`La orden no supera las validaciones de ${provider}.`);
+  }
+
+  return {selected,other,otherProvider,problems,blocked:problems.length>0};
+}
+
+function renderPreviewManual(orderCode,provider,pack){
+  const el=document.getElementById("manualResult");
+  const v=validarPreviewManual(pack,provider);
+  const s=v.selected||{};
+  const o=s.order||{};
+  const t=s.transfer||{};
+  const dup=s.manualDuplicateCheck||{};
+  const providerState=(p,row)=>row?.alreadyLinked
+    ?`<span class="badge red">${p}: ya vinculada${row.providerOrderCode?` · ${esc(row.providerOrderCode)}`:""}</span>`
+    :`<span class="badge green">${p}: sin vínculo local</span>`;
+  const exception=s.requiresException
+    ?`<div class="alert warn manual-warning"><b>Excepción requerida.</b><br>La Transferencia actual está en locationId <b>${esc(t.locationId??"—")}</b>, distinto del depósito normal de ${provider} (${esc(s.expectedPickupLocationId??"—")}). La autorización se limitará a esta ORD + taskId ${esc(t.taskId??"—")} + locationId ${esc(t.locationId??"—")}.</div>`
+    :"";
+  const duplicateInfo=provider==="RYR"
+    ?`<div class="muted" style="font-size:11px;margin-top:7px">Control de carga manual RyR: ${num(dup.reviewed)} órdenes revisadas · ${dup.complete===false?"búsqueda incompleta":"búsqueda completa"}${Array.isArray(dup.weakCandidates)&&dup.weakCandidates.length?` · ${dup.weakCandidates.length} coincidencia(s) débiles no bloqueantes`:""}.</div>`
+    :"";
+  const problems=v.problems.length
+    ?`<div class="alert err"><b>No se habilita el envío.</b><br>${v.problems.map(esc).join("<br>")}</div>`
+    :`<div class="alert ok"><b>Validación correcta.</b><br>${esc(s.detalle||`La orden puede procesarse en ${provider}.`)}</div>`;
+  const button=!v.blocked
+    ?`<button class="btn primary" style="margin-top:12px" onclick="enviarOrdenManual()">Enviar a ${provider}</button>`
+    :"";
+  const pickup=o.pickupName?`<div class="k">Pick Up</div><div class="v">${esc(o.pickupName)}</div>`:"";
+
+  el.innerHTML=`${problems}<div class="manual-provider-state">${providerState("UES",pack.UES)}${providerState("RyR",pack.RYR)}</div><div class="manual-summary"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(orderCode)}</div><div class="k">Destinatario</div><div class="v">${esc(o.recipientName||"—")}</div><div class="k">Teléfono</div><div class="v mono">${esc(o.telephone||"—")}</div><div class="k">Dirección</div><div class="v">${esc(o.address||"—")}</div>${pickup}</div></div><div class="card detail-card"><div class="detail-title">Transferencia</div><div class="kv"><div class="k">Task ID</div><div class="v mono">${esc(t.taskId??"—")}</div><div class="k">Location ID</div><div class="v mono">${esc(t.locationId??"—")}</div><div class="k">Estado</div><div class="v">${esc(t.statusId??"—")}</div><div class="k">Proveedor elegido</div><div class="v"><span class="badge ${provider==="RYR"?"green":"blue"}">${provider}</span></div></div></div><div class="card detail-card"><div class="detail-title">Control</div><div class="kv"><div class="k">Depósito esperado</div><div class="v mono">${esc(s.expectedPickupLocationId??"—")}</div><div class="k">Excepción</div><div class="v">${s.requiresException?"Sí, exacta y auditada":"No"}</div><div class="k">Faltantes</div><div class="v">${Array.isArray(s.missingFields)&&s.missingFields.length?esc(s.missingFields.join(", ")):"Ninguno"}</div></div></div></div>${exception}${duplicateInfo}${button}`;
+}
+
+async function previsualizarOrdenManual(){
+  const orderCode=document.getElementById("manualOrder").value.trim().toUpperCase();
+  const provider=document.getElementById("manualProvider").value.toUpperCase();
+  const el=document.getElementById("manualResult");
+  if(!/^ORD[A-Z0-9_-]+$/.test(orderCode)){
+    el.innerHTML='<div class="alert err">Ingresá un código de orden válido, por ejemplo ORD3VS0.</div>';
+    return;
+  }
+
+  el.innerHTML='<div class="alert warn">Releyendo SendGround y verificando UES + RyR…</div>';
+  try{
+    const pack=await obtenerPreviewsManual(orderCode);
+    MANUAL_PREVIEW={orderCode,provider,pack};
+    renderPreviewManual(orderCode,provider,pack);
+  }catch(e){
+    MANUAL_PREVIEW=null;
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function enviarOrdenManual(){
+  const state=MANUAL_PREVIEW;
+  if(!state)return previsualizarOrdenManual();
+  const currentCode=document.getElementById("manualOrder").value.trim().toUpperCase();
+  const currentProvider=document.getElementById("manualProvider").value.toUpperCase();
+  if(currentCode!==state.orderCode||currentProvider!==state.provider){
+    limpiarPreviewManual();
+    return previsualizarOrdenManual();
+  }
+
+  const el=document.getElementById("manualResult");
+  el.innerHTML='<div class="alert warn">Revalidando ambos proveedores antes de crear…</div>';
+  try{
+    const fresh=await obtenerPreviewsManual(currentCode);
+    const validation=validarPreviewManual(fresh,currentProvider);
+    if(validation.blocked){
+      MANUAL_PREVIEW={orderCode:currentCode,provider:currentProvider,pack:fresh};
+      renderPreviewManual(currentCode,currentProvider,fresh);
+      return;
+    }
+
+    const msg=validation.selected?.requiresException
+      ?`¿Enviar ${currentCode} a ${currentProvider} usando la excepción exacta de Transferencia mostrada?`
+      :`¿Enviar ${currentCode} a ${currentProvider}?`;
+    if(!confirm(msg)){
+      MANUAL_PREVIEW={orderCode:currentCode,provider:currentProvider,pack:fresh};
+      renderPreviewManual(currentCode,currentProvider,fresh);
+      return;
+    }
+
+    el.innerHTML=`<div class="alert warn">Creando/vinculando ${esc(currentCode)} en ${esc(currentProvider)}…</div>`;
+    const result=await apiDatosProvider(currentProvider,"manual-create",{
+      method:"POST",
+      body:{orderCode:currentCode,motivo:`Asignación manual a ${currentProvider} desde Torre de Control`}
+    });
+
+    MANUAL_PREVIEW=null;
+    el.innerHTML=`<div class="alert ok manual-success"><b>✓ ${esc(result.detalle||"Orden procesada correctamente")}</b><br>Proveedor: ${esc(currentProvider)}${result.providerOrderCode?` · Orden/guía: <span class="mono">${esc(result.providerOrderCode)}</span>`:""}${result.exceptionUsed?" · Excepción consumida y auditada":""}. Desde este momento continúa por el flujo normal del proveedor.</div>`;
+    toast(`${currentCode} procesada en ${currentProvider}`);
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
 }
 
 async function buscarGlobal(){

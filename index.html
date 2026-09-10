@@ -56,7 +56,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
   <main id="app" class="hidden">
     <div class="hero">
       <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
-      <div class="hero-actions"><button class="btn secondary" onclick="refrescarTodo()">↻ Actualizar</button><button class="btn secondary" onclick="probarConexiones()">Probar conexiones</button></div>
+      <div class="hero-actions"><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Reprocesa los errores activos y luego vuelve a leer UES, RyR y SendGround">↻ Actualizar</button><button class="btn secondary" onclick="probarConexiones()">Probar conexiones</button></div>
     </div>
 
     <div id="metrics" class="metrics"></div>
@@ -1202,7 +1202,90 @@ async function probarConexiones(){
 }
 function copiar(v){navigator.clipboard?.writeText(v);toast("Copiado: "+v)}
 function abrirSendGround(orderCode,url){copiar(orderCode);window.open(url||"https://app.sendground.com/pedidos","_blank","noopener")}
-async function refrescarTodo(){await Promise.all([cargarDashboard(true),cargarReviews()]);toast("Panel actualizado")}
+function rowsDashboard(res){
+  return Array.isArray(res)?res:(Array.isArray(res?.rows)?res.rows:[]);
+}
+function codigoOrdenRow(row){
+  const code=String(row?.query||row?.order_code||row?.gocargo_order_code||row?.code||"").trim().toUpperCase();
+  return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
+}
+async function refrescarTodo(){
+  const btn=document.getElementById("refreshAllBtn");
+  if(btn?.disabled)return;
+  const original=btn?.innerHTML||"↻ Actualizar";
+  if(btn){btn.disabled=true;btn.innerHTML="↻ Reprocesando…";}
+
+  try{
+    toast("Buscando errores activos para reprocesar…");
+
+    // Tomamos la lista ACTUAL de errores operativos de cada proveedor.
+    // No usamos el número pintado en pantalla porque puede estar desactualizado.
+    const [uErr,rErr]=await Promise.allSettled([
+      apiProvider("UES","dashboard-list",{query:{kind:"erroresPendientes"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"erroresPendientes"}})
+    ]);
+
+    const jobs=[];
+    const seen=new Set();
+    const addJobs=(provider,res)=>{
+      for(const row of rowsDashboard(res)){
+        const orderCode=codigoOrdenRow(row);
+        if(!orderCode)continue;
+        const key=`${provider}:${orderCode}`;
+        if(seen.has(key))continue;
+        seen.add(key);
+        jobs.push({provider,orderCode});
+      }
+    };
+    if(uErr.status==="fulfilled")addJobs("UES",uErr.value);
+    if(rErr.status==="fulfilled")addJobs("RYR",rErr.value);
+
+    const resultados=[];
+    // Máximo dos reprocesos simultáneos para no presionar SendGround ni los proveedores.
+    let cursor=0;
+    async function worker(){
+      while(cursor<jobs.length){
+        const job=jobs[cursor++];
+        try{
+          const r=await apiProvider(job.provider,"reprocess",{
+            method:"POST",
+            body:{order_code:job.orderCode}
+          });
+          resultados.push({provider:job.provider,orderCode:job.orderCode,ok:r?.ok!==false});
+        }catch(e){
+          resultados.push({provider:job.provider,orderCode:job.orderCode,ok:false,error:e?.message||String(e)});
+        }
+      }
+    }
+    await Promise.all([worker(),worker()]);
+
+    // Dejamos que los pollers terminen de persistir last_error / cierres y luego
+    // releemos todo. cargarReviews además reconcilia alertas históricas de UES.
+    await new Promise(r=>setTimeout(r,700));
+    await Promise.all([cargarDashboard(true),cargarReviews()]);
+
+    const ok=resultados.filter(x=>x.ok).length;
+    const fail=resultados.length-ok;
+    const fuentesFallidas=[];
+    if(uErr.status==="rejected")fuentesFallidas.push("UES");
+    if(rErr.status==="rejected")fuentesFallidas.push("RyR");
+
+    if(jobs.length===0){
+      toast(fuentesFallidas.length
+        ?`Panel actualizado · no se pudo consultar ${fuentesFallidas.join(" y ")}`
+        :"Panel actualizado · no había errores activos para reprocesar");
+    }else if(fail===0&&fuentesFallidas.length===0){
+      toast(`Panel actualizado · ${ok} orden${ok===1?"":"es"} reprocesada${ok===1?"":"s"}`);
+    }else{
+      toast(`Panel actualizado · ${ok} reproceso${ok===1?"":"s"} OK · ${fail} con error${fuentesFallidas.length?` · sin consultar ${fuentesFallidas.join("/")}`:""}`);
+    }
+  }catch(e){
+    toast(e?.message||"No se pudo actualizar/reprocesar el panel");
+    try{await Promise.all([cargarDashboard(true),cargarReviews()]);}catch{}
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=original;}
+  }
+}
 </script>
 </body>
 </html>

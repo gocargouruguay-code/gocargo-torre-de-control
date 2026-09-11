@@ -695,41 +695,64 @@ async function cargarReviews(silent=false){
   const el=document.getElementById("reviewList");
   if(!silent)el.innerHTML='<div class="empty">Cargando UES y RyR…</div>';
   try{
+    // Fuente única de "Revisión pendiente": el mismo dashboard-list que
+    // alimenta la tarjeta. Así el contador y el listado nunca se pisan entre sí.
     const [u,r]=await Promise.allSettled([
-      apiProvider("UES","list"),
-      apiProvider("RYR","list")
+      apiProvider("UES","dashboard-list",{query:{kind:"revisionPendiente"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"revisionPendiente"}})
     ]);
     if(u.status==="rejected"&&r.status==="rejected")throw u.reason||r.reason;
 
-    const urBase=u.status==="fulfilled"?(Array.isArray(u.value)?u.value:[]).map(x=>({
-      ...x,provider:"UES",source_type:x.source_type||"revision",resolvable:true
-    })):[];
-    const rrBase=r.status==="fulfilled"?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[])).map(x=>({
-      ...x,
-      provider:"RYR",
-      id:x.id??x.source_id,
-      order_code:x.order_code??x.gocargo_order_code??x.code??x.query,
-      ryr_order_code:x.ryr_order_code??x.ryrOrderCode,
-      evento:x.evento??x.etapa??x.title??"Revisión RyR",
-      motivo:x.motivo??x.subtitle??x.error??"",
-      created_at:x.created_at??x.date??x.updated_at,
-      source_type:x.source_type||"revision",
-      resolvable:x.resolvable!==false
-    })):[];
+    const urRaw=u.status==="fulfilled"
+      ?(Array.isArray(u.value)?u.value:(Array.isArray(u.value?.rows)?u.value.rows:[]))
+      :[];
+    const rrRaw=r.status==="fulfilled"
+      ?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[]))
+      :[];
+
+    const urBase=urRaw.map(x=>{
+      const source=String(x.source_type||"revision");
+      return {
+        ...x,
+        provider:"UES",
+        id:x.id??x.source_id,
+        order_code:x.order_code??x.code??x.query,
+        evento:x.evento??x.title??(source==="operational_alert"?"Entrega GoCargo sin asignar":"Revisión UES"),
+        motivo:x.motivo??x.subtitle??"",
+        created_at:x.created_at??x.date??x.updated_at,
+        source_type:source,
+        resolvable:source==="revision" && x.resolvable!==false
+      };
+    });
+
+    const rrBase=rrRaw.map(x=>{
+      const source=String(x.source_type||"revision");
+      return {
+        ...x,
+        provider:"RYR",
+        id:x.id??x.source_id,
+        order_code:x.order_code??x.gocargo_order_code??x.code??x.query,
+        ryr_order_code:x.ryr_order_code??x.ryrOrderCode,
+        evento:x.evento??x.etapa??x.title??(source==="operational_alert"?"Entrega GoCargo sin asignar":"Revisión RyR"),
+        motivo:x.motivo??x.subtitle??x.error??"",
+        created_at:x.created_at??x.date??x.updated_at,
+        source_type:source,
+        resolvable:source==="revision" && x.resolvable!==false
+      };
+    });
+
     const [urLive,rrLive]=await Promise.all([
-      Promise.all(urBase.map(enriquecerRevisionUesLive))
-        .then(rows=>rows.filter(Boolean)),
-      Promise.all(rrBase.map(enriquecerRevisionRyrLive))
-        .then(rows=>rows.filter(Boolean))
+      Promise.all(urBase.map(enriquecerRevisionUesLive)).then(rows=>rows.filter(Boolean)),
+      Promise.all(rrBase.map(enriquecerRevisionRyrLive)).then(rows=>rows.filter(Boolean))
     ]);
 
     REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
-    // La tarjeta de revisiones cuenta solo revisiones. La lista de atención
-    // también puede contener errores RyR, que NO deben inflar ese contador.
+    // Sincronizar la tarjeta con exactamente los registros que la lista muestra.
+    // Las alertas operativas (p.ej. Entrega sin asignar) SON revisiones pendientes.
     if(DASHBOARD?.metrics){
-      const uRev=urLive.filter(x=>String(x.source_type||"revision")==="revision").length;
-      const rRev=rrLive.filter(x=>String(x.source_type||"revision")==="revision").length;
+      const uRev=urLive.length;
+      const rRev=rrLive.length;
       DASHBOARD.metrics.revisionPendiente=uRev+rRev;
       if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uRev;
       if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rRev;
@@ -898,7 +921,7 @@ function renderReviews(){
       </div>
       <div class="review-actions">
         <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
-        <button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>
+        ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>`:""}
       </div>
     </div>`;
   }).join("");

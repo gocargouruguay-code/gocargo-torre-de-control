@@ -1010,6 +1010,9 @@ function renderPreviewManual(orderCode,provider,pack){
   const providerState=(p,row)=>row?.alreadyLinked
     ?`<span class="badge red">${p}: ya vinculada${row.providerOrderCode?` · ${esc(row.providerOrderCode)}`:""}</span>`
     :`<span class="badge green">${p}: sin vínculo local</span>`;
+  const manualOverride=s.manualDeliveryOverride===true
+    ?`<div class="alert warn manual-warning"><b>Excepción manual por Entrega habilitada.</b><br>Esta excepción existe únicamente en <b>Enviar orden manualmente</b>. La Torre omitirá el estado de la Transferencia y de las tareas intermedias porque existe una tarea Entrega posterior que no está Cancelada. Las validaciones de orden cancelada, datos obligatorios y duplicados siguen vigentes.</div>`
+    :"";
   const exception=s.requiresException
     ?`<div class="alert warn manual-warning"><b>Excepción requerida.</b><br>La Transferencia actual está en locationId <b>${esc(t.locationId??"—")}</b>, distinto del depósito normal de ${provider} (${esc(s.expectedPickupLocationId??"—")}). La autorización se limitará a esta ORD + taskId ${esc(t.taskId??"—")} + locationId ${esc(t.locationId??"—")}.</div>`
     :"";
@@ -1024,7 +1027,7 @@ function renderPreviewManual(orderCode,provider,pack){
     :"";
   const pickup=o.pickupName?`<div class="k">Pick Up</div><div class="v">${esc(o.pickupName)}</div>`:"";
 
-  el.innerHTML=`${problems}<div class="manual-provider-state">${providerState("UES",pack.UES)}${providerState("RyR",pack.RYR)}</div><div class="manual-summary"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(orderCode)}</div><div class="k">Destinatario</div><div class="v">${esc(o.recipientName||"—")}</div><div class="k">Teléfono</div><div class="v mono">${esc(o.telephone||"—")}</div><div class="k">Dirección</div><div class="v">${esc(o.address||"—")}</div>${pickup}</div></div><div class="card detail-card"><div class="detail-title">Transferencia</div><div class="kv"><div class="k">Task ID</div><div class="v mono">${esc(t.taskId??"—")}</div><div class="k">Location ID</div><div class="v mono">${esc(t.locationId??"—")}</div><div class="k">Estado</div><div class="v">${esc(t.statusId??"—")}</div><div class="k">Proveedor elegido</div><div class="v"><span class="badge ${provider==="RYR"?"green":"blue"}">${provider}</span></div></div></div><div class="card detail-card"><div class="detail-title">Control</div><div class="kv"><div class="k">Depósito esperado</div><div class="v mono">${esc(s.expectedPickupLocationId??"—")}</div><div class="k">Excepción</div><div class="v">${s.requiresException?"Sí, exacta y auditada":"No"}</div><div class="k">Faltantes</div><div class="v">${Array.isArray(s.missingFields)&&s.missingFields.length?esc(s.missingFields.join(", ")):"Ninguno"}</div></div></div></div>${exception}${duplicateInfo}${button}`;
+  el.innerHTML=`${problems}<div class="manual-provider-state">${providerState("UES",pack.UES)}${providerState("RyR",pack.RYR)}</div><div class="manual-summary"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(orderCode)}</div><div class="k">Destinatario</div><div class="v">${esc(o.recipientName||"—")}</div><div class="k">Teléfono</div><div class="v mono">${esc(o.telephone||"—")}</div><div class="k">Dirección</div><div class="v">${esc(o.address||"—")}</div>${pickup}</div></div><div class="card detail-card"><div class="detail-title">Transferencia</div><div class="kv"><div class="k">Task ID</div><div class="v mono">${esc(t.taskId??"—")}</div><div class="k">Location ID</div><div class="v mono">${esc(t.locationId??"—")}</div><div class="k">Estado</div><div class="v">${esc(t.statusId??"—")}</div><div class="k">Proveedor elegido</div><div class="v"><span class="badge ${provider==="RYR"?"green":"blue"}">${provider}</span></div></div></div><div class="card detail-card"><div class="detail-title">Control</div><div class="kv"><div class="k">Depósito esperado</div><div class="v mono">${esc(s.expectedPickupLocationId??"—")}</div><div class="k">Excepción</div><div class="v">${s.requiresException?"Sí, exacta y auditada":"No"}</div><div class="k">Faltantes</div><div class="v">${Array.isArray(s.missingFields)&&s.missingFields.length?esc(s.missingFields.join(", ")):"Ninguno"}</div></div></div></div>${manualOverride}${exception}${duplicateInfo}${button}`;
 }
 
 async function previsualizarOrdenManual(){
@@ -1068,7 +1071,9 @@ async function enviarOrdenManual(){
       return;
     }
 
-    const msg=validation.selected?.requiresException
+    const msg=validation.selected?.manualDeliveryOverride===true
+      ?`¿Enviar ${currentCode} a ${currentProvider} usando la excepción manual? Se ignorará el estado de la Transferencia y de las tareas intermedias porque la Entrega no está Cancelada.`
+      :validation.selected?.requiresException
       ?`¿Enviar ${currentCode} a ${currentProvider} usando la excepción exacta de Transferencia mostrada?`
       :`¿Enviar ${currentCode} a ${currentProvider}?`;
     if(!confirm(msg)){
@@ -1084,7 +1089,7 @@ async function enviarOrdenManual(){
     });
 
     MANUAL_PREVIEW=null;
-    el.innerHTML=`<div class="alert ok manual-success"><b>✓ ${esc(result.detalle||"Orden procesada correctamente")}</b><br>Proveedor: ${esc(currentProvider)}${result.providerOrderCode?` · Orden/guía: <span class="mono">${esc(result.providerOrderCode)}</span>`:""}${result.exceptionUsed?" · Excepción consumida y auditada":""}. Desde este momento continúa por el flujo normal del proveedor.</div>`;
+    el.innerHTML=`<div class="alert ok manual-success"><b>✓ ${esc(result.detalle||"Orden procesada correctamente")}</b><br>Proveedor: ${esc(currentProvider)}${result.providerOrderCode?` · Orden/guía: <span class="mono">${esc(result.providerOrderCode)}</span>`:""}${result.manualDeliveryOverrideUsed?" · Excepción manual por Entrega no cancelada":result.exceptionUsed?" · Excepción consumida y auditada":""}. Desde este momento continúa por el flujo normal del proveedor.</div>`;
     toast(`${currentCode} procesada en ${currentProvider}`);
     await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
   }catch(e){

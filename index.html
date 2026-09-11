@@ -1315,13 +1315,16 @@ async function refrescarTodo(){
   if(btn){btn.disabled=true;btn.innerHTML="↻ Reprocesando…";}
 
   try{
-    toast("Buscando errores activos para reprocesar…");
+    toast("Sincronizando todos los pedidos abiertos de UES y RyR…");
 
-    // Tomamos la lista ACTUAL de errores operativos de cada proveedor.
-    // No usamos el número pintado en pantalla porque puede estar desactualizado.
-    const [uErr,rErr]=await Promise.allSettled([
-      apiProvider("UES","dashboard-list",{query:{kind:"erroresPendientes"}}),
-      apiProvider("RYR","dashboard-list",{query:{kind:"erroresPendientes"}})
+    // IMPORTANTE: "Actualizar" debe DESCUBRIR problemas nuevos, no solamente
+    // reprocesar alertas que ya existen. Por eso recorremos todos los pedidos
+    // abiertos de ambos proveedores. Cada reproceso ejecuta el poller de UNA ORD
+    // del lado servidor (sin exponer secretos en el navegador) y actualiza, entre
+    // otras cosas, las alertas de Entrega GoCargo sin asignar.
+    const [uOpen,rOpen]=await Promise.allSettled([
+      apiProvider("UES","dashboard-list",{query:{kind:"abiertos"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"abiertos"}})
     ]);
 
     const jobs=[];
@@ -1336,8 +1339,8 @@ async function refrescarTodo(){
         jobs.push({provider,orderCode});
       }
     };
-    if(uErr.status==="fulfilled")addJobs("UES",uErr.value);
-    if(rErr.status==="fulfilled")addJobs("RYR",rErr.value);
+    if(uOpen.status==="fulfilled")addJobs("UES",uOpen.value);
+    if(rOpen.status==="fulfilled")addJobs("RYR",rOpen.value);
 
     const resultados=[];
     // Máximo dos reprocesos simultáneos para no presionar SendGround ni los proveedores.
@@ -1366,20 +1369,20 @@ async function refrescarTodo(){
     const ok=resultados.filter(x=>x.ok).length;
     const fail=resultados.length-ok;
     const fuentesFallidas=[];
-    if(uErr.status==="rejected")fuentesFallidas.push("UES");
-    if(rErr.status==="rejected")fuentesFallidas.push("RyR");
+    if(uOpen.status==="rejected")fuentesFallidas.push("UES");
+    if(rOpen.status==="rejected")fuentesFallidas.push("RyR");
 
     if(jobs.length===0){
       toast(fuentesFallidas.length
         ?`Panel actualizado · no se pudo consultar ${fuentesFallidas.join(" y ")}`
-        :"Panel actualizado · no había errores activos para reprocesar");
+        :"Panel actualizado · no había pedidos abiertos para sincronizar");
     }else if(fail===0&&fuentesFallidas.length===0){
-      toast(`Panel actualizado · ${ok} orden${ok===1?"":"es"} reprocesada${ok===1?"":"s"}`);
+      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} revisado${ok===1?"":"s"}`);
     }else{
-      toast(`Panel actualizado · ${ok} reproceso${ok===1?"":"s"} OK · ${fail} con error${fuentesFallidas.length?` · sin consultar ${fuentesFallidas.join("/")}`:""}`);
+      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} OK · ${fail} con error${fuentesFallidas.length?` · sin consultar ${fuentesFallidas.join("/")}`:""}`);
     }
   }catch(e){
-    toast(e?.message||"No se pudo actualizar/reprocesar el panel");
+    toast(e?.message||"No se pudo sincronizar el panel");
     try{await Promise.all([cargarDashboard(true),cargarReviews()]);}catch{}
   }finally{
     if(btn){btn.disabled=false;btn.innerHTML=original;}

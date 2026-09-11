@@ -106,6 +106,8 @@ let PASSWORD = "";
 let REVIEWS = [];
 let DASHBOARD = null;
 let CURRENT_DETAIL = null;
+let CURRENT_METRIC_ROW = null;
+let PUBLIC_COUNTS = {UES:null,RYR:null};
 let METRIC_ROWS = [];
 let SEARCH_ROWS = [];
 let MANUAL_PREVIEW = null;
@@ -288,6 +290,8 @@ async function consultarConteo(){
 
   const u=uesRes.status==="fulfilled"?uesRes.value:{};
   const r=ryrRes.status==="fulfilled"?ryrRes.value:{};
+  if(uesRes.status==="fulfilled")PUBLIC_COUNTS.UES=u;
+  if(ryrRes.status==="fulfilled")PUBLIC_COUNTS.RYR=r;
   const uRev=num(u.revisionPendiente??u.count),uErr=num(u.erroresPendientes??u.errores24h);
   const rRev=num(r.revisionPendiente??r.count),rErr=num(r.erroresPendientes??r.errores24h);
   const revisiones=uRev+rRev,errores=uErr+rErr,total=revisiones+errores;
@@ -385,13 +389,43 @@ async function cargarDashboard(silent=false){
       apiProvider("UES","dashboard"),
       apiProvider("RYR","dashboard")
     ]);
+
     const authError=[uesRes,ryrRes].find(x=>x.status==="rejected"&&x.reason?.status===401);
     if(authError)throw authError.reason;
     if(uesRes.status==="rejected"&&ryrRes.status==="rejected")throw uesRes.reason||ryrRes.reason;
 
     const u=uesRes.status==="fulfilled"?uesRes.value:{};
     const r=ryrRes.status==="fulfilled"?ryrRes.value:{};
-    const um=u.metrics||{},rm=r.metrics||{};
+    const um={...(u.metrics||{})};
+    const rm={...(r.metrics||{})};
+
+    // count es la misma fuente pública que se ve antes del login. Solo se usa
+    // como fallback si al dashboard de un proveedor le faltan estos contadores;
+    // así no duplicamos consultas live a SendGround en cada refresco normal.
+    const necesitaCountU=!Object.prototype.hasOwnProperty.call(um,"abiertos")||
+      !Object.prototype.hasOwnProperty.call(um,"revisionPendiente")||
+      !Object.prototype.hasOwnProperty.call(um,"erroresPendientes");
+    const necesitaCountR=!Object.prototype.hasOwnProperty.call(rm,"abiertos")||
+      !Object.prototype.hasOwnProperty.call(rm,"revisionPendiente")||
+      !Object.prototype.hasOwnProperty.call(rm,"erroresPendientes");
+    const [uesCountRes,ryrCountRes]=await Promise.all([
+      necesitaCountU?Promise.resolve(apiProvider("UES","count")).then(value=>({ok:true,value})).catch(error=>({ok:false,error})):Promise.resolve(null),
+      necesitaCountR?Promise.resolve(apiProvider("RYR","count")).then(value=>({ok:true,value})).catch(error=>({ok:false,error})):Promise.resolve(null)
+    ]);
+
+    if(uesCountRes?.ok)PUBLIC_COUNTS.UES=uesCountRes.value||{};
+    if(ryrCountRes?.ok)PUBLIC_COUNTS.RYR=ryrCountRes.value||{};
+    const uc=uesCountRes?.ok?uesCountRes.value:(PUBLIC_COUNTS.UES||{});
+    const rc=ryrCountRes?.ok?ryrCountRes.value:(PUBLIC_COUNTS.RYR||{});
+    if(!Object.prototype.hasOwnProperty.call(um,"abiertos")&&uc?.abiertos!==undefined)um.abiertos=num(uc.abiertos);
+    if(!Object.prototype.hasOwnProperty.call(um,"revisionPendiente")&&(uc?.revisionPendiente!==undefined||uc?.count!==undefined))um.revisionPendiente=num(uc.revisionPendiente??uc.count);
+    if(!Object.prototype.hasOwnProperty.call(um,"erroresPendientes")&&(uc?.erroresPendientes!==undefined||uc?.errores24h!==undefined))um.erroresPendientes=num(uc.erroresPendientes??uc.errores24h);
+    if(!Object.prototype.hasOwnProperty.call(rm,"abiertos")&&rc?.abiertos!==undefined)rm.abiertos=num(rc.abiertos);
+    if(!Object.prototype.hasOwnProperty.call(rm,"revisionPendiente")&&(rc?.revisionPendiente!==undefined||rc?.count!==undefined))rm.revisionPendiente=num(rc.revisionPendiente??rc.count);
+    if(!Object.prototype.hasOwnProperty.call(rm,"erroresPendientes")&&(rc?.erroresPendientes!==undefined||rc?.errores24h!==undefined))rm.erroresPendientes=num(rc.erroresPendientes??rc.errores24h);
+
+    u.metrics=um;
+    r.metrics=rm;
 
     const combine=(key,alias=null)=>{
       const uk=um[key]??(alias?um[alias]:undefined);
@@ -404,6 +438,10 @@ async function cargarDashboard(silent=false){
       _ues:u,
       _ryr:r,
       _providerStatus:{UES:uesRes.status==="fulfilled",RYR:ryrRes.status==="fulfilled"},
+      _providerDegraded:{
+        UES:uesRes.status!=="fulfilled"||u.partial===true,
+        RYR:ryrRes.status!=="fulfilled"||r.partial===true
+      },
       metrics:{
         ...um,
         abiertos:combine("abiertos"),
@@ -421,7 +459,6 @@ async function cargarDashboard(silent=false){
     document.getElementById("topStatus").innerHTML='<span class="dot red"></span><span>Error de panel</span>';
   }
 }
-
 function ryrHealthEntries(r){
   const raw=[
     ...(Array.isArray(r?.heartbeats)?r.heartbeats:[]),
@@ -502,16 +539,18 @@ function renderDashboard(){
     const rRev=num(rm.revisionPendiente);
     const rAbiertos=num(rm.abiertos);
     const providerOk=DASHBOARD._providerStatus?.RYR;
-    const st=!providerOk?{c:"yellow",t:"Sin conexión"}:rErr?{c:"red",t:"Requiere atención"}:rRev?{c:"yellow",t:"Atención"}:{c:"green",t:"Operativo"};
+    const providerPartial=!!DASHBOARD._providerDegraded?.RYR;
+    const st=!providerOk?{c:"yellow",t:"Sin conexión"}:rErr?{c:"red",t:"Requiere atención"}:rRev?{c:"yellow",t:"Atención"}:providerPartial?{c:"yellow",t:"Datos parciales"}:{c:"green",t:"Operativo"};
     if(st.c==="red")anyRed=true;
-    cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirResumenRyr()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirResumenRyr()}"><div class="health-head"><span class="dot ${st.c}"></span>Procesos RyR<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">${providerOk?`Pedidos abiertos: <b>${rAbiertos}</b><br>Revisiones pendientes: <b>${rRev}</b><br>Errores pendientes: <b>${rErr}</b>`:"El panel UES no pudo consultar ryr-admin en esta actualización."}</div><div class="muted" style="font-size:11px;margin-top:7px">${providerOk?"ryr-admin no expone telemetría por componente en esta respuesta; se muestra el estado operativo disponible.":"UES continúa funcionando de forma independiente."}</div></div>`);
+    cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirResumenRyr()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirResumenRyr()}"><div class="health-head"><span class="dot ${st.c}"></span>Procesos RyR<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">${providerOk?`Pedidos abiertos: <b>${rAbiertos}</b><br>Revisiones pendientes: <b>${rRev}</b><br>Errores pendientes: <b>${rErr}</b>`:"La Torre no pudo consultar ryr-admin en esta actualización."}</div><div class="muted" style="font-size:11px;margin-top:7px">${providerOk?(providerPartial?"ryr-admin respondió parcialmente; se muestran solo los datos disponibles.":"ryr-admin no expone telemetría por componente en esta respuesta; se muestra el estado operativo disponible."):"UES continúa funcionando de forma independiente."}</div></div>`);
   }
 
   document.getElementById("health").innerHTML=cards.join("");
 
   const warn=(m.revisionPendiente||0)>0||num(m.erroresPendientes??m.errores24h)>0||(m.entregasSinPodHoy||0)>0;
   const ps=DASHBOARD._providerStatus||{UES:true,RYR:true};
-  const parcial=!ps.UES||!ps.RYR;
+  const degraded=DASHBOARD._providerDegraded||{};
+  const parcial=!ps.UES||!ps.RYR||degraded.UES||degraded.RYR;
   document.getElementById("topStatus").innerHTML=anyRed
     ?'<span class="dot red"></span><span>Requiere atención</span>'
     :parcial
@@ -521,8 +560,9 @@ function renderDashboard(){
         :'<span class="dot green"></span><span>UES + RyR operativos</span>';
 }
 
-function abrirModalBase(titulo,estadoHtml=""){
+function abrirModalBase(titulo,estadoHtml="",preserveMetric=false){
  CURRENT_DETAIL=null;
+ if(!preserveMetric)CURRENT_METRIC_ROW=null;
  document.getElementById("detailModal").classList.remove("hidden");
  document.getElementById("detailTitle").textContent=titulo;
  document.getElementById("detailStatus").innerHTML=estadoHtml;
@@ -532,11 +572,13 @@ function rowLookup(r){return r.query||r.order_code||r.tracking_number||r.numero_
 
 function renderListaMetrica(data){
   const rows=Array.isArray(data?.rows)?data.rows:[];
+  const warnings=Array.isArray(data?.warnings)?data.warnings:[];
   METRIC_ROWS=rows;
   const total=Number(data?.total??rows.length);
   document.getElementById("detailStatus").innerHTML=`<span class="badge blue">${esc(total)} registro${total===1?"":"s"}</span>`;
+  const warningBox=warnings.length?`<div class="alert warn"><b>Consulta parcial:</b><br>${warnings.map(esc).join("<br>")}</div>`:"";
   if(!rows.length){
-    document.getElementById("detailBody").innerHTML='<div class="card empty">No hay registros para mostrar.</div>';
+    document.getElementById("detailBody").innerHTML=warningBox+'<div class="card empty">No hay registros para mostrar.</div>';
     return;
   }
   const lista=rows.map((r,i)=>{
@@ -544,19 +586,20 @@ function renderListaMetrica(data){
     const pcls=provider==="RYR"?"green":"blue";
     return `<div class="search-result" onclick="abrirRegistroMetrica(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){abrirRegistroMetrica(${i})}"><div><div><span class="badge ${pcls}">${provider}</span></div><div class="code mono" style="margin-top:5px">${esc(r.code||rowLookup(r)||"—")}</div><div style="font-size:12px;font-weight:750;margin-top:2px">${esc(r.title||"")}</div><div class="muted" style="font-size:11px;margin-top:2px">${esc(r.subtitle||"")}</div>${r.date?`<div class="muted" style="font-size:11px;margin-top:2px">${fmt(r.date)}</div>`:""}</div><div class="spacer"></div>${r.badge?`<span class="badge ${esc(r.badgeClass||"blue")}">${esc(r.badge)}</span>`:""}</div>`;
   }).join("");
-  document.getElementById("detailBody").innerHTML=`<div class="drawer-summary"><span class="muted">Hacé clic en un registro para abrir su detalle.</span></div><div class="drawer-list">${lista}</div>`;
+  const shown=rows.length<total?`<span class="muted">Mostrando ${rows.length} de ${total}.</span>`:"";
+  document.getElementById("detailBody").innerHTML=`${warningBox}<div class="drawer-summary"><span class="muted">Hacé clic en un registro para abrir su detalle.</span>${shown}</div><div class="drawer-list">${lista}</div>`;
 }
-
 function abrirRegistroMetrica(i){
   const r=METRIC_ROWS[i];if(!r)return;
+  CURRENT_METRIC_ROW=r;
   String(r.provider||"UES").toUpperCase()==="RYR"
-    ?abrirDetalleRyr(r)
-    :abrirDetalle(rowLookup(r));
+    ?abrirDetalleRyr(r,true)
+    :abrirDetalle(rowLookup(r),true);
 }
-
-function abrirDetalleRyr(r){
+function abrirDetalleRyr(r,preserveMetric=false){
+  abrirModalBase(r.code||r.query||r.order_code||"RyR",'<span class="badge green">RyR</span>',preserveMetric);
   CURRENT_DETAIL={provider:"RYR",row:r};
-  abrirModalBase(r.code||r.query||r.order_code||"RyR",'<span class="badge green">RyR</span>');
+  if(preserveMetric)CURRENT_METRIC_ROW=r;
   const code=r.code||r.order_code||r.query||"—";
   const ryrCode=r.ryrOrderCode||r.ryr_order_code||"—";
   const motivo=String(r.subtitle||r.motivo||r.error||"");
@@ -566,10 +609,12 @@ function abrirDetalleRyr(r){
   const esDatos=esCasoDatosRyr(r);
   const faltantes=faltantesReview(r);
   const live=Array.isArray(r.faltantes_actuales);
+  const dismissButton=r.dismissible===true?'<button class="btn danger small" style="margin-top:12px;margin-left:8px" onclick="descartarAvisoActual()">Descartar</button>':"";
   const liveBox=esDatos&&id>0?`<div class="alert ${faltantes.length?"warn":"ok"}" style="margin-top:12px"><b>Datos actuales de SendGround</b><br>${faltantes.length?`Faltan: ${esc(faltantes.join(", "))}`:"Los datos obligatorios ya están correctos."}${live?'<br><span class="muted" style="font-size:11px">Verificado en vivo contra SendGround.</span>':""}</div>`:"";
-  document.getElementById("detailBody").innerHTML=`<div class="card detail-card"><div class="detail-title">RyR</div><div class="kv"><div class="k">Orden GoCargo</div><div class="v mono">${esc(code)}</div><div class="k">Orden RyR</div><div class="v mono">${esc(ryrCode)}</div><div class="k">Etapa / proceso</div><div class="v">${esc(r.title||r.evento||r.etapa||"—")}</div><div class="k">Fecha</div><div class="v">${fmt(r.date||r.updated_at||r.created_at)}</div></div>${motivo?`<div class="alert ${source==="error"?"err":"warn"}" style="margin-top:12px">${esc(motivo)}</div>`:""}${liveBox}${!esDatos&&resolvable&&id>0?`<button class="btn secondary small" style="margin-top:12px" onclick="resolverCaso('RYR',${id},'${esc(code)}')">Marcar resuelto</button>`:'<div class="muted" style="font-size:11px;margin-top:12px">${esDatos?"Los casos de datos se resuelven corrigiendo/verificando SendGround, no marcándolos manualmente.":"Los estados automáticos de RyR se actualizan desde su propia integración."}</div>'}<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Datos técnicos recibidos de ryr-admin / ryr-datos</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section></div>`;
+  const resolveButton=!esDatos&&resolvable&&id>0?`<button class="btn secondary small" style="margin-top:12px" onclick="resolverCaso('RYR',${id},'${esc(code)}')">Marcar resuelto</button>`:"";
+  const info=!resolveButton?`<div class="muted" style="font-size:11px;margin-top:12px">${esDatos?"Los casos de datos se resuelven corrigiendo/verificando SendGround, no marcándolos manualmente.":"Los estados automáticos de RyR se actualizan desde su propia integración."}</div>`:"";
+  document.getElementById("detailBody").innerHTML=`<div class="card detail-card"><div class="detail-title">RyR</div><div class="kv"><div class="k">Orden GoCargo</div><div class="v mono">${esc(code)}</div><div class="k">Orden RyR</div><div class="v mono">${esc(ryrCode)}</div><div class="k">Etapa / proceso</div><div class="v">${esc(r.title||r.evento||r.etapa||"—")}</div><div class="k">Fecha</div><div class="v">${fmt(r.date||r.updated_at||r.created_at)}</div></div>${motivo?`<div class="alert ${source==="error"?"err":"warn"}" style="margin-top:12px">${esc(motivo)}</div>`:""}${liveBox}<div>${resolveButton}${dismissButton}</div>${info}<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Datos técnicos recibidos de ryr-admin / ryr-datos</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section></div>`;
 }
-
 async function abrirMetrica(kind,label){
   abrirModalBase(label,'<span class="badge gray">Cargando…</span>');
   document.getElementById("detailBody").innerHTML='<div class="empty">Consultando UES y RyR…</div>';
@@ -583,12 +628,19 @@ async function abrirMetrica(kind,label){
     document.getElementById("detailBody").innerHTML=`<div class="alert err">${esc(e?.message||"No se pudo consultar")}</div>`;
     return;
   }
-  const ur=u.status==="fulfilled"?(u.value.rows||[]).map(x=>({...x,provider:"UES"})):[];
-  const rr=r.status==="fulfilled"?(r.value.rows||[]).map(x=>({...x,provider:"RYR"})):[];
-  const rows=[...ur,...rr].sort((a,b)=>new Date(b.date||b.updated_at||b.created_at||0)-new Date(a.date||a.updated_at||a.created_at||0));
-  renderListaMetrica({total:rows.length,rows});
-}
 
+  const warnings=[];
+  if(u.status==="rejected")warnings.push(`UES: ${u.reason?.message||"no se pudo consultar"}`);
+  if(r.status==="rejected")warnings.push(`RyR: ${r.reason?.message||"no se pudo consultar"}`);
+
+  const uAvailable=u.status==="fulfilled"&&u.value?.available!==false;
+  const rAvailable=r.status==="fulfilled"&&r.value?.available!==false;
+  const ur=uAvailable?(u.value.rows||[]).map(x=>({...x,provider:"UES"})):[];
+  const rr=rAvailable?(r.value.rows||[]).map(x=>({...x,provider:"RYR"})):[];
+  const total=(uAvailable?num(u.value.total??ur.length):0)+(rAvailable?num(r.value.total??rr.length):0);
+  const rows=[...ur,...rr].sort((a,b)=>new Date(b.date||b.updated_at||b.created_at||0)-new Date(a.date||a.updated_at||a.created_at||0));
+  renderListaMetrica({total,rows,warnings});
+}
 function buscarRyrHeartbeat(key){
   return ryrHealthEntries(DASHBOARD?._ryr||{}).find(h=>String(h.component??h.key??h.name??"")===String(key))||null;
 }
@@ -608,7 +660,10 @@ function abrirComponenteProveedor(provider,key,title,schedule){
 function abrirResumenRyr(){
   const r=DASHBOARD?._ryr||{},m=r.metrics||{};
   const ok=DASHBOARD?._providerStatus?.RYR;
-  abrirModalBase("Procesos RyR",`<span class="badge ${ok?"green":"yellow"}">${ok?"Conectado":"Sin conexión"}</span>`);
+  const partial=!!DASHBOARD?._providerDegraded?.RYR;
+  const badgeClass=!ok?"yellow":partial?"yellow":"green";
+  const badgeText=!ok?"Sin conexión":partial?"Datos parciales":"Conectado";
+  abrirModalBase("Procesos RyR",`<span class="badge ${badgeClass}">${badgeText}</span>`);
   document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado operativo RyR</div><div class="kv"><div class="k">Pedidos abiertos</div><div class="v">${num(m.abiertos)}</div><div class="k">Revisiones</div><div class="v">${num(m.revisionPendiente)}</div><div class="k">Errores pendientes</div><div class="v">${num(m.erroresPendientes??m.errores24h)}</div><div class="k">Entregados hoy</div><div class="v">${Object.prototype.hasOwnProperty.call(m,"entregadosHoy")?num(m.entregadosHoy):"No informado"}</div></div></div></div><div class="muted" style="font-size:12px;margin-top:12px">UES y RyR continúan en Supabase y funciones independientes. Esta Torre únicamente consulta ambos paneles administrativos y presenta la información junta.</div><section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Respuesta técnica de ryr-admin</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section>`;
 }
 
@@ -670,12 +725,14 @@ async function cargarReviews(silent=false){
 
     REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
-    // La tarjeta de revisiones debe reflejar lo que REALMENTE sigue pendiente
-    // después de releer SendGround, no un caso histórico ya corregido.
+    // La tarjeta de revisiones cuenta solo revisiones. La lista de atención
+    // también puede contener errores RyR, que NO deben inflar ese contador.
     if(DASHBOARD?.metrics){
-      DASHBOARD.metrics.revisionPendiente=REVIEWS.length;
-      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=urLive.length;
-      if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rrLive.length;
+      const uRev=urLive.filter(x=>String(x.source_type||"revision")==="revision").length;
+      const rRev=rrLive.filter(x=>String(x.source_type||"revision")==="revision").length;
+      DASHBOARD.metrics.revisionPendiente=uRev+rRev;
+      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uRev;
+      if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rRev;
       renderDashboard();
     }
 
@@ -829,7 +886,7 @@ function renderReviews(){
     return `<div class="card review" id="review-ues-${r.id}">
       <div>
         <span class="badge blue">UES</span>
-        <div class="review-code mono" style="margin-top:7px" onclick="abrirDetalle('${esc(r.order_code)}')">${esc(r.order_code)}</div>
+        <div class="review-code mono" style="margin-top:7px" onclick="abrirReviewUes(${r.id})">${esc(r.order_code)}</div>
         <div class="review-event">${esc(r.evento||"Revisión manual")}</div>
         <div style="margin-top:7px"><span class="badge ${ageC}">${ageText(r.created_at)}</span></div>
       </div>
@@ -840,17 +897,25 @@ function renderReviews(){
         <div id="msg-${r.id}"></div>
       </div>
       <div class="review-actions">
-        <button class="btn secondary small" onclick="abrirDetalle('${esc(r.order_code)}')">Ver detalle</button>
+        <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
         <button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>
       </div>
     </div>`;
   }).join("");
 }
 
+function abrirReviewUes(id){
+  const r=REVIEWS.find(x=>String(x.provider||"UES").toUpperCase()==="UES"&&String(x.id)===String(id));
+  if(!r)return;
+  CURRENT_METRIC_ROW=r;
+  abrirDetalle(r.order_code,true);
+}
+
 function abrirReviewRyr(key){
   const id=String(key).replace(/^ryr-/,"");
   const r=REVIEWS.find(x=>String(x.provider||"").toUpperCase()==="RYR"&&String(x.id)===id);
-  if(r)abrirDetalleRyr({
+  if(!r)return;
+  const row={
     ...r,
     provider:"RYR",
     source_id:r.id,
@@ -859,7 +924,9 @@ function abrirReviewRyr(key){
     title:r.evento,
     subtitle:r.motivo,
     date:r.updated_at||r.created_at
-  });
+  };
+  CURRENT_METRIC_ROW=row;
+  abrirDetalleRyr(row,true);
 }
 
 function limpiarPreviewManual(){
@@ -1039,8 +1106,14 @@ async function buscarGlobal(){
   SEARCH_ROWS=rows;
 }
 
-async function abrirDetalle(q){document.getElementById("detailModal").classList.remove("hidden");document.getElementById("detailTitle").textContent=q;document.getElementById("detailBody").innerHTML='<div class="empty">Consultando SendGround, UES y Supabase…</div>';try{CURRENT_DETAIL=await api("detail",{query:{q}});renderDetail()}catch(e){document.getElementById("detailBody").innerHTML=`<div class="alert err">${esc(e.message)}</div>`}}
-function cerrarDetalle(){document.getElementById("detailModal").classList.add("hidden");CURRENT_DETAIL=null}
+async function abrirDetalle(q,preserveMetric=false){
+  if(!preserveMetric)CURRENT_METRIC_ROW=null;
+  document.getElementById("detailModal").classList.remove("hidden");
+  document.getElementById("detailTitle").textContent=q;
+  document.getElementById("detailBody").innerHTML='<div class="empty">Consultando SendGround, UES y Supabase…</div>';
+  try{CURRENT_DETAIL=await api("detail",{query:{q}});renderDetail()}catch(e){document.getElementById("detailBody").innerHTML=`<div class="alert err">${esc(e.message)}</div>`}
+}
+function cerrarDetalle(){document.getElementById("detailModal").classList.add("hidden");CURRENT_DETAIL=null;CURRENT_METRIC_ROW=null}
 function latestUes(ev){if(!ev?.length)return null;return ev[ev.length-1]}
 function renderDetail(){
   const d=CURRENT_DETAIL,env=d.envio||{},sg=d.sendground?.currentTask||{},pod=d.pod||{},proc=d.integracion?.eventosProcesados||[],wh=d.integracion?.webhooks||[],manual=d.integracion?.accionesManuales||[],reviews=(d.integracion?.revisiones||[]).filter(r=>!r.resuelto);
@@ -1054,7 +1127,8 @@ function renderDetail(){
 
   const guide=env.tracking_number||env.guia_id||wh.at(-1)?.numero_guia||wh.at(-1)?.tracking_number||"";
   const refreshQuery=d.orderCode||guide||display;
-  const actions=`<div class="detail-actions"><button class="btn secondary small" onclick="abrirDetalle('${esc(refreshQuery)}')">↻ Actualizar</button>${d.orderCode?`<button class="btn primary small" onclick="reprocesar('${esc(d.orderCode)}')">Reprocesar ahora</button><button class="btn secondary small" onclick="copiar('${esc(d.orderCode)}')">Copiar ORD</button>`:""}${guide?`<button class="btn secondary small" onclick="copiar('${esc(guide)}')">Copiar guía</button>`:""}${d.orderCode?`<button class="btn secondary small" onclick="abrirSendGround('${esc(d.orderCode)}','${esc(d.sendground?.panelUrl||"")}')">Abrir SendGround</button>`:""}${d.orderCode&&reviews.length?`<button class="btn danger small" onclick="resolverOrden('${esc(d.orderCode)}')">Resolver ${reviews.length} alerta${reviews.length===1?"":"s"}</button>`:""}</div>`;
+  const discardAction=CURRENT_METRIC_ROW?.dismissible===true?'<button class="btn danger small" onclick="descartarAvisoActual()">Descartar</button>':"";
+  const actions=`<div class="detail-actions"><button class="btn secondary small" onclick="abrirDetalle('${esc(refreshQuery)}',${CURRENT_METRIC_ROW?"true":"false"})">↻ Actualizar</button>${d.orderCode?`<button class="btn primary small" onclick="reprocesar('${esc(d.orderCode)}')">Reprocesar ahora</button><button class="btn secondary small" onclick="copiar('${esc(d.orderCode)}')">Copiar ORD</button>`:""}${guide?`<button class="btn secondary small" onclick="copiar('${esc(guide)}')">Copiar guía</button>`:""}${d.orderCode?`<button class="btn secondary small" onclick="abrirSendGround('${esc(d.orderCode)}','${esc(d.sendground?.panelUrl||"")}')">Abrir SendGround</button>`:""}${d.orderCode&&reviews.length?`<button class="btn danger small" onclick="resolverOrden('${esc(d.orderCode)}')">Resolver ${reviews.length} alerta${reviews.length===1?"":"s"}</button>`:""}${discardAction}</div>`;
 
   const standaloneBanner=d.standaloneWebhook?'<div class="alert warn"><b>Webhook recibido correctamente, pero esta guía todavía no tiene una orden SendGround asociada en ues_envios.</b><br>Esta vista sirve para validar transporte, payload y POD durante testing.</div>':"";
   const cards=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(d.orderCode||"Sin mapear")}</div><div class="k">Tarea actual</div><div class="v">${esc(sg.subtipo||"—")}</div><div class="k">Estado</div><div class="v">${esc(sg.estado||"—")}</div><div class="k">Worker</div><div class="v">${esc(sg.assignedWorkerId||"Sin asignar")}</div></div></div><div class="card detail-card"><div class="detail-title">UES</div><div class="kv"><div class="k">Guía</div><div class="v mono">${esc(guide||"—")}</div><div class="k">Último evento</div><div class="v">${esc(last?.estado||"—")}</div><div class="k">Subestado / observación</div><div class="v">${esc(last?.subestado||"—")}</div><div class="k">Fecha</div><div class="v">${esc(last?.fecha||"—")}</div></div></div><div class="card detail-card"><div class="detail-title">Integración</div><div class="kv"><div class="k">Último cursor</div><div class="v mono">${esc(env.ultimo_evento_procesado||"—")}</div><div class="k">Último intento</div><div class="v">${fmt(env.ultimo_intento_at)}</div><div class="k">Eventos procesados</div><div class="v">${proc.length}</div><div class="k">Webhooks guardados</div><div class="v">${wh.length}</div></div></div></div>`;
@@ -1091,6 +1165,31 @@ function renderDetail(){
   const warnings=(d.warnings||[]).length?`<div class="alert warn"><b>Diagnóstico parcial:</b><br>${d.warnings.map(esc).join("<br>")}</div>`:"";
   const raw=`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Detalles técnicos / JSON</summary><pre class="json-box">${esc(JSON.stringify(d,null,2))}</pre></details></section>`;
   document.getElementById("detailBody").innerHTML=actions+standaloneBanner+warnings+cards+podBox+rev+uesTimeline+intTimeline+webhookAudit+raw;
+}
+
+async function descartarAvisoActual(){
+  const r=CURRENT_METRIC_ROW;
+  if(!r?.dismissible||!r.dismissKind||!r.dismissKey||!r.dismissFingerprint){
+    toast("Este registro no es un aviso descartable");
+    return;
+  }
+  const provider=String(r.provider||"UES").toUpperCase();
+  const orderCode=rowLookup(r)||r.order_code||"";
+  if(!confirm(`¿Descartar este aviso de ${provider}${orderCode?` (${orderCode})`:""}? Solo se ocultará esta incidencia en la Torre; no se modifica SendGround, UES ni RyR.`))return;
+  try{
+    await apiProvider(provider,"dismiss",{
+      method:"POST",
+      body:{
+        kind:r.dismissKind,
+        item_key:r.dismissKey,
+        fingerprint:r.dismissFingerprint,
+        order_code:orderCode||null
+      }
+    });
+    toast(`Aviso ${provider} descartado`);
+    cerrarDetalle();
+    await Promise.all([cargarDashboard(true),cargarReviews(true)]);
+  }catch(e){toast(e.message)}
 }
 
 async function resolverCaso(providerOrId,idOrOrder,maybeOrder){

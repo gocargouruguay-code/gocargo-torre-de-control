@@ -514,7 +514,9 @@ function renderDashboard(){
 
   for(const [key,title,schedule] of uesComps){
     const h=hb[key],st=componentState(h);if(st.c==="red")anyRed=true;
-    const last=key==="ues-webhook"&&u.ultimoWebhook?u.ultimoWebhook.received_at:h?.last_success_at;
+    const last=key==="ues-webhook"&&u.ultimoWebhook
+      ?u.ultimoWebhook.received_at
+      :(h?.last_activity_at||h?.updated_at||h?.last_started_at||h?.last_success_at||h?.last_error_at);
     const extra=key==="ues-poller"?'<br>Procesamiento: lotes de 15 hasta recorrer todos los pedidos elegibles':"";
     const friendly=componentFriendlyMessage(h);
     cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponenteProveedor('UES','${key}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponenteProveedor('UES','${key}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${title}<span class="badge ${st.c}">${st.t}</span><span class="badge blue provider-chip">UES</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${schedule}${extra}${key==="ues-webhook"&&u.ultimoWebhook?`<br>Último evento: <b>${esc(u.ultimoWebhook.evento_nombre||"—")}</b> · ${esc(u.ultimoWebhook.order_code||u.ultimoWebhook.tracking_number||"sin mapeo")}`:""}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}" title="${esc(friendly)}">${esc(friendly)}</div>`:""}</div>`);
@@ -673,7 +675,9 @@ function abrirComponente(key,title,schedule){
   const h=hb[key]||null,st=componentState(h);
   const friendly=componentFriendlyMessage(h);
   const ultimo=key==="ues-webhook"?u.ultimoWebhook:null;
-  const last=key==="ues-webhook"&&ultimo?ultimo.received_at:h?.last_success_at;
+  const last=key==="ues-webhook"&&ultimo
+    ?ultimo.received_at
+    :(h?.last_activity_at||h?.updated_at||h?.last_started_at||h?.last_success_at||h?.last_error_at);
   abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span><span class="badge blue">UES</span>`);
   const lookup=ultimo?rowLookup(ultimo):"";
   const issueHistorica=h?.operational_issue_active===false&&String(h?.last_result?.status||"")==="operational_issue";

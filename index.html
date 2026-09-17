@@ -184,6 +184,10 @@ function esCasoDatosUes(r){
   return motivo.includes("faltan datos obligatorios para ues")||
     motivo.includes("falta telefono valido")||
     motivo.includes("todavia faltan datos obligatorios para ues")||
+    motivo.includes("no se pudo normalizar destino")||
+    motivo.includes("no se encontro localidad ues")||
+    motivo.includes("no existe en el catalogo deptoylocalidad")||
+    r?.esCasoGeografia===true||
     Array.isArray(r?.datos_pendientes?.faltantes)||
     Array.isArray(r?.faltantes_actuales);
 }
@@ -214,6 +218,7 @@ async function enriquecerRevisionUesLive(r){
     // en SendGround, cerramos solamente la alerta de DATOS.
     // Un refresco de la Torre NO ejecuta ues-proxy.
     if(
+      enriched.esCasoGeografia!==true&&
       Array.isArray(enriched.faltantes_actuales)&&
       enriched.faltantes_actuales.length===0
     ){
@@ -881,6 +886,15 @@ function renderReviews(){
       nf.some(v=>v.includes("nombre del destinatario"));
 
     const esCasoDatos=esCasoDatosUes(r);
+    const esCasoGeo=r.esCasoGeografia===true||
+      norm(r.motivo).includes("no se pudo normalizar destino")||
+      norm(r.motivo).includes("no se encontro localidad ues");
+    const sugeridas=Array.isArray(r.localidades_sugeridas)?r.localidades_sugeridas:[];
+    const disponibles=Array.isArray(r.localidades_disponibles)?r.localidades_disponibles:[];
+    const sugeridasIds=new Set(sugeridas.map(x=>String(x.localidadId)));
+    const otrasLocalidades=disponibles.filter(x=>!sugeridasIds.has(String(x.localidadId)));
+    const geoActual=r.geografia_actual||{};
+    const depUes=r.departamento_ues||{};
 
     const noEditables=faltantes.filter(v=>{
       const n=norm(v);
@@ -890,7 +904,9 @@ function renderReviews(){
         !n.includes("nombre del destinatario");
     });
 
-    const motivoVisible=sincronizado
+    const motivoVisible=esCasoGeo
+      ?`La localidad de SendGround no coincide exactamente con el catálogo de UES. Elegí la localidad correcta y la Torre la guardará también en SendGround.`
+      :sincronizado
       ?(
         faltantes.length
           ?`Faltan datos obligatorios para UES: ${faltantes.join(", ")}`
@@ -898,15 +914,39 @@ function renderReviews(){
       )
       :r.motivo;
 
+    const geoCampos=esCasoGeo?`
+      <div style="margin-top:10px;padding:10px;border:1px solid #d7e2ef;border-radius:12px;background:#f8fbff">
+        <div class="muted" style="font-size:11px;margin-bottom:7px">
+          SendGround: <strong>${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"—")}</strong>
+          ${geoActual.departamento?` · Departamento: <strong>${esc(geoActual.departamento)}</strong>`:""}
+        </div>
+        ${r.geografia_error?`<div class="alert err" style="margin-bottom:8px">${esc(r.geografia_error)}</div>`:""}
+        ${disponibles.length?`
+          <div class="data-field" style="min-width:300px;max-width:520px">
+            <label>Localidad correcta en UES${depUes.nombre?` · ${esc(depUes.nombre)}`:""}</label>
+            <select class="input" id="loc-ues-${r.id}">
+              <option value="">— Elegí la localidad correcta —</option>
+              ${sugeridas.map((x,i)=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}" ${i===0?"selected":""}>${esc(x.nombre)}${i===0?" · sugerida":""}</option>`).join("")}
+              ${otrasLocalidades.length?`<option disabled>──────── Otras localidades ────────</option>`:""}
+              ${otrasLocalidades.map(x=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}">${esc(x.nombre)}</option>`).join("")}
+            </select>
+          </div>
+          <button class="btn primary small" style="margin-top:8px" onclick="corregirLocalidadUes(${r.id})">Guardar en SendGround y crear guía</button>
+          <div class="muted" style="font-size:11px;margin-top:6px">Las primeras opciones son las más parecidas a “${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"")}”. Al confirmar, se actualizan ciudad/localidad en SendGround y luego se vuelve a validar UES.</div>
+        `:`<div class="alert warn">No fue posible obtener localidades del catálogo UES para este departamento.</div>`}
+      </div>
+    `:"";
+
     const campos=esCasoDatos?`
-      <div class="phone-row">
+      ${geoCampos}
+      ${(necesitaTelefono||necesitaPuerta||necesitaCalle||necesitaNombre)?`<div class="phone-row">
         ${necesitaTelefono?`<div class="data-field"><label>Teléfono</label><input class="input" id="tel-${r.id}" placeholder="099123123"></div>`:""}
         ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
         ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
         ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
         <button class="btn primary small" onclick="completarDatos(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
-      </div>
-      ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+      </div>`:""}
+      ${noEditables.length&&!esCasoGeo?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
       ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
     `:"";
 
@@ -1261,6 +1301,46 @@ async function completarDatosRyr(id){
 
     const r=await apiRyrDatos("complete",{method:"POST",body});
     if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`;
+    setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
+  }catch(e){
+    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    setTimeout(()=>cargarReviews(),1600);
+  }
+}
+
+async function corregirLocalidadUes(id){
+  const msg=document.getElementById(`msg-${id}`);
+  const select=document.getElementById(`loc-ues-${id}`);
+  const value=String(select?.value||"");
+  const [departamentoId,localidadId]=value.split("|");
+
+  if(!departamentoId||!localidadId){
+    if(msg)msg.innerHTML='<div class="alert warn">Elegí una localidad UES.</div>';
+    return;
+  }
+
+  const nombre=select?.selectedOptions?.[0]?.textContent?.replace(/ · sugerida$/i,"")?.trim()||"la localidad seleccionada";
+  if(!confirm(`¿Guardar “${nombre}” también en SendGround y volver a intentar la creación UES?`))return;
+
+  if(msg)msg.innerHTML='<div class="alert warn">Actualizando la localidad en SendGround, verificando UES y creando la guía…</div>';
+
+  try{
+    const telefono=document.getElementById(`tel-${id}`)?.value.trim()||"";
+    const numeroPuerta=document.getElementById(`puerta-${id}`)?.value.trim()||"";
+    const calle=document.getElementById(`calle-${id}`)?.value.trim()||"";
+    const nombreDestinatario=document.getElementById(`nombre-${id}`)?.value.trim()||"";
+    const body={id,departamentoId,localidadId};
+    if(telefono)body.telefono=telefono;
+    if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
+
+    const r=await apiUesDatos("locality-correct",{
+      method:"POST",
+      body
+    });
+    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||"Localidad corregida")}</div>`;
+    toast(r.trackingNumber?`Guía UES creada: ${r.trackingNumber}`:"Localidad corregida");
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
     if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;

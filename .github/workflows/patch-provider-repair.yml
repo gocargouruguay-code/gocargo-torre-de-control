@@ -18,8 +18,8 @@ jobs:
           fetch-depth: 0
 
       - name: Patch index safely
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           p = Path("index.html")
@@ -212,6 +212,7 @@ async function repararAsignacionesProveedor(provider,orderCode){
           )
 
           p.write_text(s, encoding="utf-8")
+          PY
 
       - name: Commit patched index
         run: |

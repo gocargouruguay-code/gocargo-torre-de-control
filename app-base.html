@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GoCargo / UES / RyR — Torre de control</title>
+<style>
+:root {
+  --navy:#00275B; --blue:#0b5ea8; --bg:#f3f6fa; --card:#fff; --text:#172033;
+  --muted:#687386; --line:#dfe6ee; --green:#15803d; --green-bg:#eaf8ef;
+  --yellow:#a16207; --yellow-bg:#fff7db; --red:#b42318; --red-bg:#fff0ee;
+  --shadow:0 8px 28px rgba(19,40,70,.08);
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}.hidden{display:none!important}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.muted{color:var(--muted)}
+.topbar{background:var(--navy);color:white;padding:16px 22px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.topbar-inner{max-width:1280px;margin:auto;display:flex;align-items:center;gap:14px}.brand{font-weight:800;font-size:20px;letter-spacing:.2px}.brand small{font-weight:500;opacity:.72;font-size:12px;margin-left:8px}
+.spacer{flex:1}.top-status{display:flex;align-items:center;gap:8px;font-size:13px}.dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:#94a3b8}.dot.green{background:#22c55e}.dot.yellow{background:#f59e0b}.dot.red{background:#ef4444}
+.container{max-width:1280px;margin:24px auto;padding:0 18px 48px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+#login{max-width:420px;margin:80px auto;padding:28px}.login-title{font-size:23px;font-weight:800;color:var(--navy);margin-bottom:4px}.login-sub{color:var(--muted);margin-bottom:18px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12px 0 5px}.input{width:100%;border:1px solid #cbd5e1;border-radius:9px;padding:10px 12px;background:white;outline:none}.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,94,168,.10)}
+.btn{border:0;border-radius:9px;padding:9px 13px;cursor:pointer;font-weight:700;transition:.15s}.btn:hover{transform:translateY(-1px)}.btn.primary{background:var(--navy);color:#fff}.btn.secondary{background:#eef3f8;color:var(--navy)}.btn.danger{background:var(--red-bg);color:var(--red)}.btn.small{font-size:12px;padding:7px 9px}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}.wide{width:100%;margin-top:14px}
+.alert{padding:10px 12px;border-radius:9px;font-size:13px;margin-top:10px}.alert.ok{background:var(--green-bg);color:var(--green)}.alert.warn{background:var(--yellow-bg);color:var(--yellow)}.alert.err{background:var(--red-bg);color:var(--red)}
+.hero{display:flex;align-items:flex-start;gap:18px;margin-bottom:18px}.hero h1{font-size:25px;margin:0;color:var(--navy)}.hero p{margin:5px 0 0;color:var(--muted)}.hero-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.metrics{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:12px;margin-bottom:16px}.metric{padding:16px}.clickable-card{cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}.clickable-card:hover{transform:translateY(-2px);border-color:#aac1d8;box-shadow:0 12px 30px rgba(19,40,70,.12)}.clickable-card:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,94,168,.10),var(--shadow)}.metric .value{font-size:28px;font-weight:850;color:var(--navy)}.metric .label{font-size:12px;color:var(--muted);margin-top:2px}.metric .sub{font-size:10.5px;color:#8792a4;margin-top:7px;line-height:1.35}.metric.warn .value{color:var(--yellow)}.metric.err .value{color:var(--red)}.metric.ok .value{color:var(--green)}
+.health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;align-items:start}.health-card{padding:15px;min-width:0;align-self:start}.health-head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);flex-wrap:wrap}.provider-chip{margin-left:auto}.health-meta{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.55;overflow-wrap:anywhere}.health-error{font-size:12px;color:var(--red);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}.health-warning{font-size:12px;color:var(--yellow);margin-top:7px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
+.section{margin-top:18px}.section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.section-head h2{font-size:17px;margin:0;color:var(--navy)}.section-head .count{font-size:11px;padding:3px 7px;background:#e7eef6;border-radius:999px;color:var(--navy);font-weight:800}
+.search-card{padding:14px;margin-bottom:18px}.search-row{display:flex;gap:8px}.search-row .input{font-size:15px}.search-results{display:grid;gap:7px;margin-top:10px}.search-result{border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;gap:12px;align-items:center;background:#fff}.search-result:hover{border-color:#aac1d8;background:#f9fbfd}.search-result .code{font-weight:850;color:var(--navy)}.drawer-list{display:grid;gap:8px}.drawer-list .search-result{width:100%}.drawer-summary{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.manual-card{padding:16px;margin-bottom:18px;border-color:#c9d8e8}.manual-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}.manual-head h2{font-size:17px;color:var(--navy);margin:0}.manual-head p{margin:4px 0 0;font-size:12px;color:var(--muted);line-height:1.45}.manual-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) auto;gap:8px;align-items:end}.manual-preview{margin-top:12px}.manual-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}.manual-summary .detail-card{box-shadow:none}.manual-provider-state{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px}.manual-warning{border-left:4px solid #f59e0b}.manual-success{border-left:4px solid #22c55e}@media(max-width:760px){.manual-row{grid-template-columns:1fr}.manual-summary{grid-template-columns:1fr}}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:10px}.queue{display:grid;gap:10px}.review{padding:14px;display:grid;grid-template-columns:170px 1fr auto;gap:14px;align-items:start}.review-code{font-weight:850;color:var(--navy);cursor:pointer}.review-event{font-size:12px;color:var(--muted);margin-top:4px}.review-motivo{font-size:13px;font-weight:650;color:#6b4b0b;line-height:1.45}.review-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.phone-row{display:flex;gap:6px;margin-top:9px;max-width:520px;align-items:end;flex-wrap:wrap}.phone-row .input{padding:7px 9px;font-size:12px}.data-field{flex:1 1 150px;min-width:130px}.data-field label{margin:0 0 4px;font-size:11px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.badge.green{background:var(--green-bg);color:var(--green)}.badge.yellow{background:var(--yellow-bg);color:var(--yellow)}.badge.red{background:var(--red-bg);color:var(--red)}.badge.gray{background:#eef2f6;color:#64748b}.badge.blue{background:#eaf2fb;color:var(--blue)}
+.empty{text-align:center;color:var(--muted);padding:38px 10px}.footer-note{text-align:center;color:#94a3b8;font-size:11px;margin-top:22px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,24,44,.46);z-index:50;display:flex;justify-content:flex-end}.drawer{width:min(780px,96vw);height:100%;background:#f7f9fc;overflow:auto;box-shadow:-8px 0 30px rgba(0,0,0,.16)}.drawer-head{position:sticky;top:0;background:white;border-bottom:1px solid var(--line);padding:17px 18px;z-index:2;display:flex;align-items:center;gap:10px}.drawer-head h2{margin:0;color:var(--navy);font-size:20px}.drawer-body{padding:16px}.close{margin-left:auto;background:#eef2f6;color:#334155;border:0;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:19px}
+.detail-actions{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.detail-card{padding:13px}.detail-title{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}.kv{display:grid;grid-template-columns:120px 1fr;gap:5px 8px;font-size:12px;line-height:1.35}.kv .k{color:var(--muted)}.kv .v{font-weight:650;word-break:break-word}
+.pod-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.pod-item{border:1px solid var(--line);border-radius:9px;padding:9px;text-align:center;font-size:11px}.pod-item.ok{background:var(--green-bg);color:var(--green);border-color:#bfe5ca}.pod-item.miss{background:var(--red-bg);color:var(--red);border-color:#f1c6c1}.pod-item.partial{background:#f7f9fc;color:#64748b;border-color:#dfe6ee}
+.timeline{position:relative;margin-left:6px;padding-left:18px;border-left:2px solid #d9e3ed}.event{position:relative;padding:0 0 14px 3px}.event:before{content:"";position:absolute;left:-24px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid white;box-shadow:0 0 0 1px #b8cadb}.event-title{font-size:13px;font-weight:800}.event-sub{font-size:12px;color:var(--muted);margin-top:2px}.event-note{font-size:12px;margin-top:6px;white-space:pre-line;line-height:1.55}.tabs{display:flex;gap:6px;margin:14px 0 9px}.tab{background:#e8eef5;color:#475569}.tab.active{background:var(--navy);color:white}.json-box{background:#101827;color:#d5e0ef;border-radius:10px;padding:12px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-word}
+.toast{position:fixed;right:18px;bottom:18px;z-index:100;background:#172033;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:var(--shadow);font-size:13px;max-width:360px}
+@media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.health-grid,.detail-grid{grid-template-columns:1fr}.review{grid-template-columns:1fr}.review-actions{justify-content:flex-start}.filters{grid-template-columns:1fr 1fr}.pod-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.metrics{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr}.hero{display:block}.hero-actions{margin-top:10px}.topbar .brand small{display:none}.search-row{flex-direction:column}.detail-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner"><div class="brand">GoCargo <small>Integraciones UES / RyR</small></div><div class="spacer"></div><div id="topStatus" class="top-status"><span class="dot"></span><span>Verificando…</span></div></div></div>
+
+<div class="container">
+  <div id="login" class="card">
+    <div class="login-title">Torre de control</div>
+    <div class="login-sub">Monitoreo, revisión y diagnóstico de la integración.</div>
+    <div id="countBadge">Consultando casos pendientes…</div>
+    <label>Contraseña</label>
+    <input class="input" type="password" id="password" autocomplete="current-password" autofocus />
+    <button class="btn primary wide" id="loginBtn" onclick="login()">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+
+  <main id="app" class="hidden">
+    <div class="hero">
+      <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
+      <div class="hero-actions"><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Reprocesa los errores activos y luego vuelve a leer UES, RyR y SendGround">↻ Actualizar</button><button class="btn secondary" onclick="probarConexiones()">Probar conexiones</button></div>
+    </div>
+
+    <div id="metrics" class="metrics"></div>
+    <div id="health" class="health-grid"></div>
+
+    <div class="card search-card">
+      <div class="search-row"><input id="globalSearch" class="input" placeholder="Buscar ORD…, guía UES, orden RyR o tracking…" onkeydown="if(event.key==='Enter') buscarGlobal()" /><button class="btn primary" onclick="buscarGlobal()">Buscar</button></div>
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <div class="card manual-card">
+      <div class="manual-head">
+        <div><h2>Enviar orden manualmente</h2><p>Ingresá una ORD de SendGround, elegí UES o RyR y la Torre verificará ambos proveedores antes de habilitar el envío. Si la Transferencia quedó en otro depósito, la excepción queda auditada para esa ORD + taskId + locationId.</p></div>
+      </div>
+      <div class="manual-row">
+        <div><label style="margin-top:0">Orden SendGround</label><input id="manualOrder" class="input mono" placeholder="ORD3VS0" onkeydown="if(event.key==='Enter') previsualizarOrdenManual()" oninput="limpiarPreviewManual()" /></div>
+        <div><label style="margin-top:0">Proveedor destino</label><select id="manualProvider" class="input" onchange="limpiarPreviewManual()"><option value="RYR">RyR</option><option value="UES">UES</option></select></div>
+        <button class="btn primary" id="manualPreviewBtn" onclick="previsualizarOrdenManual()">Previsualizar</button>
+      </div>
+      <div id="manualResult" class="manual-preview"></div>
+    </div>
+
+    <div class="card manual-card">
+      <div class="manual-head">
+        <div><h2>Cambiar proveedor</h2><p>Cambia una ORD entre UES y RyR de forma controlada. La Torre verifica ambos proveedores antes de modificar nada y evita crear una segunda guía cuando la misma ORD ya existe en UES.</p></div>
+      </div>
+      <div class="manual-row">
+        <div><label style="margin-top:0">Orden SendGround</label><input id="providerSwitchOrder" class="input mono" placeholder="ORD3XFW" onkeydown="if(event.key==='Enter') previsualizarCambioProveedor()" oninput="limpiarPreviewCambioProveedor()" /></div>
+        <div><label style="margin-top:0">Proveedor destino</label><select id="providerSwitchTarget" class="input" onchange="limpiarPreviewCambioProveedor()"><option value="UES">UES</option><option value="RYR">RyR</option></select></div>
+        <button class="btn primary" id="providerSwitchPreviewBtn" onclick="previsualizarCambioProveedor()">Previsualizar cambio</button>
+      </div>
+      <div style="margin-top:8px"><label>Motivo</label><input id="providerSwitchReason" class="input" value="Reintento con otro proveedor" maxlength="240" oninput="limpiarPreviewCambioProveedor()" /></div>
+      <div id="providerSwitchResult" class="manual-preview"></div>
+    </div>
+
+    <section class="section">
+      <div class="section-head"><h2>Requieren atención</h2><span id="reviewCount" class="count">0</span></div>
+      <div class="filters">
+        <input id="filterText" class="input" placeholder="Filtrar por orden, evento o motivo…" oninput="renderReviews()" />
+        <select id="filterType" class="input" onchange="renderReviews()"><option value="all">Todos los motivos</option><option value="telefono">Teléfono</option><option value="transicion">Transición</option><option value="creacion">Creación / proxy</option><option value="regla">Sin regla</option><option value="otros">Otros</option></select>
+        <select id="filterProvider" class="input" onchange="renderReviews()"><option value="all">Todos los proveedores</option><option value="UES">UES</option><option value="RYR">RyR</option></select>
+        <select id="filterAge" class="input" onchange="renderReviews()"><option value="all">Cualquier antigüedad</option><option value="green">Menos de 6 h</option><option value="yellow">6 a 24 h</option><option value="red">Más de 24 h</option></select>
+        <button class="btn secondary" onclick="cargarReviews()">↻</button>
+      </div>
+      <div id="reviewList" class="queue"></div>
+    </section>
+    <div class="footer-note">La Torre consulta UES y RyR por separado. No mezcla sus bases, secretos ni procesos; solo unifica la visualización y las acciones administrativas autorizadas.</div>
+  </main>
+</div>
+
+<div id="detailModal" class="modal-backdrop hidden" onclick="if(event.target===this) cerrarDetalle()"><div class="drawer"><div class="drawer-head"><h2 id="detailTitle">Pedido</h2><span id="detailStatus"></span><button class="close" onclick="cerrarDetalle()">×</button></div><div id="detailBody" class="drawer-body"></div></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const API_BASE_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-admin";
+const API_BASE_UES_DATOS = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-datos";
+const API_BASE_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-admin";
+const API_BASE_RYR_DATOS = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-datos";
+const API_PROVIDER_SWITCH_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-provider-switch";
+const API_PROVIDER_SWITCH_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-provider-switch";
+let PASSWORD = "";
+let REVIEWS = [];
+let DASHBOARD = null;
+let CURRENT_DETAIL = null;
+let CURRENT_METRIC_ROW = null;
+let PUBLIC_COUNTS = {UES:null,RYR:null};
+let METRIC_ROWS = [];
+let SEARCH_ROWS = [];
+let MANUAL_PREVIEW = null;
+let PROVIDER_SWITCH_PREVIEW = null;
+let autoTimer = null;
+
+const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+const fmt = (v) => { if(!v) return "—"; const d=new Date(v); return Number.isNaN(d.getTime())?esc(v):new Intl.DateTimeFormat("es-UY",{dateStyle:"short",timeStyle:"medium",timeZone:"America/Montevideo"}).format(d); };
+const norm = (v) => String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+const num = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
+
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.remove("hidden");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.add("hidden"),2600)}
+function apiBase(provider){return String(provider||"UES").toUpperCase()==="RYR"?API_BASE_RYR:API_BASE_UES}
+async function apiProvider(provider,action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(apiBase(provider)+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{
+    status:res.status,data,provider:String(provider||"UES").toUpperCase()
+  });
+  return data;
+}
+const api=(action,opts={})=>apiProvider("UES",action,opts);
+
+async function apiUesDatos(action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(API_BASE_UES_DATOS+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{
+    status:res.status,data,provider:"UES"
+  });
+  return data;
+}
+
+async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(API_BASE_RYR_DATOS+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,data,provider:"RYR"});
+  return data;
+}
+
+function apiDatosProvider(provider,action,opts={}){
+  return String(provider||"UES").toUpperCase()==="RYR"
+    ?apiRyrDatos(action,opts)
+    :apiUesDatos(action,opts);
+}
+
+function esCasoDatosUes(r){
+  const motivo=norm(r.motivo);
+  return motivo.includes("faltan datos obligatorios para ues")||
+    motivo.includes("falta telefono valido")||
+    motivo.includes("todavia faltan datos obligatorios para ues")||
+    motivo.includes("no se pudo normalizar destino")||
+    motivo.includes("no se encontro localidad ues")||
+    motivo.includes("no existe en el catalogo deptoylocalidad")||
+    r?.esCasoGeografia===true||
+    Array.isArray(r?.datos_pendientes?.faltantes)||
+    Array.isArray(r?.faltantes_actuales);
+}
+
+async function enriquecerRevisionUesLive(r){
+  if(!r?.id||!esCasoDatosUes(r))return r;
+
+  try{
+    const live=await apiUesDatos("case",{query:{id:r.id}});
+
+    if(live.resolved||live.visible===false)return null;
+
+    const enriched={
+      ...r,
+      ...live,
+      provider:"UES",
+      faltantes_actuales:Array.isArray(live.faltantes_actuales)
+        ?live.faltantes_actuales
+        :r.faltantes_actuales,
+      campos_editables:Array.isArray(live.campos_editables)
+        ?live.campos_editables
+        :[],
+      datos_sendground_actualizados:
+        live.datos_sendground_actualizados===true
+    };
+
+    // Igual que RyR: si los datos ya fueron corregidos directamente
+    // en SendGround, cerramos solamente la alerta de DATOS.
+    // Un refresco de la Torre NO ejecuta ues-proxy.
+    if(
+      enriched.esCasoGeografia!==true&&
+      Array.isArray(enriched.faltantes_actuales)&&
+      enriched.faltantes_actuales.length===0
+    ){
+      try{
+        const rec=await apiUesDatos("reconcile",{
+          method:"POST",
+          body:{id:r.id}
+        });
+        if(rec.resolved)return null;
+      }catch{}
+    }
+
+    return enriched;
+  }catch{
+    // Compatibilidad: si ues-datos no responde, conservamos
+    // la revisión original servida por ues-admin.
+    return r;
+  }
+}
+
+function esCasoDatosRyr(r){
+  const etapa=norm(r.evento||r.etapa);
+  const motivo=norm(r.motivo);
+  return etapa.includes("validacion")||
+    motivo.includes("no se puede construir la orden ryr")||
+    Array.isArray(r?.datos?.faltantes)||
+    Array.isArray(r?.faltantes_actuales);
+}
+
+async function enriquecerRevisionRyrLive(r){
+  if(!r?.id||!esCasoDatosRyr(r))return r;
+  try{
+    const live=await apiRyrDatos("case",{query:{id:r.id}});
+    if(live.resolved||live.visible===false)return null;
+
+    const enriched={
+      ...r,
+      ...live,
+      provider:"RYR",
+      faltantes_actuales:Array.isArray(live.faltantes_actuales)?live.faltantes_actuales:r.faltantes_actuales,
+      campos_editables:Array.isArray(live.campos_editables)?live.campos_editables:[],
+      datos_sendground_actualizados:live.datos_sendground_actualizados===true
+    };
+
+    // Si el operador ya corrigió el problema directamente en SendGround,
+    // cerramos solamente la alerta de DATOS. No ejecutamos ryr-proxy desde
+    // una actualización de pantalla y no tocamos estados externos.
+    if(Array.isArray(enriched.faltantes_actuales)&&enriched.faltantes_actuales.length===0){
+      try{
+        const rec=await apiRyrDatos("reconcile",{method:"POST",body:{id:r.id}});
+        if(rec.resolved)return null;
+      }catch{}
+    }
+    return enriched;
+  }catch{
+    // Compatibilidad durante despliegue: si ryr-datos todavía no está
+    // publicado, la Torre conserva la revisión actual de ryr-admin.
+    return r;
+  }
+}
+
+async function consultarConteo(){
+  const el=document.getElementById("countBadge"),top=document.getElementById("topStatus");
+  const [uesRes,ryrRes]=await Promise.allSettled([
+    apiProvider("UES","count"),
+    apiProvider("RYR","count")
+  ]);
+
+  if(uesRes.status==="rejected"&&ryrRes.status==="rejected"){
+    el.innerHTML='<div class="alert err">No se pudo consultar UES ni RyR</div>';
+    top.innerHTML='<span class="dot red"></span><span>Sin conexión</span>';
+    return;
+  }
+
+  const u=uesRes.status==="fulfilled"?uesRes.value:{};
+  const r=ryrRes.status==="fulfilled"?ryrRes.value:{};
+  if(uesRes.status==="fulfilled")PUBLIC_COUNTS.UES=u;
+  if(ryrRes.status==="fulfilled")PUBLIC_COUNTS.RYR=r;
+  const uRev=num(u.revisionPendiente??u.count),uErr=num(u.erroresPendientes??u.errores24h);
+  const rRev=num(r.revisionPendiente??r.count),rErr=num(r.erroresPendientes??r.errores24h);
+  const revisiones=uRev+rRev,errores=uErr+rErr,total=revisiones+errores;
+  const detalle=`UES: ${uRev} revisión${uRev===1?"":"es"} / ${uErr} error${uErr===1?"":"es"} · RyR: ${rRev} revisión${rRev===1?"":"es"} / ${rErr} error${rErr===1?"":"es"}`;
+
+  if(total===0){
+    el.innerHTML=`<div class="alert ok">✓ Sin revisiones pendientes ni errores activos<br><span style="font-size:11px">${detalle}</span></div>`;
+  }else{
+    el.innerHTML=`<div class="alert warn">${revisiones?`⚠ ${revisiones} revisión${revisiones===1?"":"es"} pendiente${revisiones===1?"":"s"}`:"✓ 0 revisiones pendientes"}<br>${errores?`⚠ ${errores} error${errores===1?"":"es"} pendiente${errores===1?"":"s"}`:"✓ 0 errores pendientes"}<br><span style="font-size:11px">${detalle}</span></div>`;
+  }
+
+  const parcial=uesRes.status!=="fulfilled"||ryrRes.status!=="fulfilled";
+  top.innerHTML=parcial
+    ?'<span class="dot yellow"></span><span>Conexión parcial UES / RyR</span>'
+    :'<span class="dot green"></span><span>UES + RyR conectados</span>';
+  document.title=total?`(${total}) GoCargo / UES / RyR`:'GoCargo / UES / RyR — Torre de control';
+}
+consultarConteo();
+document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+
+async function login(){PASSWORD=document.getElementById("password").value;const btn=document.getElementById("loginBtn");btn.disabled=true;document.getElementById("loginMsg").innerHTML="";try{await cargarDashboard();document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");await cargarReviews();autoTimer=setInterval(()=>Promise.all([cargarDashboard(true),cargarReviews(true)]),60000)}catch(e){document.getElementById("loginMsg").innerHTML=`<div class="alert err">${e.status===401?"Contraseña incorrecta":esc(e.message)}</div>`}finally{btn.disabled=false}}
+
+function proxyPartialInfo(h){
+  const r=h?.last_result;
+  if(!r || String(r.estado||"").toLowerCase()!=="partial" || !Array.isArray(r.resultados)) return null;
+
+  const incidencias=r.resultados.filter(x=>x && x.ok===false);
+  if(!incidencias.length) return null;
+
+  const revisiones=incidencias.filter(x=>norm(x.accion)==="revision-manual");
+  const codigos=revisiones.map(x=>String(x.orderCode||"").trim()).filter(Boolean);
+  const total=Number(r.tareasEncontradas ?? r.resultados.length ?? 0);
+  const correctas=Math.max(0,total-incidencias.length);
+
+  return {r,incidencias,revisiones,codigos,total,correctas};
+}
+
+function componentFriendlyMessage(h){
+  if(h?.health_message)return String(h.health_message);
+
+  const p=proxyPartialInfo(h);
+  if(p){
+    if(p.revisiones.length===p.incidencias.length){
+      const n=p.revisiones.length;
+      const ordenes=p.codigos.length ? ` (${p.codigos.join(", ")})` : "";
+      return `Proceso completado con observaciones. ${p.correctas} de ${p.total} órdenes fueron gestionadas sin problemas. ${n===1 ? "1 orden requiere" : "Hay "+n+" órdenes que requieren"} revisión manual${ordenes}.`;
+    }
+
+    const codigos=p.incidencias
+      .map(x=>String(x.orderCode||"").trim())
+      .filter(Boolean);
+    const ordenes=codigos.length ? ` (${codigos.join(", ")})` : "";
+
+    return `Proceso completado parcialmente. ${p.correctas} de ${p.total} órdenes fueron gestionadas sin problemas y ${p.incidencias.length} requieren atención${ordenes}.`;
+  }
+
+  return h?.last_error||"";
+}
+
+function componentState(h){
+  if(!h) return {c:"gray",t:"Sin datos"};
+
+  if(h.health_state==="ok")return {c:"green",t:"Operativo"};
+  if(h.health_state==="attention")return {c:"yellow",t:"Atención"};
+  if(h.health_state==="error")return {c:"red",t:"Error"};
+
+  if(proxyPartialInfo(h)){
+    return {c:"yellow",t:"Atención"};
+  }
+
+  const err=h.last_error_at ? new Date(h.last_error_at) : null;
+  const ok=h.last_success_at ? new Date(h.last_success_at) : null;
+
+  if(h.last_error && err && (!ok || err>ok)) return {c:"red",t:"Error"};
+  if(ok) return {c:"green",t:"Operativo"};
+  return {c:"yellow",t:"Esperando primera ejecución"};
+}
+
+function metric(key,label,value,cls="",sub=""){
+  return `<div class="card metric ${cls} clickable-card" role="button" tabindex="0" onclick="abrirMetrica('${esc(key)}','${esc(label)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirMetrica('${esc(key)}','${esc(label)}')}"><div class="value">${esc(value)}</div><div class="label">${esc(label)}</div>${sub?`<div class="sub">${esc(sub)}</div>`:""}</div>`;
+}
+
+function providerMetricSub(key){
+  const u=DASHBOARD?._ues?.metrics||{},r=DASHBOARD?._ryr?.metrics||{};
+  const uHas=Object.prototype.hasOwnProperty.call(u,key)||(key==="erroresPendientes"&&Object.prototype.hasOwnProperty.call(u,"errores24h"));
+  const rHas=Object.prototype.hasOwnProperty.call(r,key)||(key==="erroresPendientes"&&Object.prototype.hasOwnProperty.call(r,"errores24h"));
+  const uv=key==="erroresPendientes"?num(u.erroresPendientes??u.errores24h):num(u[key]);
+  const rv=key==="erroresPendientes"?num(r.erroresPendientes??r.errores24h):num(r[key]);
+  return `UES ${uHas?uv:"—"} · RyR ${rHas?rv:"—"}`;
+}
+
+async function cargarDashboard(silent=false){
+  try{
+    const [uesRes,ryrRes]=await Promise.allSettled([
+      apiProvider("UES","dashboard"),
+      apiProvider("RYR","dashboard")
+    ]);
+
+    const authError=[uesRes,ryrRes].find(x=>x.status==="rejected"&&x.reason?.status===401);
+    if(authError)throw authError.reason;
+    if(uesRes.status==="rejected"&&ryrRes.status==="rejected")throw uesRes.reason||ryrRes.reason;
+
+    const u=uesRes.status==="fulfilled"?uesRes.value:{};
+    const r=ryrRes.status==="fulfilled"?ryrRes.value:{};
+    const um={...(u.metrics||{})};
+    const rm={...(r.metrics||{})};
+
+    // count es la misma fuente pública que se ve antes del login. Solo se usa
+    // como fallback si al dashboard de un proveedor le faltan estos contadores;
+    // así no duplicamos consultas live a SendGround en cada refresco normal.
+    const necesitaCountU=!Object.prototype.hasOwnProperty.call(um,"abiertos")||
+      !Object.prototype.hasOwnProperty.call(um,"revisionPendiente")||
+      !Object.prototype.hasOwnProperty.call(um,"erroresPendientes");
+    const necesitaCountR=!Object.prototype.hasOwnProperty.call(rm,"abiertos")||
+      !Object.prototype.hasOwnProperty.call(rm,"revisionPendiente")||
+      !Object.prototype.hasOwnProperty.call(rm,"erroresPendientes");
+    const [uesCountRes,ryrCountRes]=await Promise.all([
+      necesitaCountU?Promise.resolve(apiProvider("UES","count")).then(value=>({ok:true,value})).catch(error=>({ok:false,error})):Promise.resolve(null),
+      necesitaCountR?Promise.resolve(apiProvider("RYR","count")).then(value=>({ok:true,value})).catch(error=>({ok:false,error})):Promise.resolve(null)
+    ]);
+
+    if(uesCountRes?.ok)PUBLIC_COUNTS.UES=uesCountRes.value||{};
+    if(ryrCountRes?.ok)PUBLIC_COUNTS.RYR=ryrCountRes.value||{};
+    const uc=uesCountRes?.ok?uesCountRes.value:(PUBLIC_COUNTS.UES||{});
+    const rc=ryrCountRes?.ok?ryrCountRes.value:(PUBLIC_COUNTS.RYR||{});
+    if(!Object.prototype.hasOwnProperty.call(um,"abiertos")&&uc?.abiertos!==undefined)um.abiertos=num(uc.abiertos);
+    if(!Object.prototype.hasOwnProperty.call(um,"revisionPendiente")&&(uc?.revisionPendiente!==undefined||uc?.count!==undefined))um.revisionPendiente=num(uc.revisionPendiente??uc.count);
+    if(!Object.prototype.hasOwnProperty.call(um,"erroresPendientes")&&(uc?.erroresPendientes!==undefined||uc?.errores24h!==undefined))um.erroresPendientes=num(uc.erroresPendientes??uc.errores24h);
+    if(!Object.prototype.hasOwnProperty.call(rm,"abiertos")&&rc?.abiertos!==undefined)rm.abiertos=num(rc.abiertos);
+    if(!Object.prototype.hasOwnProperty.call(rm,"revisionPendiente")&&(rc?.revisionPendiente!==undefined||rc?.count!==undefined))rm.revisionPendiente=num(rc.revisionPendiente??rc.count);
+    if(!Object.prototype.hasOwnProperty.call(rm,"erroresPendientes")&&(rc?.erroresPendientes!==undefined||rc?.errores24h!==undefined))rm.erroresPendientes=num(rc.erroresPendientes??rc.errores24h);
+
+    u.metrics=um;
+    r.metrics=rm;
+
+    const combine=(key,alias=null)=>{
+      const uk=um[key]??(alias?um[alias]:undefined);
+      const rk=rm[key]??(alias?rm[alias]:undefined);
+      return num(uk)+num(rk);
+    };
+
+    DASHBOARD={
+      ...u,
+      _ues:u,
+      _ryr:r,
+      _providerStatus:{UES:uesRes.status==="fulfilled",RYR:ryrRes.status==="fulfilled"},
+      _providerDegraded:{
+        UES:uesRes.status!=="fulfilled"||u.partial===true,
+        RYR:ryrRes.status!=="fulfilled"||r.partial===true
+      },
+      metrics:{
+        ...um,
+        abiertos:combine("abiertos"),
+        entregadosHoy:combine("entregadosHoy"),
+        revisionPendiente:combine("revisionPendiente"),
+        erroresPendientes:combine("erroresPendientes","errores24h"),
+        errores24h:combine("erroresPendientes","errores24h"),
+        webhooksRecibidosHoy:combine("webhooksRecibidosHoy"),
+        entregasSinPodHoy:combine("entregasSinPodHoy")
+      }
+    };
+    renderDashboard();
+  }catch(e){
+    if(!silent)throw e;
+    document.getElementById("topStatus").innerHTML='<span class="dot red"></span><span>Error de panel</span>';
+  }
+}
+function ryrHealthEntries(r){
+  const raw=[
+    ...(Array.isArray(r?.heartbeats)?r.heartbeats:[]),
+    ...(Array.isArray(r?.components)?r.components:[])
+  ];
+  const seen=new Set();
+  return raw.filter(h=>{
+    const key=String(h?.component??h?.key??h?.name??"").trim();
+    if(!key||seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function ryrComponentTitle(key){
+  const k=norm(key);
+  if(k.includes("webhook"))return "Webhook RyR";
+  if(k.includes("proxy"))return "Creación RyR";
+  if(k.includes("poller"))return "Poller RyR";
+  return `RyR · ${key}`;
+}
+
+function ryrComponentSchedule(key,r){
+  const k=norm(key),s=r?.schedules||{};
+  if(k.includes("webhook"))return s.webhook||s.ryrWebhook||"Tiempo real / según eventos RyR";
+  if(k.includes("proxy"))return s.proxy||s.ryrProxy||"Creación / según programación RyR";
+  if(k.includes("poller"))return s.poller||s.ryrPoller||"Reconciliación / según programación RyR";
+  return "Según configuración RyR";
+}
+
+function renderDashboard(){
+  const m=DASHBOARD.metrics||{};
+  document.getElementById("metrics").innerHTML=[
+    metric("abiertos","Pedidos abiertos",m.abiertos||0,"",providerMetricSub("abiertos")),
+    metric("entregadosHoy","Entregados hoy",m.entregadosHoy||0,"ok",providerMetricSub("entregadosHoy")),
+    metric("revisionPendiente","Revisión pendiente",m.revisionPendiente||0,(m.revisionPendiente||0)?"warn":"",providerMetricSub("revisionPendiente")),
+    metric("erroresPendientes","Errores pendientes",num(m.erroresPendientes??m.errores24h),num(m.erroresPendientes??m.errores24h)?"err":"",providerMetricSub("erroresPendientes")),
+    metric("webhooksHoy","Webhooks recibidos hoy",m.webhooksRecibidosHoy||0,"",providerMetricSub("webhooksRecibidosHoy")),
+    metric("entregasSinPodHoy","Entregas sin POD",m.entregasSinPodHoy||0,(m.entregasSinPodHoy||0)?"warn":"",providerMetricSub("entregasSinPodHoy"))
+  ].join("");
+
+  let anyRed=false;
+  const cards=[];
+
+  // UES: conserva la telemetría completa actual.
+  const u=DASHBOARD._ues||DASHBOARD||{};
+  const hb=Object.fromEntries((u.heartbeats||[]).map(x=>[x.component,x]));
+  const uesComps=[
+    ["ues-webhook","Webhook","Tiempo real / 24×7"],
+    ["ues-proxy","Creación de guías","14:00–18:00 / 30 min"],
+    ["ues-poller","Poller de respaldo","22:00 / diario"]
+  ];
+
+  for(const [key,title,schedule] of uesComps){
+    const h=hb[key],st=componentState(h);if(st.c==="red")anyRed=true;
+    const last=key==="ues-webhook"&&u.ultimoWebhook
+      ?u.ultimoWebhook.received_at
+      :(h?.last_activity_at||h?.updated_at||h?.last_started_at||h?.last_success_at||h?.last_error_at);
+    const extra=key==="ues-poller"?'<br>Procesamiento: lotes de 15 hasta recorrer todos los pedidos elegibles':"";
+    const friendly=componentFriendlyMessage(h);
+    cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponenteProveedor('UES','${key}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponenteProveedor('UES','${key}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${title}<span class="badge ${st.c}">${st.t}</span><span class="badge blue provider-chip">UES</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${schedule}${extra}${key==="ues-webhook"&&u.ultimoWebhook?`<br>Último evento: <b>${esc(u.ultimoWebhook.evento_nombre||"—")}</b> · ${esc(u.ultimoWebhook.order_code||u.ultimoWebhook.tracking_number||"sin mapeo")}`:""}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}" title="${esc(friendly)}">${esc(friendly)}</div>`:""}</div>`);
+  }
+
+  // RyR: si ryr-admin expone telemetría por componente, se muestran sus procesos.
+  // Si todavía no la expone, se muestra un resumen operativo real (sin inventar estados).
+  const r=DASHBOARD._ryr||{};
+  const ryrEntries=ryrHealthEntries(r);
+  if(ryrEntries.length){
+    for(const h of ryrEntries){
+      const key=String(h.component??h.key??h.name??"RyR");
+      const title=ryrComponentTitle(key),schedule=ryrComponentSchedule(key,r);
+      const st=componentState(h);if(st.c==="red")anyRed=true;
+      const friendly=componentFriendlyMessage(h);
+      const last=h.last_activity_at||h.updated_at||h.last_success_at||h.last_started_at;
+      cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${esc(title)}<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${esc(schedule)}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}">${esc(friendly)}</div>`:""}</div>`);
+    }
+  }else{
+    const rm=r.metrics||{};
+    const rErr=num(rm.erroresPendientes??rm.errores24h);
+    const rRev=num(rm.revisionPendiente);
+    const rAbiertos=num(rm.abiertos);
+    const providerOk=DASHBOARD._providerStatus?.RYR;
+    const providerPartial=!!DASHBOARD._providerDegraded?.RYR;
+    const st=!providerOk?{c:"yellow",t:"Sin conexión"}:rErr?{c:"red",t:"Requiere atención"}:rRev?{c:"yellow",t:"Atención"}:providerPartial?{c:"yellow",t:"Datos parciales"}:{c:"green",t:"Operativo"};
+    if(st.c==="red")anyRed=true;
+    cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirResumenRyr()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirResumenRyr()}"><div class="health-head"><span class="dot ${st.c}"></span>Procesos RyR<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">${providerOk?`Pedidos abiertos: <b>${rAbiertos}</b><br>Revisiones pendientes: <b>${rRev}</b><br>Errores pendientes: <b>${rErr}</b>`:"La Torre no pudo consultar ryr-admin en esta actualización."}</div><div class="muted" style="font-size:11px;margin-top:7px">${providerOk?(providerPartial?"ryr-admin respondió parcialmente; se muestran solo los datos disponibles.":"ryr-admin no expone telemetría por componente en esta respuesta; se muestra el estado operativo disponible."):"UES continúa funcionando de forma independiente."}</div></div>`);
+  }
+
+  document.getElementById("health").innerHTML=cards.join("");
+
+  const warn=(m.revisionPendiente||0)>0||num(m.erroresPendientes??m.errores24h)>0||(m.entregasSinPodHoy||0)>0;
+  const ps=DASHBOARD._providerStatus||{UES:true,RYR:true};
+  const degraded=DASHBOARD._providerDegraded||{};
+  const parcial=!ps.UES||!ps.RYR||degraded.UES||degraded.RYR;
+  document.getElementById("topStatus").innerHTML=anyRed
+    ?'<span class="dot red"></span><span>Requiere atención</span>'
+    :parcial
+      ?'<span class="dot yellow"></span><span>Conexión parcial UES / RyR</span>'
+      :warn
+        ?'<span class="dot yellow"></span><span>Operativo con alertas</span>'
+        :'<span class="dot green"></span><span>UES + RyR operativos</span>';
+}
+
+function abrirModalBase(titulo,estadoHtml="",preserveMetric=false){
+ CURRENT_DETAIL=null;
+ if(!preserveMetric)CURRENT_METRIC_ROW=null;
+ document.getElementById("detailModal").classList.remove("hidden");
+ document.getElementById("detailTitle").textContent=titulo;
+ document.getElementById("detailStatus").innerHTML=estadoHtml;
+}
+
+function rowLookup(r){return r.query||r.order_code||r.tracking_number||r.numero_guia||r.guia_id||""}
+
+function renderListaMetrica(data){
+  const rows=Array.isArray(data?.rows)?data.rows:[];
+  const warnings=Array.isArray(data?.warnings)?data.warnings:[];
+  METRIC_ROWS=rows;
+  const total=Number(data?.total??rows.length);
+  document.getElementById("detailStatus").innerHTML=`<span class="badge blue">${esc(total)} registro${total===1?"":"s"}</span>`;
+  const warningBox=warnings.length?`<div class="alert warn"><b>Consulta parcial:</b><br>${warnings.map(esc).join("<br>")}</div>`:"";
+  if(!rows.length){
+    document.getElementById("detailBody").innerHTML=warningBox+'<div class="card empty">No hay registros para mostrar.</div>';
+    return;
+  }
+  const lista=rows.map((r,i)=>{
+    const provider=String(r.provider||"UES").toUpperCase();
+    const pcls=provider==="RYR"?"green":"blue";
+    return `<div class="search-result" onclick="abrirRegistroMetrica(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){abrirRegistroMetrica(${i})}"><div><div><span class="badge ${pcls}">${provider}</span></div><div class="code mono" style="margin-top:5px">${esc(r.code||rowLookup(r)||"—")}</div><div style="font-size:12px;font-weight:750;margin-top:2px">${esc(r.title||"")}</div><div class="muted" style="font-size:11px;margin-top:2px">${esc(r.subtitle||"")}</div>${r.date?`<div class="muted" style="font-size:11px;margin-top:2px">${fmt(r.date)}</div>`:""}</div><div class="spacer"></div>${r.badge?`<span class="badge ${esc(r.badgeClass||"blue")}">${esc(r.badge)}</span>`:""}</div>`;
+  }).join("");
+  const shown=rows.length<total?`<span class="muted">Mostrando ${rows.length} de ${total}.</span>`:"";
+  document.getElementById("detailBody").innerHTML=`${warningBox}<div class="drawer-summary"><span class="muted">Hacé clic en un registro para abrir su detalle.</span>${shown}</div><div class="drawer-list">${lista}</div>`;
+}
+function abrirRegistroMetrica(i){
+  const r=METRIC_ROWS[i];if(!r)return;
+  CURRENT_METRIC_ROW=r;
+  String(r.provider||"UES").toUpperCase()==="RYR"
+    ?abrirDetalleRyr(r,true)
+    :abrirDetalle(rowLookup(r),true);
+}
+function abrirDetalleRyr(r,preserveMetric=false){
+  abrirModalBase(r.code||r.query||r.order_code||"RyR",'<span class="badge green">RyR</span>',preserveMetric);
+  CURRENT_DETAIL={provider:"RYR",row:r};
+  if(preserveMetric)CURRENT_METRIC_ROW=r;
+  const code=r.code||r.order_code||r.query||"—";
+  const ryrCode=r.ryrOrderCode||r.ryr_order_code||"—";
+  const motivo=String(r.subtitle||r.motivo||r.error||"");
+  const source=String(r.source_type||r.tipo||"");
+  const id=Number(r.source_id||r.id||0);
+  const resolvable=r.resolvable===true||source==="revision";
+  const esDatos=esCasoDatosRyr(r);
+  const faltantes=faltantesReview(r);
+  const live=Array.isArray(r.faltantes_actuales);
+  const dismissButton=r.dismissible===true?'<button class="btn danger small" style="margin-top:12px;margin-left:8px" onclick="descartarAvisoActual()">Descartar</button>':"";
+  const liveBox=esDatos&&id>0?`<div class="alert ${faltantes.length?"warn":"ok"}" style="margin-top:12px"><b>Datos actuales de SendGround</b><br>${faltantes.length?`Faltan: ${esc(faltantes.join(", "))}`:"Los datos obligatorios ya están correctos."}${live?'<br><span class="muted" style="font-size:11px">Verificado en vivo contra SendGround.</span>':""}</div>`:"";
+  const resolveButton=!esDatos&&resolvable&&id>0?`<button class="btn secondary small" style="margin-top:12px" onclick="resolverCaso('RYR',${id},'${esc(code)}')">Marcar resuelto</button>`:"";
+  const info=!resolveButton?`<div class="muted" style="font-size:11px;margin-top:12px">${esDatos?"Los casos de datos se resuelven corrigiendo/verificando SendGround, no marcándolos manualmente.":"Los estados automáticos de RyR se actualizan desde su propia integración."}</div>`:"";
+  document.getElementById("detailBody").innerHTML=`<div class="card detail-card"><div class="detail-title">RyR</div><div class="kv"><div class="k">Orden GoCargo</div><div class="v mono">${esc(code)}</div><div class="k">Orden RyR</div><div class="v mono">${esc(ryrCode)}</div><div class="k">Etapa / proceso</div><div class="v">${esc(r.title||r.evento||r.etapa||"—")}</div><div class="k">Fecha</div><div class="v">${fmt(r.date||r.updated_at||r.created_at)}</div></div>${motivo?`<div class="alert ${source==="error"?"err":"warn"}" style="margin-top:12px">${esc(motivo)}</div>`:""}${liveBox}<div>${resolveButton}${dismissButton}</div>${info}<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Datos técnicos recibidos de ryr-admin / ryr-datos</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section></div>`;
+}
+async function abrirMetrica(kind,label){
+  abrirModalBase(label,'<span class="badge gray">Cargando…</span>');
+  document.getElementById("detailBody").innerHTML='<div class="empty">Consultando UES y RyR…</div>';
+  const [u,r]=await Promise.allSettled([
+    apiProvider("UES","dashboard-list",{query:{kind}}),
+    apiProvider("RYR","dashboard-list",{query:{kind}})
+  ]);
+  if(u.status==="rejected"&&r.status==="rejected"){
+    const e=u.reason||r.reason;
+    document.getElementById("detailStatus").innerHTML='<span class="badge red">Error</span>';
+    document.getElementById("detailBody").innerHTML=`<div class="alert err">${esc(e?.message||"No se pudo consultar")}</div>`;
+    return;
+  }
+
+  const warnings=[];
+  if(u.status==="rejected")warnings.push(`UES: ${u.reason?.message||"no se pudo consultar"}`);
+  if(r.status==="rejected")warnings.push(`RyR: ${r.reason?.message||"no se pudo consultar"}`);
+
+  const uAvailable=u.status==="fulfilled"&&u.value?.available!==false;
+  const rAvailable=r.status==="fulfilled"&&r.value?.available!==false;
+  const ur=uAvailable?(u.value.rows||[]).map(x=>({...x,provider:"UES"})):[];
+  const rr=rAvailable?(r.value.rows||[]).map(x=>({...x,provider:"RYR"})):[];
+  const total=(uAvailable?num(u.value.total??ur.length):0)+(rAvailable?num(r.value.total??rr.length):0);
+  const rows=[...ur,...rr].sort((a,b)=>new Date(b.date||b.updated_at||b.created_at||0)-new Date(a.date||a.updated_at||a.created_at||0));
+  renderListaMetrica({total,rows,warnings});
+}
+function buscarRyrHeartbeat(key){
+  return ryrHealthEntries(DASHBOARD?._ryr||{}).find(h=>String(h.component??h.key??h.name??"")===String(key))||null;
+}
+
+function abrirComponenteProveedor(provider,key,title,schedule){
+  provider=String(provider||"UES").toUpperCase();
+  if(provider==="UES")return abrirComponente(key,title,schedule);
+
+  const h=buscarRyrHeartbeat(key);
+  const st=componentState(h);
+  const friendly=componentFriendlyMessage(h);
+  abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span><span class="badge green">RyR</span>`);
+  const result=h?`<section class="section"><details open><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Último resultado técnico</summary><pre class="json-box">${esc(JSON.stringify(h,null,2))}</pre></details></section>`:"";
+  document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Proceso RyR</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(h?.last_activity_at||h?.updated_at||h?.last_success_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}">${esc(friendly)}</div>`:""}${result}`;
+}
+
+function abrirResumenRyr(){
+  const r=DASHBOARD?._ryr||{},m=r.metrics||{};
+  const ok=DASHBOARD?._providerStatus?.RYR;
+  const partial=!!DASHBOARD?._providerDegraded?.RYR;
+  const badgeClass=!ok?"yellow":partial?"yellow":"green";
+  const badgeText=!ok?"Sin conexión":partial?"Datos parciales":"Conectado";
+  abrirModalBase("Procesos RyR",`<span class="badge ${badgeClass}">${badgeText}</span>`);
+  document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado operativo RyR</div><div class="kv"><div class="k">Pedidos abiertos</div><div class="v">${num(m.abiertos)}</div><div class="k">Revisiones</div><div class="v">${num(m.revisionPendiente)}</div><div class="k">Errores pendientes</div><div class="v">${num(m.erroresPendientes??m.errores24h)}</div><div class="k">Entregados hoy</div><div class="v">${Object.prototype.hasOwnProperty.call(m,"entregadosHoy")?num(m.entregadosHoy):"No informado"}</div></div></div></div><div class="muted" style="font-size:12px;margin-top:12px">UES y RyR continúan en Supabase y funciones independientes. Esta Torre únicamente consulta ambos paneles administrativos y presenta la información junta.</div><section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Respuesta técnica de ryr-admin</summary><pre class="json-box">${esc(JSON.stringify(r,null,2))}</pre></details></section>`;
+}
+
+function abrirComponente(key,title,schedule){
+  const u=DASHBOARD?._ues||DASHBOARD||{};
+  const hb=Object.fromEntries((u.heartbeats||[]).map(x=>[x.component,x]));
+  const h=hb[key]||null,st=componentState(h);
+  const friendly=componentFriendlyMessage(h);
+  const ultimo=key==="ues-webhook"?u.ultimoWebhook:null;
+  const last=key==="ues-webhook"&&ultimo
+    ?ultimo.received_at
+    :(h?.last_activity_at||h?.updated_at||h?.last_started_at||h?.last_success_at||h?.last_error_at);
+  abrirModalBase(title,`<span class="badge ${st.c}">${esc(st.t)}</span><span class="badge blue">UES</span>`);
+  const lookup=ultimo?rowLookup(ultimo):"";
+  const issueHistorica=h?.operational_issue_active===false&&String(h?.last_result?.status||"")==="operational_issue";
+  const webhookHistoricoSuperado=issueHistorica&&ultimo&&String(ultimo.order_code||"")===String(h?.operational_issue_order_code||"");
+  const resultadoWebhook=ultimo?.processing_ok===false
+    ?(webhookHistoricoSuperado?"No aplicado al recibirlo · situación ya superada":"No aplicado en ese momento")
+    :ultimo?.processing_ok===true?"OK":"Recibido";
+  const webhookExtra=ultimo?`<section class="section"><div class="section-head"><h2>Último webhook</h2></div><div class="card detail-card"><div class="kv"><div class="k">Pedido</div><div class="v mono">${esc(ultimo.order_code||"Sin mapear")}</div><div class="k">Tracking / guía</div><div class="v mono">${esc(ultimo.tracking_number||ultimo.numero_guia||"—")}</div><div class="k">Evento</div><div class="v">${esc(ultimo.evento_nombre||"—")}</div><div class="k">Resultado de ese webhook</div><div class="v">${esc(resultadoWebhook)}</div><div class="k">Fecha</div><div class="v">${fmt(ultimo.received_at)}</div></div>${lookup?`<button class="btn secondary small" style="margin-top:10px" onclick="abrirDetalle('${esc(lookup)}')">Abrir detalle</button>`:""}</div></section>`:"";
+  const pollerHistorico=key==="ues-poller"&&h?.poller_operational_partial===true;
+  const resumenPoller=pollerHistorico
+    ?`<div class="alert ${num(h?.poller_operational_active)?"warn":"ok"}" style="margin-top:12px"><b>Resultado de la última corrida</b><br>${num(h?.last_result?.errores)||0} incidencia(s) ocurrieron en esa ejecución · ${num(h?.poller_operational_active)} siguen activas ahora · ${num(h?.poller_operational_resolved)} ya fueron superadas.</div>`
+    :"";
+  const result=h?.last_result&&!issueHistorica?`<section class="section"><details ${pollerHistorico?"":"open"}><summary style="cursor:pointer;font-weight:800;color:var(--navy)">${pollerHistorico?"Resultado técnico histórico de la última corrida":"Último resultado técnico"}</summary><pre class="json-box">${esc(JSON.stringify(h.last_result,null,2))}</pre></details></section>`:"";
+  const historical=h?.last_error_historico&&h?.operational_issue_active===false&&!h?.last_error?`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--muted)">Incidencia histórica ya superada</summary><div class="event-note" style="margin-top:8px;color:var(--muted)">${esc(h.last_error_historico)}</div></details></section>`:"";
+  document.getElementById("detailBody").innerHTML=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">Estado</div><div class="kv"><div class="k">Componente</div><div class="v mono">${esc(key)}</div><div class="k">Programación</div><div class="v">${esc(schedule)}</div><div class="k">Última actividad</div><div class="v">${fmt(last)}</div><div class="k">Último inicio</div><div class="v">${fmt(h?.last_started_at)}</div><div class="k">Último éxito</div><div class="v">${fmt(h?.last_success_at)}</div><div class="k">Último error registrado</div><div class="v">${fmt(h?.last_error_at)}</div></div></div></div>${friendly?`<div class="alert ${st.c==="yellow"?"warn":"err"}"><b>${st.c==="yellow"?"Atención:":"Último error:"}</b><br>${esc(friendly)}</div>`:""}${resumenPoller}${webhookExtra}${historical}${result}`;
+}
+
+async function cargarReviews(silent=false){
+  const el=document.getElementById("reviewList");
+  if(!silent)el.innerHTML='<div class="empty">Cargando UES y RyR…</div>';
+  try{
+    // Fuente única de "Revisión pendiente": el mismo dashboard-list que
+    // alimenta la tarjeta. Así el contador y el listado nunca se pisan entre sí.
+    const [u,r]=await Promise.allSettled([
+      apiProvider("UES","dashboard-list",{query:{kind:"revisionPendiente"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"revisionPendiente"}})
+    ]);
+    if(u.status==="rejected"&&r.status==="rejected")throw u.reason||r.reason;
+
+    const urRaw=u.status==="fulfilled"
+      ?(Array.isArray(u.value)?u.value:(Array.isArray(u.value?.rows)?u.value.rows:[]))
+      :[];
+    const rrRaw=r.status==="fulfilled"
+      ?(Array.isArray(r.value)?r.value:(Array.isArray(r.value?.rows)?r.value.rows:[]))
+      :[];
+
+    const urBase=urRaw.map(x=>{
+      const source=String(x.source_type||"revision");
+      return {
+        ...x,
+        provider:"UES",
+        id:x.id??x.source_id,
+        order_code:x.order_code??x.code??x.query,
+        evento:x.evento??x.title??(source==="operational_alert"?"Entrega GoCargo sin asignar":"Revisión UES"),
+        motivo:x.motivo??x.subtitle??"",
+        created_at:x.created_at??x.date??x.updated_at,
+        source_type:source,
+        resolvable:source==="revision" && x.resolvable!==false
+      };
+    });
+
+    const rrBase=rrRaw.map(x=>{
+      const source=String(x.source_type||"revision");
+      return {
+        ...x,
+        provider:"RYR",
+        id:x.id??x.source_id,
+        order_code:x.order_code??x.gocargo_order_code??x.code??x.query,
+        ryr_order_code:x.ryr_order_code??x.ryrOrderCode,
+        evento:x.evento??x.etapa??x.title??(source==="operational_alert"?"Entrega GoCargo sin asignar":"Revisión RyR"),
+        motivo:x.motivo??x.subtitle??x.error??"",
+        created_at:x.created_at??x.date??x.updated_at,
+        source_type:source,
+        resolvable:source==="revision" && x.resolvable!==false
+      };
+    });
+
+    const [urLive,rrLive]=await Promise.all([
+      Promise.all(urBase.map(enriquecerRevisionUesLive)).then(rows=>rows.filter(Boolean)),
+      Promise.all(rrBase.map(enriquecerRevisionRyrLive)).then(rows=>rows.filter(Boolean))
+    ]);
+
+    REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+
+    // Sincronizar la tarjeta con exactamente los registros que la lista muestra.
+    // Las alertas operativas (p.ej. Entrega sin asignar) SON revisiones pendientes.
+    if(DASHBOARD?.metrics){
+      const uRev=urLive.length;
+      const rRev=rrLive.length;
+      DASHBOARD.metrics.revisionPendiente=uRev+rRev;
+      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uRev;
+      if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rRev;
+      renderDashboard();
+    }
+
+    renderReviews();
+    document.getElementById("reviewCount").textContent=REVIEWS.length;
+    if(!PASSWORD)consultarConteo();
+  }catch(e){
+    if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+function ageClass(date){const h=(Date.now()-new Date(date).getTime())/36e5;if(h<6)return "green";if(h<24)return "yellow";return "red"}
+function ageText(date){const h=Math.max(0,(Date.now()-new Date(date).getTime())/36e5);return h<1?`${Math.round(h*60)} min`:h<24?`${Math.round(h)} h`:`${Math.floor(h/24)} d ${Math.round(h%24)} h`}
+function motiveType(m){const s=norm(m);if(s.includes("telefono"))return"telefono";if(s.includes("transicion")||s.includes("switchable")||s.includes("status"))return"transicion";if(s.includes("proxy")||s.includes("creacion")||s.includes("guia"))return"creacion";if(s.includes("regla automatica")||s.includes("sin regla"))return"regla";return"otros"}
+function faltantesReview(r){
+  if(Array.isArray(r.faltantes_actuales))return r.faltantes_actuales.map(v=>String(v));
+  const s=norm(r.motivo);
+  const out=[];
+  if(s.includes("numero de puerta"))out.push("número de puerta");
+  if(s.includes("telefono"))out.push("teléfono válido");
+  return out;
+}
+function renderReviews(){
+  const textFilter=norm(document.getElementById("filterText")?.value);
+  const type=document.getElementById("filterType")?.value||"all";
+  const providerFilter=document.getElementById("filterProvider")?.value||"all";
+  const age=document.getElementById("filterAge")?.value||"all";
+
+  const rows=REVIEWS.filter(r=>{
+    const provider=String(r.provider||"UES").toUpperCase();
+    return (!textFilter||norm(`${provider} ${r.order_code||""} ${r.ryr_order_code||""} ${r.evento||""} ${r.motivo||""}`).includes(textFilter))&&
+      (type==="all"||motiveType(r.motivo)===type)&&
+      (providerFilter==="all"||provider===providerFilter)&&
+      (age==="all"||ageClass(r.created_at)===age);
+  });
+
+  const el=document.getElementById("reviewList");
+  if(!rows.length){el.innerHTML='<div class="card empty">No hay casos con esos filtros.</div>';return;}
+
+  el.innerHTML=rows.map(r=>{
+    const provider=String(r.provider||"UES").toUpperCase();
+    const pcls=provider==="RYR"?"green":"blue";
+    const ageC=ageClass(r.created_at);
+
+    if(provider==="RYR"){
+      const key=`ryr-${r.id}`;
+      const open=`abrirReviewRyr('${key}')`;
+      const faltantes=faltantesReview(r);
+      const sincronizado=r.datos_sendground_actualizados===true||Array.isArray(r.faltantes_actuales);
+      const editables=Array.isArray(r.campos_editables)?r.campos_editables:[];
+      const nf=faltantes.map(norm);
+      const necesitaTelefono=editables.includes("telefono")||nf.some(v=>v.includes("telefono"));
+      const necesitaPuerta=editables.includes("numeroPuerta")||nf.some(v=>v.includes("numero de puerta"));
+      const necesitaCalle=editables.includes("calle")||nf.some(v=>v==="calle");
+      const necesitaNombre=editables.includes("nombreDestinatario")||nf.some(v=>v.includes("nombre del destinatario"));
+      const esDatos=esCasoDatosRyr(r);
+      const noEditables=faltantes.filter(v=>{
+        const n=norm(v);
+        return !n.includes("telefono")&&!n.includes("numero de puerta")&&n!=="calle"&&!n.includes("nombre del destinatario");
+      });
+      const motivoVisible=sincronizado
+        ?(faltantes.length?`Faltan datos obligatorios para RyR: ${faltantes.join(", ")}`:"Los datos obligatorios ya están corregidos en SendGround.")
+        :(r.motivo||"");
+      const campos=esDatos?`
+        <div class="phone-row">
+          ${necesitaTelefono?`<div class="data-field"><label>Teléfono</label><input class="input" id="ryr-tel-${r.id}" placeholder="099123123"></div>`:""}
+          ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="ryr-puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
+          ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="ryr-calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
+          ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="ryr-nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
+          <button class="btn primary small" onclick="completarDatosRyr(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
+        </div>
+        ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+        ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
+      `:"";
+
+      return `<div class="card review" id="review-${key}">
+        <div>
+          <span class="badge ${pcls}">RyR</span>
+          <div class="review-code mono" style="margin-top:7px" onclick="${open}">${esc(r.order_code||"—")}</div>
+          ${r.ryr_order_code?`<div class="muted mono" style="font-size:11px;margin-top:3px">RyR: ${esc(r.ryr_order_code)}</div>`:""}
+          <div class="review-event">${esc(r.evento||"Revisión RyR")}</div>
+          <div style="margin-top:7px"><span class="badge ${ageC}">${ageText(r.created_at)}</span></div>
+        </div>
+        <div>
+          <div class="review-motivo">${esc(motivoVisible)}</div>
+          <div class="muted" style="font-size:11px;margin-top:5px">Creado: ${fmt(r.created_at)}</div>
+          ${campos}
+          <div id="msg-${key}"></div>
+        </div>
+        <div class="review-actions">
+          <button class="btn secondary small" onclick="${open}">Ver detalle</button>
+          ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
+        </div>
+      </div>`;
+    }
+
+    // UES usa ues-datos como fuente live, igual que RyR.
+    const faltantes=faltantesReview(r);
+    const sincronizado=
+      r.datos_sendground_actualizados===true||
+      Array.isArray(r.faltantes_actuales);
+    const editables=Array.isArray(r.campos_editables)?r.campos_editables:[];
+    const nf=faltantes.map(norm);
+
+    const necesitaTelefono=
+      editables.includes("telefono")||
+      nf.some(v=>v.includes("telefono"));
+
+    const necesitaPuerta=
+      editables.includes("numeroPuerta")||
+      nf.some(v=>v.includes("numero de puerta"));
+
+    const necesitaCalle=
+      editables.includes("calle")||
+      nf.some(v=>v==="calle");
+
+    const necesitaNombre=
+      editables.includes("nombreDestinatario")||
+      nf.some(v=>v.includes("nombre del destinatario"));
+
+    const esCasoDatos=esCasoDatosUes(r);
+    const esCasoGeo=r.esCasoGeografia===true||
+      norm(r.motivo).includes("no se pudo normalizar destino")||
+      norm(r.motivo).includes("no se encontro localidad ues");
+    const sugeridas=Array.isArray(r.localidades_sugeridas)?r.localidades_sugeridas:[];
+    const disponibles=Array.isArray(r.localidades_disponibles)?r.localidades_disponibles:[];
+    const sugeridasIds=new Set(sugeridas.map(x=>String(x.localidadId)));
+    const otrasLocalidades=disponibles.filter(x=>!sugeridasIds.has(String(x.localidadId)));
+    const geoActual=r.geografia_actual||{};
+    const depUes=r.departamento_ues||{};
+
+    const noEditables=faltantes.filter(v=>{
+      const n=norm(v);
+      return !n.includes("telefono")&&
+        !n.includes("numero de puerta")&&
+        n!=="calle"&&
+        !n.includes("nombre del destinatario");
+    });
+
+    const motivoVisible=esCasoGeo
+      ?`La localidad de SendGround no coincide exactamente con el catálogo de UES. Elegí la localidad correcta y la Torre la guardará también en SendGround.`
+      :sincronizado
+      ?(
+        faltantes.length
+          ?`Faltan datos obligatorios para UES: ${faltantes.join(", ")}`
+          :"Los datos obligatorios ya están corregidos en SendGround."
+      )
+      :r.motivo;
+
+    const geoCampos=esCasoGeo?`
+      <div style="margin-top:10px;padding:10px;border:1px solid #d7e2ef;border-radius:12px;background:#f8fbff">
+        <div class="muted" style="font-size:11px;margin-bottom:7px">
+          SendGround: <strong>${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"—")}</strong>
+          ${geoActual.departamento?` · Departamento: <strong>${esc(geoActual.departamento)}</strong>`:""}
+        </div>
+        ${r.geografia_error?`<div class="alert err" style="margin-bottom:8px">${esc(r.geografia_error)}</div>`:""}
+        ${disponibles.length?`
+          <div class="data-field" style="min-width:300px;max-width:520px">
+            <label>Localidad correcta en UES${depUes.nombre?` · ${esc(depUes.nombre)}`:""}</label>
+            <select class="input" id="loc-ues-${r.id}">
+              <option value="">— Elegí la localidad correcta —</option>
+              ${sugeridas.map((x,i)=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}" ${i===0?"selected":""}>${esc(x.nombre)}${i===0?" · sugerida":""}</option>`).join("")}
+              ${otrasLocalidades.length?`<option disabled>──────── Otras localidades ────────</option>`:""}
+              ${otrasLocalidades.map(x=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}">${esc(x.nombre)}</option>`).join("")}
+            </select>
+          </div>
+          <button class="btn primary small" style="margin-top:8px" onclick="corregirLocalidadUes(${r.id})">Guardar en SendGround y crear guía</button>
+          <div class="muted" style="font-size:11px;margin-top:6px">Las primeras opciones son las más parecidas a “${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"")}”. Al confirmar, se actualizan ciudad/localidad en SendGround y luego se vuelve a validar UES.</div>
+        `:`<div class="alert warn">No fue posible obtener localidades del catálogo UES para este departamento.</div>`}
+      </div>
+    `:"";
+
+    const campos=esCasoDatos?`
+      ${geoCampos}
+      ${(necesitaTelefono||necesitaPuerta||necesitaCalle||necesitaNombre)?`<div class="phone-row">
+        ${necesitaTelefono?`<div class="data-field"><label>Teléfono</label><input class="input" id="tel-${r.id}" placeholder="099123123"></div>`:""}
+        ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
+        ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
+        ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
+        <button class="btn primary small" onclick="completarDatos(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
+      </div>`:""}
+      ${noEditables.length&&!esCasoGeo?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+      ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
+    `:"";
+
+    return `<div class="card review" id="review-ues-${r.id}">
+      <div>
+        <span class="badge blue">UES</span>
+        <div class="review-code mono" style="margin-top:7px" onclick="abrirReviewUes(${r.id})">${esc(r.order_code)}</div>
+        <div class="review-event">${esc(r.evento||"Revisión manual")}</div>
+        <div style="margin-top:7px"><span class="badge ${ageC}">${ageText(r.created_at)}</span></div>
+      </div>
+      <div>
+        <div class="review-motivo">${esc(motivoVisible)}</div>
+        <div class="muted" style="font-size:11px;margin-top:5px">Creado: ${fmt(r.created_at)}</div>
+        ${campos}
+        <div id="msg-${r.id}"></div>
+      </div>
+      <div class="review-actions">
+        <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
+        ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function abrirReviewUes(id){
+  const r=REVIEWS.find(x=>String(x.provider||"UES").toUpperCase()==="UES"&&String(x.id)===String(id));
+  if(!r)return;
+  CURRENT_METRIC_ROW=r;
+  abrirDetalle(r.order_code,true);
+}
+
+function abrirReviewRyr(key){
+  const id=String(key).replace(/^ryr-/,"");
+  const r=REVIEWS.find(x=>String(x.provider||"").toUpperCase()==="RYR"&&String(x.id)===id);
+  if(!r)return;
+  const row={
+    ...r,
+    provider:"RYR",
+    source_id:r.id,
+    code:r.order_code,
+    ryrOrderCode:r.ryr_order_code,
+    title:r.evento,
+    subtitle:r.motivo,
+    date:r.updated_at||r.created_at
+  };
+  CURRENT_METRIC_ROW=row;
+  abrirDetalleRyr(row,true);
+}
+
+function providerSwitchBase(provider){
+  return String(provider||"UES").toUpperCase()==="RYR"
+    ?API_PROVIDER_SWITCH_RYR
+    :API_PROVIDER_SWITCH_UES;
+}
+
+async function apiProviderSwitch(provider,action,{method="GET",body=null,query={}}={}){
+  const p=String(provider||"UES").toUpperCase();
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(providerSwitchBase(p)+"?"+qs,{
+    method,
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,data,provider:p});
+  return data;
+}
+
+function limpiarPreviewCambioProveedor(){
+  PROVIDER_SWITCH_PREVIEW=null;
+  const el=document.getElementById("providerSwitchResult");
+  if(el)el.innerHTML="";
+}
+
+async function obtenerPreviewsCambioProveedor(orderCode){
+  const [u,r]=await Promise.allSettled([
+    apiProviderSwitch("UES","preview",{query:{orderCode}}),
+    apiProviderSwitch("RYR","preview",{query:{orderCode}})
+  ]);
+
+  if(u.status==="rejected"||r.status==="rejected"){
+    const faltan=[];
+    if(u.status==="rejected")faltan.push(`UES: ${u.reason?.message||"sin respuesta"}`);
+    if(r.status==="rejected")faltan.push(`RyR: ${r.reason?.message||"sin respuesta"}`);
+    throw new Error(`No se pudo verificar ambos proveedores. ${faltan.join(" · ")}`);
+  }
+  return {UES:u.value,RYR:r.value};
+}
+
+function detectarOrigenCambioProveedor(pack){
+  const vinculados=["UES","RYR"].filter(p=>pack?.[p]?.linked===true);
+  return {origin:vinculados.length===1?vinculados[0]:null,vinculados};
+}
+
+function detectarAdopcionCambioProveedor(pack,target,origin){
+  return Boolean(
+    origin==="RYR"&&
+    target==="UES"&&
+    pack?.UES?.linked===false&&
+    pack?.UES?.remoteActivity===true&&
+    pack?.UES?.canAdopt===true
+  );
+}
+
+function validarCambioProveedor(pack,target){
+  const detectado=detectarOrigenCambioProveedor(pack);
+  const origin=detectado.origin;
+  const problems=[];
+  const adoption=detectarAdopcionCambioProveedor(pack,target,origin);
+
+  if(detectado.vinculados.length===0){
+    problems.push("La orden no está vinculada localmente a UES ni a RyR. Usá Enviar orden manualmente.");
+  }
+  if(detectado.vinculados.length>1){
+    problems.push("La orden tiene vínculo/historial local en UES y RyR. El cambio automático se bloquea para evitar reactivar un proveedor histórico.");
+  }
+  if(origin&&origin===target){
+    problems.push(`La orden ya está vinculada a ${target}; elegí el otro proveedor como destino.`);
+  }
+  if(origin&&pack?.[origin]?.canDeactivate!==true){
+    problems.push(pack?.[origin]?.detalle||`${origin} no habilita actualmente la desactivación.`);
+  }
+
+  const destino=pack?.[target];
+  if(destino?.linked===true){
+    problems.push(`El proveedor destino ${target} ya tiene un vínculo local para esta ORD.`);
+  }else if(!adoption&&destino?.canActivate!==true){
+    problems.push(destino?.detalle||`${target} no habilita actualmente la creación.`);
+  }
+
+  return {
+    origin,target,destination:destino,
+    mode:adoption?"adopt-existing":"create",
+    problems,blocked:problems.length>0
+  };
+}
+
+function detalleCambioProveedor(nombre,data){
+  if(!data)return "";
+  const partes=[];
+  if(data.providerOrderCode)partes.push(String(data.providerOrderCode));
+  if(Array.isArray(data.remoteGuideIds)&&data.remoteGuideIds.length)partes.push(`guía/s remota/s: ${data.remoteGuideIds.join(", ")}`);
+  if(data.origenVinculo==="adoptado_manual")partes.push("vínculo UES adoptado desde carga manual");
+  if(data.motivoCierre)partes.push(String(data.motivoCierre));
+  if(data.detalle)partes.push(String(data.detalle));
+  return partes.length?`<div class="muted" style="font-size:12px;line-height:1.45;padding:5px 0"><b>${esc(nombre)}:</b> ${esc(partes.join(" · "))}</div>`:"";
+}
+
+function renderCambioProveedor(orderCode,target,pack){
+  const el=document.getElementById("providerSwitchResult");
+  const v=validarCambioProveedor(pack,target);
+
+  if(v.blocked){
+    el.innerHTML=`<div class="alert err"><b>No se puede ejecutar el cambio todavía.</b><br>${v.problems.map(esc).join("<br>")}</div>${detalleCambioProveedor("UES",pack.UES)}${detalleCambioProveedor("RyR",pack.RYR)}`;
+    return;
+  }
+
+  const origin=v.origin;
+  const badges=v.mode==="adopt-existing"
+    ?`<span class="badge red">Origen: ${esc(origin)}</span><span class="badge blue">UES ya existe</span><span class="badge green">Sincronizar/adoptar</span>`
+    :`<span class="badge red">Origen: ${esc(origin)}</span><span class="badge green">Destino: ${esc(target)}</span>`;
+  const info=v.mode==="adopt-existing"
+    ?`<div class="alert warn manual-warning"><b>La misma ORD ya fue cargada manualmente en UES.</b><br>No se va a crear otra guía. Primero se confirma/cierra RyR y después se adopta la guía UES existente.</div>`
+    :`<div class="alert warn manual-warning"><b>Cambio en dos fases.</b><br>1) Desactivar/cancelar ${esc(origin)}.<br>2) Crear/vincular ${esc(target)}.<br>Si la segunda fase falla, no se reactiva automáticamente el proveedor anterior.</div>`;
+  const button=v.mode==="adopt-existing"
+    ?`<button class="btn danger" style="margin-top:12px" onclick="ejecutarCambioProveedor()">Sincronizar ${esc(origin)} → UES existente</button>`
+    :`<button class="btn danger" style="margin-top:12px" onclick="ejecutarCambioProveedor()">Confirmar ${esc(origin)} → ${esc(target)}</button>`;
+
+  el.innerHTML=`<div class="manual-provider-state">${badges}</div>${detalleCambioProveedor(origin,pack[origin])}${detalleCambioProveedor(target,pack[target])}${info}${button}`;
+}
+
+async function previsualizarCambioProveedor(){
+  const orderCode=document.getElementById("providerSwitchOrder").value.trim().toUpperCase();
+  const target=document.getElementById("providerSwitchTarget").value.toUpperCase();
+  const motivo=document.getElementById("providerSwitchReason").value.trim();
+  const el=document.getElementById("providerSwitchResult");
+
+  if(!/^ORD[A-Z0-9_-]+$/.test(orderCode)){
+    el.innerHTML='<div class="alert err">Ingresá un código de orden válido, por ejemplo ORD3XFW.</div>';
+    return;
+  }
+  if(!motivo){
+    el.innerHTML='<div class="alert err">Ingresá el motivo del cambio.</div>';
+    return;
+  }
+
+  el.innerHTML='<div class="alert warn">Verificando UES, RyR y elegibilidad del cambio…</div>';
+  try{
+    const pack=await obtenerPreviewsCambioProveedor(orderCode);
+    const v=validarCambioProveedor(pack,target);
+    PROVIDER_SWITCH_PREVIEW=v.blocked?null:{orderCode,target,motivo,pack,origin:v.origin,mode:v.mode};
+    renderCambioProveedor(orderCode,target,pack);
+  }catch(e){
+    PROVIDER_SWITCH_PREVIEW=null;
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function ejecutarCambioProveedor(){
+  const state=PROVIDER_SWITCH_PREVIEW;
+  if(!state)return previsualizarCambioProveedor();
+
+  const orderCode=document.getElementById("providerSwitchOrder").value.trim().toUpperCase();
+  const target=document.getElementById("providerSwitchTarget").value.toUpperCase();
+  const motivo=document.getElementById("providerSwitchReason").value.trim();
+  const el=document.getElementById("providerSwitchResult");
+
+  if(orderCode!==state.orderCode||target!==state.target||motivo!==state.motivo){
+    limpiarPreviewCambioProveedor();
+    return previsualizarCambioProveedor();
+  }
+
+  el.innerHTML='<div class="alert warn">Revalidando ambos proveedores antes de modificar la orden…</div>';
+  let fresh;
+  try{
+    fresh=await obtenerPreviewsCambioProveedor(orderCode);
+    const v=validarCambioProveedor(fresh,target);
+    if(v.blocked||v.origin!==state.origin||v.mode!==state.mode){
+      throw new Error(v.problems[0]||"El estado de los proveedores cambió desde la previsualización. Volvé a revisar.");
+    }
+  }catch(e){
+    PROVIDER_SWITCH_PREVIEW=null;
+    el.innerHTML=`<div class="alert err"><b>No se modificó ningún proveedor.</b><br>${esc(e.message)}</div>`;
+    return;
+  }
+
+  const msg=state.mode==="adopt-existing"
+    ?`¿Sincronizar ${orderCode}? ${state.origin} se confirmará cancelado/desactivado y se adoptará la guía UES ya existente. No se creará una guía nueva.`
+    :`¿Cambiar ${orderCode} de ${state.origin} a ${state.target}? Primero se desactivará ${state.origin}.`;
+  if(!confirm(msg)){
+    PROVIDER_SWITCH_PREVIEW={...state,pack:fresh};
+    renderCambioProveedor(orderCode,target,fresh);
+    return;
+  }
+
+  let salida;
+  try{
+    el.innerHTML=`<div class="alert warn">Fase 1/2: desactivando ${esc(state.origin)}…</div>`;
+    salida=await apiProviderSwitch(state.origin,"deactivate",{
+      method:"POST",
+      body:{orderCode,targetProvider:state.target,motivo}
+    });
+    if(salida.deactivated!==true||salida.safeToCreateTarget!==true){
+      throw new Error(salida.detalle||`${state.origin} no confirmó una salida segura.`);
+    }
+  }catch(e){
+    el.innerHTML=`<div class="alert err"><b>No se modificó ${esc(state.target)}.</b><br>Falló la salida de ${esc(state.origin)}: ${esc(e.message)}</div>`;
+    return;
+  }
+
+  try{
+    const esAdopcion=state.mode==="adopt-existing";
+    el.innerHTML=`<div class="alert warn">Fase 1/2 completada: ${esc(state.origin)} desactivado.<br>Fase 2/2: ${esAdopcion?"adoptando la guía UES existente":`creando/vinculando ${esc(state.target)}`}…</div>`;
+
+    const entrada=await apiProviderSwitch(state.target,esAdopcion?"adopt":"activate",{
+      method:"POST",
+      body:{orderCode,sourceProvider:state.origin,motivo}
+    });
+
+    if(esAdopcion?entrada.adopted!==true:entrada.activated!==true){
+      throw new Error(entrada.detalle||`${state.target} no confirmó la ${esAdopcion?"adopción":"activación"}.`);
+    }
+
+    PROVIDER_SWITCH_PREVIEW=null;
+    const cancelText=salida.remoteCancellation==="confirmed"
+      ?"Cancelación anterior confirmada"
+      :salida.remoteCancellation==="not_applicable"
+      ?"Sin cancelación remota necesaria"
+      :"Salida anterior completada";
+    const modeText=esAdopcion?"UES existente adoptado · sin nueva guía":`${state.target} creado/vinculado`;
+
+    el.innerHTML=`<div class="alert ok manual-success"><b>✓ ${esAdopcion?"Cambio sincronizado":"Cambio completado"}: ${esc(state.origin)} → ${esc(state.target)}</b><br>${esc(entrada.detalle||"Proveedor destino vinculado correctamente.")}<br>${esc(cancelText)} · ${esc(modeText)}${entrada.providerOrderCode?` · <span class="mono">${esc(entrada.providerOrderCode)}</span>`:""}</div>`;
+    toast(`${orderCode}: proveedor actualizado`);
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    PROVIDER_SWITCH_PREVIEW=null;
+    el.innerHTML=`<div class="alert err"><b>RECUPERACIÓN MANUAL REQUERIDA.</b><br>${esc(state.origin)} ya fue desactivado, pero ${esc(state.target)} no pudo ${state.mode==="adopt-existing"?"adoptarse":"crearse/vincularse"}.<br>Error: ${esc(e.message)}<br><br>No vuelvas a ejecutar el cambio a ciegas. Revisá primero el estado real en ambos proveedores.</div>`;
+    try{await Promise.allSettled([cargarReviews(true),cargarDashboard(true)])}catch{}
+  }
+}
+
+function limpiarPreviewManual(){
+  MANUAL_PREVIEW=null;
+  const el=document.getElementById("manualResult");
+  if(el)el.innerHTML="";
+}
+
+async function obtenerPreviewsManual(orderCode){
+  const [u,r]=await Promise.allSettled([
+    apiUesDatos("manual-preview",{query:{orderCode}}),
+    apiRyrDatos("manual-preview",{query:{orderCode}})
+  ]);
+
+  if(u.status==="rejected"||r.status==="rejected"){
+    const faltan=[];
+    if(u.status==="rejected")faltan.push(`UES: ${u.reason?.message||"sin respuesta"}`);
+    if(r.status==="rejected")faltan.push(`RyR: ${r.reason?.message||"sin respuesta"}`);
+    throw new Error(`No se pudo verificar ambos proveedores. ${faltan.join(" · ")}`);
+  }
+
+  return {UES:u.value,RYR:r.value};
+}
+
+function validarPreviewManual(pack,provider){
+  const selected=pack[provider];
+  const otherProvider=provider==="RYR"?"UES":"RYR";
+  const other=pack[otherProvider];
+  const problems=[];
+
+  if(other?.alreadyLinked){
+    problems.push(`La orden ya está vinculada a ${otherProvider}${other.providerOrderCode?` (${other.providerOrderCode})`:""}.`);
+  }
+  if(selected?.alreadyLinked){
+    problems.push(`La orden ya está vinculada a ${provider}${selected.providerOrderCode?` (${selected.providerOrderCode})`:""}.`);
+  }
+  if(provider==="RYR"){
+    const dup=selected?.manualDuplicateCheck;
+    if(dup&&dup.complete===false)problems.push("La verificación de posibles cargas manuales en RyR quedó incompleta; por seguridad no se habilita el envío.");
+    if(Array.isArray(dup?.strongCandidates)&&dup.strongCandidates.length){
+      problems.push("RyR tiene una posible carga manual previa con datos coincidentes. Debe revisarse antes de crear.");
+    }
+  }
+  if(!selected?.canProcess&&!selected?.alreadyLinked){
+    problems.push(selected?.detalle||`La orden no supera las validaciones de ${provider}.`);
+  }
+
+  return {selected,other,otherProvider,problems,blocked:problems.length>0};
+}
+
+function renderPreviewManual(orderCode,provider,pack){
+  const el=document.getElementById("manualResult");
+  const v=validarPreviewManual(pack,provider);
+  const s=v.selected||{};
+  const o=s.order||{};
+  const t=s.transfer||{};
+  const dup=s.manualDuplicateCheck||{};
+  const providerState=(p,row)=>row?.alreadyLinked
+    ?`<span class="badge red">${p}: ya vinculada${row.providerOrderCode?` · ${esc(row.providerOrderCode)}`:""}</span>`
+    :`<span class="badge green">${p}: sin vínculo local</span>`;
+  const manualOverride=s.manualDeliveryOverride===true
+    ?`<div class="alert warn manual-warning"><b>Excepción manual por Entrega habilitada.</b><br>Esta excepción existe únicamente en <b>Enviar orden manualmente</b>. La Torre omitirá el estado de la Transferencia y de las tareas intermedias porque existe una tarea Entrega posterior que no está Cancelada. Las validaciones de orden cancelada, datos obligatorios y duplicados siguen vigentes.</div>`
+    :"";
+  const exception=s.requiresException
+    ?`<div class="alert warn manual-warning"><b>Excepción requerida.</b><br>La Transferencia actual está en locationId <b>${esc(t.locationId??"—")}</b>, distinto del depósito normal de ${provider} (${esc(s.expectedPickupLocationId??"—")}). La autorización se limitará a esta ORD + taskId ${esc(t.taskId??"—")} + locationId ${esc(t.locationId??"—")}.</div>`
+    :"";
+  const duplicateInfo=provider==="RYR"
+    ?`<div class="muted" style="font-size:11px;margin-top:7px">Control de carga manual RyR: ${num(dup.reviewed)} órdenes revisadas · ${dup.complete===false?"búsqueda incompleta":"búsqueda completa"}${Array.isArray(dup.weakCandidates)&&dup.weakCandidates.length?` · ${dup.weakCandidates.length} coincidencia(s) débiles no bloqueantes`:""}.</div>`
+    :"";
+  const problems=v.problems.length
+    ?`<div class="alert err"><b>No se habilita el envío.</b><br>${v.problems.map(esc).join("<br>")}</div>`
+    :`<div class="alert ok"><b>Validación correcta.</b><br>${esc(s.detalle||`La orden puede procesarse en ${provider}.`)}</div>`;
+  const button=!v.blocked
+    ?`<button class="btn primary" style="margin-top:12px" onclick="enviarOrdenManual()">Enviar a ${provider}</button>`
+    :"";
+  const pickup=o.pickupName?`<div class="k">Pick Up</div><div class="v">${esc(o.pickupName)}</div>`:"";
+
+  el.innerHTML=`${problems}<div class="manual-provider-state">${providerState("UES",pack.UES)}${providerState("RyR",pack.RYR)}</div><div class="manual-summary"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(orderCode)}</div><div class="k">Destinatario</div><div class="v">${esc(o.recipientName||"—")}</div><div class="k">Teléfono</div><div class="v mono">${esc(o.telephone||"—")}</div><div class="k">Dirección</div><div class="v">${esc(o.address||"—")}</div>${pickup}</div></div><div class="card detail-card"><div class="detail-title">Transferencia</div><div class="kv"><div class="k">Task ID</div><div class="v mono">${esc(t.taskId??"—")}</div><div class="k">Location ID</div><div class="v mono">${esc(t.locationId??"—")}</div><div class="k">Estado</div><div class="v">${esc(t.statusId??"—")}</div><div class="k">Proveedor elegido</div><div class="v"><span class="badge ${provider==="RYR"?"green":"blue"}">${provider}</span></div></div></div><div class="card detail-card"><div class="detail-title">Control</div><div class="kv"><div class="k">Depósito esperado</div><div class="v mono">${esc(s.expectedPickupLocationId??"—")}</div><div class="k">Excepción</div><div class="v">${s.requiresException?"Sí, exacta y auditada":"No"}</div><div class="k">Faltantes</div><div class="v">${Array.isArray(s.missingFields)&&s.missingFields.length?esc(s.missingFields.join(", ")):"Ninguno"}</div></div></div></div>${manualOverride}${exception}${duplicateInfo}${button}`;
+}
+
+async function previsualizarOrdenManual(){
+  const orderCode=document.getElementById("manualOrder").value.trim().toUpperCase();
+  const provider=document.getElementById("manualProvider").value.toUpperCase();
+  const el=document.getElementById("manualResult");
+  if(!/^ORD[A-Z0-9_-]+$/.test(orderCode)){
+    el.innerHTML='<div class="alert err">Ingresá un código de orden válido, por ejemplo ORD3VS0.</div>';
+    return;
+  }
+
+  el.innerHTML='<div class="alert warn">Releyendo SendGround y verificando UES + RyR…</div>';
+  try{
+    const pack=await obtenerPreviewsManual(orderCode);
+    MANUAL_PREVIEW={orderCode,provider,pack};
+    renderPreviewManual(orderCode,provider,pack);
+  }catch(e){
+    MANUAL_PREVIEW=null;
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function enviarOrdenManual(){
+  const state=MANUAL_PREVIEW;
+  if(!state)return previsualizarOrdenManual();
+  const currentCode=document.getElementById("manualOrder").value.trim().toUpperCase();
+  const currentProvider=document.getElementById("manualProvider").value.toUpperCase();
+  if(currentCode!==state.orderCode||currentProvider!==state.provider){
+    limpiarPreviewManual();
+    return previsualizarOrdenManual();
+  }
+
+  const el=document.getElementById("manualResult");
+  el.innerHTML='<div class="alert warn">Revalidando ambos proveedores antes de crear…</div>';
+  try{
+    const fresh=await obtenerPreviewsManual(currentCode);
+    const validation=validarPreviewManual(fresh,currentProvider);
+    if(validation.blocked){
+      MANUAL_PREVIEW={orderCode:currentCode,provider:currentProvider,pack:fresh};
+      renderPreviewManual(currentCode,currentProvider,fresh);
+      return;
+    }
+
+    const msg=validation.selected?.manualDeliveryOverride===true
+      ?`¿Enviar ${currentCode} a ${currentProvider} usando la excepción manual? Se ignorará el estado de la Transferencia y de las tareas intermedias porque la Entrega no está Cancelada.`
+      :validation.selected?.requiresException
+      ?`¿Enviar ${currentCode} a ${currentProvider} usando la excepción exacta de Transferencia mostrada?`
+      :`¿Enviar ${currentCode} a ${currentProvider}?`;
+    if(!confirm(msg)){
+      MANUAL_PREVIEW={orderCode:currentCode,provider:currentProvider,pack:fresh};
+      renderPreviewManual(currentCode,currentProvider,fresh);
+      return;
+    }
+
+    el.innerHTML=`<div class="alert warn">Creando/vinculando ${esc(currentCode)} en ${esc(currentProvider)}…</div>`;
+    const result=await apiDatosProvider(currentProvider,"manual-create",{
+      method:"POST",
+      body:{orderCode:currentCode,motivo:`Asignación manual a ${currentProvider} desde Torre de Control`}
+    });
+
+    MANUAL_PREVIEW=null;
+    el.innerHTML=`<div class="alert ok manual-success"><b>✓ ${esc(result.detalle||"Orden procesada correctamente")}</b><br>Proveedor: ${esc(currentProvider)}${result.providerOrderCode?` · Orden/guía: <span class="mono">${esc(result.providerOrderCode)}</span>`:""}${result.manualDeliveryOverrideUsed?" · Excepción manual por Entrega no cancelada":result.exceptionUsed?" · Excepción consumida y auditada":""}. Desde este momento continúa por el flujo normal del proveedor.</div>`;
+    toast(`${currentCode} procesada en ${currentProvider}`);
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function buscarGlobal(){
+  const q=document.getElementById("globalSearch").value.trim(),el=document.getElementById("searchResults");
+  if(q.length<2){el.innerHTML="";return}
+  el.innerHTML='<div class="muted">Buscando en UES y RyR…</div>';
+
+  const [u,r]=await Promise.allSettled([
+    apiProvider("UES","search",{query:{q}}),
+    apiProvider("RYR","search",{query:{q}})
+  ]);
+
+  if(u.status==="rejected"&&r.status==="rejected"){
+    el.innerHTML=`<div class="alert err">${esc(u.reason?.message||r.reason?.message||"No se pudo buscar")}</div>`;
+    return;
+  }
+
+  const ur=u.status==="fulfilled"?(Array.isArray(u.value)?u.value:[]).map(x=>({...x,provider:"UES"})):[];
+  const rr=r.status==="fulfilled"?(Array.isArray(r.value)?r.value:[]).map(x=>({...x,provider:"RYR"})):[];
+  const rows=[...ur,...rr];
+
+  if(!rows.length){el.innerHTML='<div class="muted">Sin resultados.</div>';return}
+
+  el.innerHTML=rows.map((row,i)=>{
+    const provider=String(row.provider||"UES").toUpperCase();
+    const pcls=provider==="RYR"?"green":"blue";
+    const lookup=row.query||row.order_code||row.gocargo_order_code||row.tracking_number||row.numero_guia||row.code||"";
+    const code=row.order_code||row.gocargo_order_code||row.code||row.numero_guia||row.tracking_number||"Sin código";
+    const sub=provider==="RYR"
+      ?(row.ryr_order_code||row.ryrOrderCode||row.subtitle||row.etapa||"")
+      :(row.tracking_number||row.numero_guia||row.guia_id||row.evento||row.evento_nombre||"");
+    const click=provider==="RYR"
+      ?`abrirDetalleRyr(${JSON.stringify({provider:"RYR"})}.provider?SEARCH_ROWS[${i}]:SEARCH_ROWS[${i}])`
+      :`abrirDetalle('${esc(lookup)}')`;
+    return `<div class="search-result" onclick="${provider==="RYR"?`abrirDetalleRyr(SEARCH_ROWS[${i}])`:`abrirDetalle('${esc(lookup)}')`}"><div><div><span class="badge ${pcls}">${provider}</span></div><div class="code mono" style="margin-top:4px">${esc(code)}</div><div class="muted" style="font-size:11px">${esc(sub)}</div></div><div class="spacer"></div><span class="badge gray">${provider==="RYR"?"RyR":"UES"}</span></div>`;
+  }).join("");
+  SEARCH_ROWS=rows;
+}
+
+async function abrirDetalle(q,preserveMetric=false){
+  if(!preserveMetric)CURRENT_METRIC_ROW=null;
+  document.getElementById("detailModal").classList.remove("hidden");
+  document.getElementById("detailTitle").textContent=q;
+  document.getElementById("detailBody").innerHTML='<div class="empty">Consultando SendGround, UES y Supabase…</div>';
+  try{CURRENT_DETAIL=await api("detail",{query:{q}});renderDetail()}catch(e){document.getElementById("detailBody").innerHTML=`<div class="alert err">${esc(e.message)}</div>`}
+}
+function cerrarDetalle(){document.getElementById("detailModal").classList.add("hidden");CURRENT_DETAIL=null;CURRENT_METRIC_ROW=null}
+function latestUes(ev){if(!ev?.length)return null;return ev[ev.length-1]}
+function renderDetail(){
+  const d=CURRENT_DETAIL,env=d.envio||{},sg=d.sendground?.currentTask||{},pod=d.pod||{},proc=d.integracion?.eventosProcesados||[],wh=d.integracion?.webhooks||[],manual=d.integracion?.accionesManuales||[],reviews=(d.integracion?.revisiones||[]).filter(r=>!r.resuelto);
+  const liveEvents=d.ues?.eventos||[];
+  const webhookEvents=wh.map(w=>({estado:w.evento_nombre,subestado:w.evento_observaciones,fecha:w.evento_fecha||w.received_at}));
+  const timelineEvents=liveEvents.length?liveEvents:webhookEvents;
+  const last=latestUes(timelineEvents);
+  const display=d.displayCode||d.orderCode||env.tracking_number||env.guia_id||"Detalle";
+  document.getElementById("detailTitle").textContent=display;
+  document.getElementById("detailStatus").innerHTML=d.standaloneWebhook?'<span class="badge yellow">Webhook sin mapear</span>':env.cerrado?`<span class="badge green">${esc(env.motivo_cierre||"Cerrado")}</span>`:'<span class="badge blue">Abierto</span>';
+
+  const guide=env.tracking_number||env.guia_id||wh.at(-1)?.numero_guia||wh.at(-1)?.tracking_number||"";
+  const refreshQuery=d.orderCode||guide||display;
+  const discardAction=CURRENT_METRIC_ROW?.dismissible===true?'<button class="btn danger small" onclick="descartarAvisoActual()">Descartar</button>':"";
+  const actions=`<div class="detail-actions"><button class="btn secondary small" onclick="abrirDetalle('${esc(refreshQuery)}',${CURRENT_METRIC_ROW?"true":"false"})">↻ Actualizar</button>${d.orderCode?`<button class="btn primary small" onclick="reprocesar('${esc(d.orderCode)}')">Reprocesar ahora</button><button class="btn secondary small" onclick="copiar('${esc(d.orderCode)}')">Copiar ORD</button>`:""}${guide?`<button class="btn secondary small" onclick="copiar('${esc(guide)}')">Copiar guía</button>`:""}${d.orderCode?`<button class="btn secondary small" onclick="abrirSendGround('${esc(d.orderCode)}','${esc(d.sendground?.panelUrl||"")}')">Abrir SendGround</button>`:""}${d.orderCode&&reviews.length?`<button class="btn danger small" onclick="resolverOrden('${esc(d.orderCode)}')">Resolver ${reviews.length} alerta${reviews.length===1?"":"s"}</button>`:""}${discardAction}</div>`;
+
+  const standaloneBanner=d.standaloneWebhook?'<div class="alert warn"><b>Webhook recibido correctamente, pero esta guía todavía no tiene una orden SendGround asociada en ues_envios.</b><br>Esta vista sirve para validar transporte, payload y POD durante testing.</div>':"";
+  const cards=`<div class="detail-grid"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(d.orderCode||"Sin mapear")}</div><div class="k">Tarea actual</div><div class="v">${esc(sg.subtipo||"—")}</div><div class="k">Estado</div><div class="v">${esc(sg.estado||"—")}</div><div class="k">Worker</div><div class="v">${esc(sg.assignedWorkerId||"Sin asignar")}</div></div></div><div class="card detail-card"><div class="detail-title">UES</div><div class="kv"><div class="k">Guía</div><div class="v mono">${esc(guide||"—")}</div><div class="k">Último evento</div><div class="v">${esc(last?.estado||"—")}</div><div class="k">Subestado / observación</div><div class="v">${esc(last?.subestado||"—")}</div><div class="k">Fecha</div><div class="v">${esc(last?.fecha||"—")}</div></div></div><div class="card detail-card"><div class="detail-title">Integración</div><div class="kv"><div class="k">Último cursor</div><div class="v mono">${esc(env.ultimo_evento_procesado||"—")}</div><div class="k">Último intento</div><div class="v">${fmt(env.ultimo_intento_at)}</div><div class="k">Eventos procesados</div><div class="v">${proc.length}</div><div class="k">Webhooks guardados</div><div class="v">${wh.length}</div></div></div></div>`;
+
+  const podNames={receptor:"Receptor",documento:"Documento","geolocalización":"Geolocalización",firma:"Firma",fecha:"Fecha"};
+  const missing=new Set(pod.faltantes||[]);
+  const podBox=`<section class="section"><div class="section-head"><h2>Prueba de entrega (POD)</h2>${pod.disponible?`<span class="badge ${pod.completo?"green":"blue"}">${pod.completo?"Completo":"Parcial"}</span>`:'<span class="badge gray">Sin webhook de entrega</span>'}</div><div class="card detail-card"><div class="pod-grid">${Object.entries(podNames).map(([k,n])=>`<div class="pod-item ${missing.has(k)?"partial":"ok"}">${missing.has(k)?"—":"✓"}<br>${n}</div>`).join("")}</div>${pod.disponible?`<div class="kv" style="margin-top:12px"><div class="k">Recibió</div><div class="v">${esc(pod.receptor||"—")}</div><div class="k">Documento</div><div class="v">${esc(pod.documento||"—")}</div><div class="k">Observación</div><div class="v">${esc(pod.observaciones||"—")}</div><div class="k">Coordenadas</div><div class="v mono">${pod.latitud!=null&&pod.longitud!=null?`${esc(pod.latitud)}, ${esc(pod.longitud)}`:"—"}</div></div>`:""}<div class="muted" style="font-size:11px;margin-top:10px">Los campos faltantes son informativos y no generan una alerta por sí solos.</div></div></section>`;
+
+  const uesTimeline=`<section class="section"><div class="section-head"><h2>Línea de tiempo UES</h2><span class="count">${timelineEvents.length}</span></div><div class="card detail-card"><div class="timeline">${timelineEvents.length?timelineEvents.map(e=>`<div class="event"><div class="event-title">${esc(e.estado||"Evento")}</div><div class="event-sub">${esc(e.fecha||"")}${e.subestado?` · ${esc(e.subestado)}`:""}</div></div>`).join(""):'<div class="muted">Sin eventos disponibles.</div>'}</div></div></section>`;
+
+  const procEvents=proc.map(e=>{const actionable=e.estado_procesamiento==="fallido"&&String(e.error||"").includes("Acción requerida:");return {kind:"procesado",date:e.processed_at||e.updated_at,title:actionable?`${e.estado||"Evento"} EN UES — acción requerida en SendGround`:e.estado,sub:e.subestado,source:e.source_first,status:e.estado_procesamiento,error:e.error,actionable};});
+  const manualEvents=manual.map(e=>{
+    const detalle=JSON.stringify(e.detail||{});
+    const timeout=!e.success&&/HttpTimeoutError|Timeout HTTP/i.test(detalle);
+    return {
+      kind:"manual",
+      date:e.created_at,
+      title:e.action,
+      sub:"",
+      source:"manual",
+      status:e.success?"procesado":timeout?"resultado no confirmado":"fallido",
+      error:e.success?null:timeout
+        ?"La Torre agotó el tiempo de espera, pero el poller puede haber continuado ejecutándose. Revisá los eventos posteriores para confirmar el resultado."
+        :detalle,
+      technicalError:!e.success&&timeout?detalle:null,
+      warning:timeout
+    };
+  });
+  const allIntegration=[...procEvents,...manualEvents].sort((a,b)=>new Date(a.date||0)-new Date(b.date||0));
+  const intTimeline=`<section class="section"><div class="section-head"><h2>Procesamiento de integración</h2><span class="count">${allIntegration.length}</span></div><div class="card detail-card"><div class="timeline">${allIntegration.length?allIntegration.map(e=>`<div class="event"><div class="event-title">${esc(e.title||"Acción")} <span class="badge ${e.source==="webhook"?"green":e.source==="manual"?"yellow":"blue"}">${e.source==="webhook"?"Webhook":e.source==="manual"?"Manual":"Poller"}</span> <span class="badge ${e.status==="procesado"?"green":e.status==="fallido"?"red":"yellow"}">${esc(e.actionable?"Acción requerida":e.status)}</span></div><div class="event-sub">${fmt(e.date)}${e.sub?` · ${esc(e.sub)}`:""}</div>${e.error?`<div class="event-note" style="color:${e.warning?"var(--yellow)":"var(--red)"}">${esc(e.error)}</div>`:""}${e.technicalError?`<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">Detalle técnico</summary><div class="event-note mono" style="margin-top:6px;color:var(--muted)">${esc(e.technicalError)}</div></details>`:""}</div>`).join(""):'<div class="muted">Sin eventos registrados.</div>'}</div></div></section>`;
+
+  const rev=reviews.length?`<section class="section"><div class="section-head"><h2>Alertas pendientes</h2><span class="count">${reviews.length}</span></div>${reviews.map(r=>`<div class="alert warn"><b>${esc(r.evento)}</b><br>${esc(r.motivo)} <button class="btn secondary small" onclick="resolverCaso(${r.id},'${esc(d.orderCode)}')">Resolver</button></div>`).join("")}</section>`:"";
+  const webhookAudit=wh.length?`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Webhooks recibidos (${wh.length})</summary><div class="timeline" style="margin-top:10px">${wh.map(w=>`<div class="event"><div class="event-title">${esc(w.evento_nombre||"Evento")} <span class="badge ${w.processing_ok===false?"red":w.processing_ok===true?"green":"yellow"}">${w.processing_ok===false?"Error":w.processing_ok===true?"OK":"Recibido"}</span></div><div class="event-sub">${fmt(w.received_at)} · ${esc(w.numero_guia||w.tracking_number||"")}</div>${w.processing_detail?`<div class="event-note">${esc(w.processing_detail)}</div>`:""}</div>`).join("")}</div></details></section>`:"";
+  const warnings=(d.warnings||[]).length?`<div class="alert warn"><b>Diagnóstico parcial:</b><br>${d.warnings.map(esc).join("<br>")}</div>`:"";
+  const raw=`<section class="section"><details><summary style="cursor:pointer;font-weight:800;color:var(--navy)">Detalles técnicos / JSON</summary><pre class="json-box">${esc(JSON.stringify(d,null,2))}</pre></details></section>`;
+  document.getElementById("detailBody").innerHTML=actions+standaloneBanner+warnings+cards+podBox+rev+uesTimeline+intTimeline+webhookAudit+raw;
+}
+
+async function descartarAvisoActual(){
+  const r=CURRENT_METRIC_ROW;
+  if(!r?.dismissible||!r.dismissKind||!r.dismissKey||!r.dismissFingerprint){
+    toast("Este registro no es un aviso descartable");
+    return;
+  }
+  const provider=String(r.provider||"UES").toUpperCase();
+  const orderCode=rowLookup(r)||r.order_code||"";
+  if(!confirm(`¿Descartar este aviso de ${provider}${orderCode?` (${orderCode})`:""}? Solo se ocultará esta incidencia en la Torre; no se modifica SendGround, UES ni RyR.`))return;
+  try{
+    await apiProvider(provider,"dismiss",{
+      method:"POST",
+      body:{
+        kind:r.dismissKind,
+        item_key:r.dismissKey,
+        fingerprint:r.dismissFingerprint,
+        order_code:orderCode||null
+      }
+    });
+    toast(`Aviso ${provider} descartado`);
+    cerrarDetalle();
+    await Promise.all([cargarDashboard(true),cargarReviews(true)]);
+  }catch(e){toast(e.message)}
+}
+
+async function resolverCaso(providerOrId,idOrOrder,maybeOrder){
+  let provider,id,orderCode;
+  if(typeof providerOrId==="string"&&["UES","RYR"].includes(providerOrId.toUpperCase())){
+    provider=providerOrId.toUpperCase();id=idOrOrder;orderCode=maybeOrder;
+  }else{
+    provider="UES";id=providerOrId;orderCode=idOrOrder;
+  }
+  if(!confirm(`¿Marcar esta alerta ${provider} de ${orderCode} como resuelta?`))return;
+  try{
+    await apiProvider(provider,"resolve",{method:"POST",body:{id}});
+    toast(`Alerta ${provider} resuelta`);
+    await cargarReviews();
+    if(provider==="UES"&&CURRENT_DETAIL?.orderCode===orderCode)abrirDetalle(orderCode);
+    else if(provider==="RYR"&&CURRENT_DETAIL?.provider==="RYR")cerrarDetalle();
+    cargarDashboard(true);
+  }catch(e){toast(e.message)}
+}
+
+async function resolverOrden(orderCode){if(!confirm(`¿Marcar TODAS las alertas pendientes de ${orderCode} como resueltas?`))return;try{await api("resolve",{method:"POST",body:{order_code:orderCode}});toast("Alertas resueltas");await cargarReviews();abrirDetalle(orderCode);cargarDashboard(true)}catch(e){toast(e.message)}}
+async function completarDatosRyr(id){
+  const key=`ryr-${id}`;
+  const msg=document.getElementById(`msg-${key}`);
+  const telefono=document.getElementById(`ryr-tel-${id}`)?.value.trim()||"";
+  const numeroPuerta=document.getElementById(`ryr-puerta-${id}`)?.value.trim()||"";
+  const calle=document.getElementById(`ryr-calle-${id}`)?.value.trim()||"";
+  const nombreDestinatario=document.getElementById(`ryr-nombre-${id}`)?.value.trim()||"";
+
+  if(msg)msg.innerHTML='<div class="alert warn">Releyendo SendGround, guardando cambios y validando RyR…</div>';
+  try{
+    const body={id};
+    if(telefono)body.telefono=telefono;
+    if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
+
+    const r=await apiRyrDatos("complete",{method:"POST",body});
+    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`;
+    setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
+  }catch(e){
+    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    setTimeout(()=>cargarReviews(),1600);
+  }
+}
+
+async function corregirLocalidadUes(id){
+  const msg=document.getElementById(`msg-${id}`);
+  const select=document.getElementById(`loc-ues-${id}`);
+  const value=String(select?.value||"");
+  const [departamentoId,localidadId]=value.split("|");
+
+  if(!departamentoId||!localidadId){
+    if(msg)msg.innerHTML='<div class="alert warn">Elegí una localidad UES.</div>';
+    return;
+  }
+
+  const nombre=select?.selectedOptions?.[0]?.textContent?.replace(/ · sugerida$/i,"")?.trim()||"la localidad seleccionada";
+  if(!confirm(`¿Guardar “${nombre}” también en SendGround y volver a intentar la creación UES?`))return;
+
+  if(msg)msg.innerHTML='<div class="alert warn">Actualizando la localidad en SendGround, verificando UES y creando la guía…</div>';
+
+  try{
+    const telefono=document.getElementById(`tel-${id}`)?.value.trim()||"";
+    const numeroPuerta=document.getElementById(`puerta-${id}`)?.value.trim()||"";
+    const calle=document.getElementById(`calle-${id}`)?.value.trim()||"";
+    const nombreDestinatario=document.getElementById(`nombre-${id}`)?.value.trim()||"";
+    const body={id,departamentoId,localidadId};
+    if(telefono)body.telefono=telefono;
+    if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
+
+    const r=await apiUesDatos("locality-correct",{
+      method:"POST",
+      body
+    });
+    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||"Localidad corregida")}</div>`;
+    toast(r.trackingNumber?`Guía UES creada: ${r.trackingNumber}`:"Localidad corregida");
+    setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
+  }catch(e){
+    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    setTimeout(()=>cargarReviews(),1600);
+  }
+}
+
+async function completarDatos(id){
+  const msg=document.getElementById(`msg-${id}`);
+
+  const telefono=
+    document.getElementById(`tel-${id}`)?.value.trim()||"";
+  const numeroPuerta=
+    document.getElementById(`puerta-${id}`)?.value.trim()||"";
+  const calle=
+    document.getElementById(`calle-${id}`)?.value.trim()||"";
+  const nombreDestinatario=
+    document.getElementById(`nombre-${id}`)?.value.trim()||"";
+
+  if(msg)msg.innerHTML=
+    '<div class="alert warn">Releyendo SendGround, guardando cambios y validando UES…</div>';
+
+  try{
+    const body={id};
+
+    if(telefono)body.telefono=telefono;
+    if(numeroPuerta)body.numeroPuerta=numeroPuerta;
+    if(calle)body.calle=calle;
+    if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
+
+    const r=await apiUesDatos("complete",{
+      method:"POST",
+      body
+    });
+
+    if(msg)msg.innerHTML=
+      `<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}</div>`;
+
+    setTimeout(
+      ()=>Promise.all([
+        cargarReviews(),
+        cargarDashboard(true)
+      ]),
+      900
+    );
+  }catch(e){
+    if(msg)msg.innerHTML=
+      `<div class="alert err">${esc(e.message)}</div>`;
+
+    // La próxima recarga usa action=case y vuelve a leer
+    // los datos ACTUALES directamente desde SendGround.
+    setTimeout(()=>cargarReviews(),1600);
+  }
+}
+async function reprocesar(orderCode){if(!confirm(`Esto ejecutará el poller AHORA solo para ${orderCode}. ¿Continuar?`))return;toast("Reprocesando…");try{const r=await api("reprocess",{method:"POST",body:{order_code:orderCode}});toast(r.ok?"Reproceso terminado":"Reproceso devolvió error");await abrirDetalle(orderCode);cargarReviews();cargarDashboard(true)}catch(e){toast(e.message)}}
+async function probarConexiones(){
+  toast("Probando UES y RyR…");
+  const [u,r]=await Promise.allSettled([
+    apiProvider("UES","health"),
+    apiProvider("RYR","dashboard")
+  ]);
+  const partes=[];
+  partes.push(u.status==="fulfilled"
+    ?`UES OK · ${u.value.catalogo?.departamentos||0} departamentos`
+    :`UES ERROR: ${u.reason?.message||"sin respuesta"}`);
+  partes.push(r.status==="fulfilled"
+    ?`RyR OK${r.value.metrics?` · ${num(r.value.metrics.abiertos)} abiertos`:""}`
+    :`RyR ERROR: ${r.reason?.message||"sin respuesta"}`);
+  toast(partes.join(" · "));
+}
+function copiar(v){navigator.clipboard?.writeText(v);toast("Copiado: "+v)}
+function abrirSendGround(orderCode,url){copiar(orderCode);window.open(url||"https://app.sendground.com/pedidos","_blank","noopener")}
+function rowsDashboard(res){
+  return Array.isArray(res)?res:(Array.isArray(res?.rows)?res.rows:[]);
+}
+function codigoOrdenRow(row){
+  const code=String(row?.query||row?.order_code||row?.gocargo_order_code||row?.code||"").trim().toUpperCase();
+  return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
+}
+async function refrescarTodo(){
+  const btn=document.getElementById("refreshAllBtn");
+  if(btn?.disabled)return;
+  const original=btn?.innerHTML||"↻ Actualizar";
+  if(btn){btn.disabled=true;btn.innerHTML="↻ Reprocesando…";}
+
+  try{
+    toast("Sincronizando todos los pedidos abiertos de UES y RyR…");
+
+    // IMPORTANTE: "Actualizar" debe DESCUBRIR problemas nuevos, no solamente
+    // reprocesar alertas que ya existen. Por eso recorremos todos los pedidos
+    // abiertos de ambos proveedores. Cada reproceso ejecuta el poller de UNA ORD
+    // del lado servidor (sin exponer secretos en el navegador) y actualiza, entre
+    // otras cosas, las alertas de Entrega GoCargo sin asignar.
+    const [uOpen,rOpen]=await Promise.allSettled([
+      apiProvider("UES","dashboard-list",{query:{kind:"abiertos"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"abiertos"}})
+    ]);
+
+    const jobs=[];
+    const seen=new Set();
+    const addJobs=(provider,res)=>{
+      for(const row of rowsDashboard(res)){
+        const orderCode=codigoOrdenRow(row);
+        if(!orderCode)continue;
+        const key=`${provider}:${orderCode}`;
+        if(seen.has(key))continue;
+        seen.add(key);
+        jobs.push({provider,orderCode});
+      }
+    };
+    if(uOpen.status==="fulfilled")addJobs("UES",uOpen.value);
+    if(rOpen.status==="fulfilled")addJobs("RYR",rOpen.value);
+
+    const resultados=[];
+    // Máximo dos reprocesos simultáneos para no presionar SendGround ni los proveedores.
+    let cursor=0;
+    async function worker(){
+      while(cursor<jobs.length){
+        const job=jobs[cursor++];
+        try{
+          const r=await apiProvider(job.provider,"reprocess",{
+            method:"POST",
+            body:{order_code:job.orderCode}
+          });
+          resultados.push({provider:job.provider,orderCode:job.orderCode,ok:r?.ok!==false});
+        }catch(e){
+          resultados.push({provider:job.provider,orderCode:job.orderCode,ok:false,error:e?.message||String(e)});
+        }
+      }
+    }
+    await Promise.all([worker(),worker()]);
+
+    // Dejamos que los pollers terminen de persistir last_error / cierres y luego
+    // releemos todo. cargarReviews además reconcilia alertas históricas de UES.
+    await new Promise(r=>setTimeout(r,700));
+    await Promise.all([cargarDashboard(true),cargarReviews()]);
+
+    const ok=resultados.filter(x=>x.ok).length;
+    const fail=resultados.length-ok;
+    const fuentesFallidas=[];
+    if(uOpen.status==="rejected")fuentesFallidas.push("UES");
+    if(rOpen.status==="rejected")fuentesFallidas.push("RyR");
+
+    if(jobs.length===0){
+      toast(fuentesFallidas.length
+        ?`Panel actualizado · no se pudo consultar ${fuentesFallidas.join(" y ")}`
+        :"Panel actualizado · no había pedidos abiertos para sincronizar");
+    }else if(fail===0&&fuentesFallidas.length===0){
+      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} revisado${ok===1?"":"s"}`);
+    }else{
+      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} OK · ${fail} con error${fuentesFallidas.length?` · sin consultar ${fuentesFallidas.join("/")}`:""}`);
+    }
+  }catch(e){
+    toast(e?.message||"No se pudo sincronizar el panel");
+    try{await Promise.all([cargarDashboard(true),cargarReviews()]);}catch{}
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=original;}
+  }
+}
+</script>
+</body>
+</html>

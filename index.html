@@ -742,7 +742,7 @@ async function cargarReviews(silent=false){
       return {
         ...x,
         provider:"UES",
-        id:x.id??x.source_id,
+        id:x.id??x.source_id??x.sourceId??x.review_id??x.reviewId,
         order_code:x.order_code??x.code??x.query,
         evento:x.evento??x.title??(source==="operational_alert"?"Entrega GoCargo sin asignar":"Revisión UES"),
         motivo:x.motivo??x.subtitle??"",
@@ -852,7 +852,7 @@ function renderReviews(){
           ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="ryr-puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
           ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="ryr-calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
           ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="ryr-nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
-          <button class="btn primary small" onclick="completarDatosRyr(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
+          <button class="btn primary small" onclick="completarDatosRyr(${r.id},this)">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
         </div>
         ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
         ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
@@ -870,7 +870,7 @@ function renderReviews(){
           <div class="review-motivo">${esc(motivoVisible)}</div>
           <div class="muted" style="font-size:11px;margin-top:5px">Creado: ${fmt(r.created_at)}</div>
           ${campos}
-          <div id="msg-${key}"></div>
+          <div class="review-feedback" aria-live="polite"></div>
         </div>
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
@@ -949,7 +949,7 @@ function renderReviews(){
               ${otrasLocalidades.map(x=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}">${esc(x.nombre)}</option>`).join("")}
             </select>
           </div>
-          <button class="btn primary small" style="margin-top:8px" onclick="corregirLocalidadUes(${r.id})">Guardar en SendGround y crear guía</button>
+          <button class="btn primary small" style="margin-top:8px" onclick="corregirLocalidadUes(${r.id},this)">Guardar en SendGround y crear guía</button>
           <div class="muted" style="font-size:11px;margin-top:6px">Las primeras opciones son las más parecidas a “${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"")}”. Al confirmar, se actualizan ciudad/localidad en SendGround y luego se vuelve a validar UES.</div>
         `:`<div class="alert warn">No fue posible obtener localidades del catálogo UES para este departamento.</div>`}
       </div>
@@ -962,7 +962,7 @@ function renderReviews(){
         ${necesitaPuerta?`<div class="data-field"><label>Número de puerta</label><input class="input" id="puerta-${r.id}" placeholder="Ej. 1234"></div>`:""}
         ${necesitaCalle?`<div class="data-field"><label>Calle</label><input class="input" id="calle-${r.id}" placeholder="Ej. Av. Italia"></div>`:""}
         ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
-        <button class="btn primary small" onclick="completarDatos(${r.id})">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
+        <button class="btn primary small" onclick="completarDatos(${r.id},this)">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
       </div>`:""}
       ${noEditables.length&&!esCasoGeo?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
       ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
@@ -979,7 +979,7 @@ function renderReviews(){
         <div class="review-motivo">${esc(motivoVisible)}</div>
         <div class="muted" style="font-size:11px;margin-top:5px">Creado: ${fmt(r.created_at)}</div>
         ${campos}
-        <div id="msg-${r.id}"></div>
+        <div class="review-feedback" aria-live="polite"></div>
       </div>
       <div class="review-actions">
         <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
@@ -1582,15 +1582,41 @@ async function resolverCaso(providerOrId,idOrOrder,maybeOrder){
 }
 
 async function resolverOrden(orderCode){if(!confirm(`¿Marcar TODAS las alertas pendientes de ${orderCode} como resueltas?`))return;try{await api("resolve",{method:"POST",body:{order_code:orderCode}});toast("Alertas resueltas");await cargarReviews();abrirDetalle(orderCode);cargarDashboard(true)}catch(e){toast(e.message)}}
-async function completarDatosRyr(id){
-  const key=`ryr-${id}`;
-  const msg=document.getElementById(`msg-${key}`);
-  const telefono=document.getElementById(`ryr-tel-${id}`)?.value.trim()||"";
-  const numeroPuerta=document.getElementById(`ryr-puerta-${id}`)?.value.trim()||"";
-  const calle=document.getElementById(`ryr-calle-${id}`)?.value.trim()||"";
-  const nombreDestinatario=document.getElementById(`ryr-nombre-${id}`)?.value.trim()||"";
+function iniciarAccionRevision(button,texto){
+  const card=button?.closest(".review");
+  const feedback=card?.querySelector(".review-feedback");
+  if(!card||!feedback){
+    toast("No se pudo ubicar la tarjeta de revisión.");
+    return null;
+  }
+  const original=button.innerHTML;
+  button.disabled=true;
+  button.textContent="Procesando…";
+  feedback.innerHTML=`<div class="alert warn">${esc(texto)}</div>`;
+  return {
+    card,
+    feedback,
+    mostrar(html){feedback.innerHTML=html;},
+    finalizar(limpiar=false){
+      button.disabled=false;
+      button.innerHTML=original;
+      if(limpiar)feedback.innerHTML="";
+    }
+  };
+}
+function valorCampoRevision(card,id){
+  return card.querySelector(`#${id}`)?.value.trim()||"";
+}
 
-  if(msg)msg.innerHTML='<div class="alert warn">Releyendo SendGround, guardando cambios y validando RyR…</div>';
+async function completarDatosRyr(id,button){
+  const accion=iniciarAccionRevision(button,"Releyendo SendGround, guardando cambios y validando RyR…");
+  if(!accion)return;
+  const {card}=accion;
+  const telefono=valorCampoRevision(card,`ryr-tel-${id}`);
+  const numeroPuerta=valorCampoRevision(card,`ryr-puerta-${id}`);
+  const calle=valorCampoRevision(card,`ryr-calle-${id}`);
+  const nombreDestinatario=valorCampoRevision(card,`ryr-nombre-${id}`);
+
   try{
     const body={id};
     if(telefono)body.telefono=telefono;
@@ -1599,99 +1625,85 @@ async function completarDatosRyr(id){
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
     const r=await apiRyrDatos("complete",{method:"POST",body});
-    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`;
+    accion.mostrar(`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`);
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
-    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    accion.mostrar(`<div class="alert err">${esc(e?.message||"No se pudo completar la acción")}</div>`);
     setTimeout(()=>cargarReviews(),1600);
+  }finally{
+    accion.finalizar();
   }
 }
 
-async function corregirLocalidadUes(id){
-  const msg=document.getElementById(`msg-${id}`);
-  const select=document.getElementById(`loc-ues-${id}`);
+async function corregirLocalidadUes(id,button){
+  const accion=iniciarAccionRevision(button,"Preparando la corrección de localidad…");
+  if(!accion)return;
+  const {card}=accion;
+  const select=card.querySelector(`#loc-ues-${id}`);
   const value=String(select?.value||"");
   const [departamentoId,localidadId]=value.split("|");
 
   if(!departamentoId||!localidadId){
-    if(msg)msg.innerHTML='<div class="alert warn">Elegí una localidad UES.</div>';
+    accion.mostrar('<div class="alert warn">Elegí una localidad UES.</div>');
+    accion.finalizar();
     return;
   }
 
   const nombre=select?.selectedOptions?.[0]?.textContent?.replace(/ · sugerida$/i,"")?.trim()||"la localidad seleccionada";
-  if(!confirm(`¿Guardar “${nombre}” también en SendGround y volver a intentar la creación UES?`))return;
+  if(!confirm(`¿Guardar “${nombre}” también en SendGround y volver a intentar la creación UES?`)){
+    accion.finalizar(true);
+    return;
+  }
 
-  if(msg)msg.innerHTML='<div class="alert warn">Actualizando la localidad en SendGround, verificando UES y creando la guía…</div>';
-
+  accion.mostrar('<div class="alert warn">Actualizando la localidad en SendGround, verificando UES y creando la guía…</div>');
   try{
-    const telefono=document.getElementById(`tel-${id}`)?.value.trim()||"";
-    const numeroPuerta=document.getElementById(`puerta-${id}`)?.value.trim()||"";
-    const calle=document.getElementById(`calle-${id}`)?.value.trim()||"";
-    const nombreDestinatario=document.getElementById(`nombre-${id}`)?.value.trim()||"";
+    const telefono=valorCampoRevision(card,`tel-${id}`);
+    const numeroPuerta=valorCampoRevision(card,`puerta-${id}`);
+    const calle=valorCampoRevision(card,`calle-${id}`);
+    const nombreDestinatario=valorCampoRevision(card,`nombre-${id}`);
     const body={id,departamentoId,localidadId};
     if(telefono)body.telefono=telefono;
     if(numeroPuerta)body.numeroPuerta=numeroPuerta;
     if(calle)body.calle=calle;
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
-    const r=await apiUesDatos("locality-correct",{
-      method:"POST",
-      body
-    });
-    if(msg)msg.innerHTML=`<div class="alert ok">✓ ${esc(r.detalle||"Localidad corregida")}</div>`;
+    const r=await apiUesDatos("locality-correct",{method:"POST",body});
+    accion.mostrar(`<div class="alert ok">✓ ${esc(r.detalle||"Localidad corregida")}</div>`);
     toast(r.trackingNumber?`Guía UES creada: ${r.trackingNumber}`:"Localidad corregida");
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
-    if(msg)msg.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    accion.mostrar(`<div class="alert err">${esc(e?.message||"No se pudo corregir la localidad")}</div>`);
     setTimeout(()=>cargarReviews(),1600);
+  }finally{
+    accion.finalizar();
   }
 }
 
-async function completarDatos(id){
-  const msg=document.getElementById(`msg-${id}`);
-
-  const telefono=
-    document.getElementById(`tel-${id}`)?.value.trim()||"";
-  const numeroPuerta=
-    document.getElementById(`puerta-${id}`)?.value.trim()||"";
-  const calle=
-    document.getElementById(`calle-${id}`)?.value.trim()||"";
-  const nombreDestinatario=
-    document.getElementById(`nombre-${id}`)?.value.trim()||"";
-
-  if(msg)msg.innerHTML=
-    '<div class="alert warn">Releyendo SendGround, guardando cambios y validando UES…</div>';
+async function completarDatos(id,button){
+  const accion=iniciarAccionRevision(button,"Releyendo SendGround, guardando cambios y validando UES…");
+  if(!accion)return;
+  const {card}=accion;
+  const telefono=valorCampoRevision(card,`tel-${id}`);
+  const numeroPuerta=valorCampoRevision(card,`puerta-${id}`);
+  const calle=valorCampoRevision(card,`calle-${id}`);
+  const nombreDestinatario=valorCampoRevision(card,`nombre-${id}`);
 
   try{
     const body={id};
-
     if(telefono)body.telefono=telefono;
     if(numeroPuerta)body.numeroPuerta=numeroPuerta;
     if(calle)body.calle=calle;
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
-    const r=await apiUesDatos("complete",{
-      method:"POST",
-      body
-    });
-
-    if(msg)msg.innerHTML=
-      `<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}</div>`;
-
-    setTimeout(
-      ()=>Promise.all([
-        cargarReviews(),
-        cargarDashboard(true)
-      ]),
-      900
-    );
+    const r=await apiUesDatos("complete",{method:"POST",body});
+    accion.mostrar(`<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}</div>`);
+    setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
-    if(msg)msg.innerHTML=
-      `<div class="alert err">${esc(e.message)}</div>`;
-
-    // La próxima recarga usa action=case y vuelve a leer
-    // los datos ACTUALES directamente desde SendGround.
+    accion.mostrar(`<div class="alert err">${esc(e?.message||"No se pudo completar la acción")}</div>`);
+    // La próxima recarga vuelve a leer los datos actuales desde SendGround.
     setTimeout(()=>cargarReviews(),1600);
+  }finally{
+    accion.finalizar();
   }
 }
 async function reprocesar(orderCode){if(!confirm(`Esto ejecutará el poller AHORA solo para ${orderCode}. ¿Continuar?`))return;toast("Reprocesando…");try{const r=await api("reprocess",{method:"POST",body:{order_code:orderCode}});toast(r.ok?"Reproceso terminado":"Reproceso devolvió error");await abrirDetalle(orderCode);cargarReviews();cargarDashboard(true)}catch(e){toast(e.message)}}

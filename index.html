@@ -1379,9 +1379,11 @@ function validarPreviewManual(pack,provider){
   }
   if(provider==="RYR"){
     const dup=selected?.manualDuplicateCheck;
-    if(dup&&dup.complete===false)problems.push("La verificación de posibles cargas manuales en RyR quedó incompleta; por seguridad no se habilita el envío.");
-    if(Array.isArray(dup?.strongCandidates)&&dup.strongCandidates.length){
-      problems.push("RyR tiene una posible carga manual previa con datos coincidentes. Debe revisarse antes de crear.");
+    // Las coincidencias de destinatario/teléfono/dirección son informativas:
+    // un mismo cliente puede tener varias órdenes legítimas. El bloqueo real
+    // se hace por vínculo local o externalReference/ORD exacta en RyR.
+    if(dup&&dup.complete===false){
+      console.warn("Control informativo de coincidencias RyR incompleto",dup);
     }
   }
   if(!selected?.canProcess&&!selected?.alreadyLinked){
@@ -1407,8 +1409,9 @@ function renderPreviewManual(orderCode,provider,pack){
   const exception=s.requiresException
     ?`<div class="alert warn manual-warning"><b>Excepción requerida.</b><br>La Transferencia actual está en locationId <b>${esc(t.locationId??"—")}</b>, distinto del depósito normal de ${provider} (${esc(s.expectedPickupLocationId??"—")}). La autorización se limitará a esta ORD + taskId ${esc(t.taskId??"—")} + locationId ${esc(t.locationId??"—")}.</div>`
     :"";
+  const duplicateMatches=(Array.isArray(dup.strongCandidates)?dup.strongCandidates.length:0)+(Array.isArray(dup.weakCandidates)?dup.weakCandidates.length:0);
   const duplicateInfo=provider==="RYR"
-    ?`<div class="muted" style="font-size:11px;margin-top:7px">Control de carga manual RyR: ${num(dup.reviewed)} órdenes revisadas · ${dup.complete===false?"búsqueda incompleta":"búsqueda completa"}${Array.isArray(dup.weakCandidates)&&dup.weakCandidates.length?` · ${dup.weakCandidates.length} coincidencia(s) débiles no bloqueantes`:""}.</div>`
+    ?`<div class="muted" style="font-size:11px;margin-top:7px">Control RyR: ${num(dup.reviewed)} órdenes revisadas · ${dup.complete===false?"búsqueda informativa incompleta":"búsqueda completa"}${duplicateMatches?` · ${duplicateMatches} coincidencia(s) de destinatario/datos no bloqueantes`:""} · duplicado real se valida por ORD exacta.</div>`
     :"";
   const problems=v.problems.length
     ?`<div class="alert err"><b>No se habilita el envío.</b><br>${v.problems.map(esc).join("<br>")}</div>`

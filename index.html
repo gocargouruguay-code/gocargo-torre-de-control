@@ -56,7 +56,7 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
   <main id="app" class="hidden">
     <div class="hero">
       <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
-      <div class="hero-actions"><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Corrige asignaciones del proveedor activo, reprocesa pedidos abiertos, actualiza el panel y prueba conexiones UES / RyR">↻ Actualizar</button></div>
+      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Corrige asignaciones del proveedor activo, reprocesa pedidos abiertos, actualiza el panel y prueba conexiones UES / RyR">↻ Actualizar</button></div>
     </div>
 
     <div id="metrics" class="metrics"></div>
@@ -1292,6 +1292,54 @@ async function ejecutarCambioProveedor(){
     PROVIDER_SWITCH_PREVIEW=null;
     el.innerHTML=`<div class="alert err"><b>RECUPERACIÓN MANUAL REQUERIDA.</b><br>${esc(state.origin)} ya fue desactivado, pero ${esc(state.target)} no pudo ${state.mode==="adopt-existing"?"adoptarse":"crearse/vincularse"}.<br>Error: ${esc(e.message)}<br><br>No vuelvas a ejecutar el cambio a ciegas. Revisá primero el estado real en ambos proveedores.</div>`;
     try{await Promise.allSettled([cargarReviews(true),cargarDashboard(true)])}catch{}
+  }
+}
+
+async function procesarTransferenciasAtrasadas(){
+  const btn=document.getElementById("lateTransfersBtn");
+  if(!confirm("¿Procesar ahora las Transferencias completadas que todavía no fueron creadas o vinculadas en UES/RyR? La Torre verificará cada ORD antes de crearla."))return;
+
+  const original=btn?.textContent||"Procesar transferencias atrasadas";
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="Procesando…";
+  }
+
+  try{
+    const [u,r]=await Promise.allSettled([
+      apiProvider("UES","late-transfers",{method:"POST",body:{}}),
+      apiProvider("RYR","late-transfers",{method:"POST",body:{}})
+    ]);
+
+    const resumen=[];
+    if(u.status==="fulfilled"){
+      const x=u.value||{};
+      resumen.push(`UES: ${num(x.procesados)} procesada(s), ${num(x.errores)} error(es), ${num(x.candidatos)} candidata(s)`);
+    }else{
+      resumen.push(`UES: error — ${u.reason?.message||"sin respuesta"}`);
+    }
+
+    if(r.status==="fulfilled"){
+      const x=r.value||{};
+      resumen.push(`RyR: ${num(x.procesados)} procesada(s), ${num(x.errores)} error(es), ${num(x.candidatos)} candidata(s)`);
+    }else{
+      resumen.push(`RyR: error — ${r.reason?.message||"sin respuesta"}`);
+    }
+
+    const failed=u.status==="rejected"||r.status==="rejected"||
+      (u.status==="fulfilled"&&u.value?.ok===false)||
+      (r.status==="fulfilled"&&r.value?.ok===false);
+
+    toast(resumen.join(" · "));
+    alert((failed?"Proceso completado con observaciones.\n\n":"Proceso completado.\n\n")+resumen.join("\n"));
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    alert(`No se pudieron procesar las transferencias atrasadas.\n\n${e.message||e}`);
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=original;
+    }
   }
 }
 

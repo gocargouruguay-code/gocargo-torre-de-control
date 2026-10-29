@@ -1,0 +1,25 @@
+{
+  "name": "GoCargo Torre de Control",
+  "short_name": "GC Control",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#065469",
+  "description": "Torre de Control GoCargo para envíos UES y RyR",
+  "icons": [
+    {
+      "src": "/icons/control-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/control-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

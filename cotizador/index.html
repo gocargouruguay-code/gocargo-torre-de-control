@@ -468,7 +468,7 @@ body{background:#f4f7fc}
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.6.1 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.6.2 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -718,9 +718,50 @@ body{background:#f4f7fc}
       $('sourcePill').textContent=modifiedRates?'Tarifas ajustadas en este dispositivo':'Tarifario 2026 · + IVA';
       ['copyButton','whatsAppButton','printButton'].forEach(id=>$(id).disabled=!res.valid);$('saveButton').disabled=!res.valid||!connected()||cloudLoading;
     }
-    function quoteText(obj=lastQuote){const {form:f,result:r}=obj;const snapshot=obj.ratesSnapshot||rates;
-      if(!r.valid)return 'Cotización pendiente de revisión';
-      return ['GO CARGO | Cotización',f.customer?`Cliente: ${f.customer}`:null,`Servicio: ${r.name}`,`Prioridad: ${snapshot.priorities[f.priority].name}`,canInterior(f.service)?`Destino: ${f.destination==='mvd'?'Montevideo':'Interior'}`:null,...(f.service==='package'||f.service==='return'?[`Paquetes en la gestión: ${r.quantity} (${(f.packageGroups?.length)||1} grupo(s) de peso)`]:[]),f.service==='package'&&f.priority!=='programmed'?`Distancia total: ${priceFmt(f.distance)} km`:null,...r.lines.map(l=>`${l.name}: ${money(l.amount)}`),`Subtotal: ${money(r.subtotal)}`,`IVA ${priceFmt(snapshot.iva)}%: ${money(r.iva)}`,`TOTAL: ${money(r.total)}`,r.notes.length?r.notes.join(' '):null,'Precios en pesos uruguayos.', 'GoCargo · www.gocargo.com.uy','097 550 450 / 096 260 096'].filter(Boolean).join('\n');
+    function quoteText(obj=lastQuote){
+      const f=obj?.form,r=obj?.result,snapshot=obj?.ratesSnapshot||rates;
+      if(!r?.valid||!f)return 'Cotización pendiente de revisión';
+      const clean=value=>String(value??'').replace(/[\*_~`]/g,'').replace(/\s+/g,' ').trim();
+      const priorityName=snapshot?.priorities?.[f.priority]?.name||({programmed:'Programado',express:'GoExpress',fast:'GoFast'}[f.priority]||'Programado');
+      const header=['*GO CARGO*','_Distribución y logística_','','📄 *COTIZACIÓN*','━━━━━━━━━━━━━━'];
+      if(f.customer)header.push(`👤 *Cliente:* ${clean(f.customer)}`);
+      header.push(`*Servicio:* ${clean(r.name)}`,`*Prioridad:* ${clean(priorityName)}`);
+      if(canInterior(f.service))header.push(`📍 *Destino:* ${f.destination==='mvd'?'Montevideo':'Interior del país'}`);
+      header.push('');
+      const groups=Array.isArray(f.packageGroups)&&f.packageGroups.length?f.packageGroups:[{weight:f.weight,quantity:f.quantity}];
+      const packageService=f.service==='package'||f.service==='return';
+      if(packageService){
+        header.push(`📦 *Detalle de paquetes (${r.quantity})*`);
+        groups.forEach((g,i)=>{
+          const line=r.lines[i];
+          if(!line)return;
+          const tier=snapshot?.packages?.find(p=>Number(g.weight)<=p.kg);
+          const label=tier?`hasta ${priceFmt(tier.kg)} kg`:`${priceFmt(g.weight)} kg`;
+          const qty=Number(g.quantity);
+          const each=qty>1?` (${money(line.amount/qty)} c/u)`:'';
+          header.push(`• ${qty} × ${label}: ${money(line.amount)}${each}`);
+        });
+      }else{
+        header.push('📋 *Detalle del servicio*');
+        r.lines.forEach(line=>header.push(`• ${clean(line.name)}: ${money(line.amount)}`));
+      }
+      if(f.service==='package'&&f.priority!=='programmed'){
+        const included=Number(snapshot?.includedKm??5),totalKm=Number(f.distance),extraKm=Math.max(0,rounded(totalKm-included,2));
+        header.push('',`🛣️ *Distancia:* ${priceFmt(totalKm)} km`);
+        if(extraKm>0){
+          const extraLine=r.lines[groups.length];
+          header.push(`• Adicional ${priceFmt(extraKm)} km: ${money(extraLine?.amount??0)}`);
+        }else header.push(`• Sin adicional: primeros ${priceFmt(included)} km incluidos`);
+      }
+      header.push('','──────────────',`Subtotal: ${money(r.subtotal)}`,`IVA (${priceFmt(snapshot.iva)}%): $ ${priceFmt(r.iva,true)}`,'',`💰 *TOTAL: $ ${priceFmt(r.total,true)}*`,'──────────────');
+      if(f.service==='package'&&f.priority!=='programmed')
+        header.push('','ℹ️ _El adicional por distancia se cobra una sola vez por gestión y destino, no por paquete._');
+      for(const note of r.notes||[]){
+        if(f.service==='package'&&f.priority!=='programmed'&&note.includes('Se incluyen los primeros'))continue;
+        header.push(`ℹ️ _${clean(note)}_`);
+      }
+      header.push('','_Importes en pesos uruguayos._','', '🌐 www.gocargo.com.uy','📞 097 550 450 · 096 260 096');
+      return header.join('\n');
     }
     function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toast._timer);toast._timer=setTimeout(()=>el.classList.add('hidden'),3000)}
     async function copyText(str){try{await navigator.clipboard.writeText(str)}catch(e){const area=document.createElement('textarea');area.value=str;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}}

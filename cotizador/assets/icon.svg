@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <rect width="512" height="512" fill="#061a44" rx="106"/>
+ <rect x="53" y="55" width="406" height="402" rx="84" fill="#0b60d1"/>
+ <path d="M91 198h205" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="27"/>
+ <path d="M246 143l65 55-65 55" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="27"/>
+ <rect x="90" y="297" width="329" height="114" rx="20" fill="#fff"/>
+ <text x="254" y="371" text-anchor="middle" font-family="Arial, sans-serif" font-size="57" font-weight="900" fill="#061a44">GC</text>
+</svg>

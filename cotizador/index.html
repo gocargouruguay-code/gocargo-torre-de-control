@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es-UY">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#061a44" />
+  <meta name="description" content="Cotizaciones instantáneas de envíos, fletes y servicios de GoCargo con el tarifario oficial 2026." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <title>GoCargo | Cotizador</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#0d2141;background:#f4f7fc;font-synthesis:none;--navy:#061a44;--blue:#0878ff;--blue2:#0aa6ed;--ink:#142a4b;--muted:#64738e;--line:#dde5f2;--radius:18px}
+    *{box-sizing:border-box} body{margin:0;min-width:310px} button,input,select,textarea{font:inherit} button{cursor:pointer} a{color:inherit} button:disabled{cursor:not-allowed;opacity:.5}
+    .header{background:linear-gradient(118deg,#06183b 0%,#0a275c 70%,#075ab2 100%);color:white;padding:22px clamp(18px,5vw,72px) 24px;box-shadow:0 8px 35px #06183b16}
+    .header-inner{max-width:1220px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:15px}.mark{width:52px;height:52px;display:grid;place-items:center;background:#0b79f3;border-radius:15px;font-size:34px;font-weight:900;box-shadow:inset 0 1px #ffffff75}.brand h1{font-size:25px;letter-spacing:.6px;line-height:1.05;margin:0}.brand h1 span{font-weight:950}.brand p{font-size:12px;letter-spacing:1.5px;opacity:.75;margin:6px 0 0}.header-side{text-align:right}.header-side strong{display:block;font-size:13px}.header-side small{font-size:12px;opacity:.75;line-height:2}
+    .wrap{max-width:1260px;margin:auto;padding:25px 24px 70px}.nav{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}.nav button{border:1px solid #dce6f5;background:#fff;color:#49607e;border-radius:12px;padding:12px 16px;font-weight:750;transition:.15s}.nav button.active{background:var(--navy);color:white;border-color:var(--navy)}.nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #65b8ff;outline-offset:2px}
+    .eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--blue);font-weight:900;margin:0 0 8px}.intro{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}.intro h2{margin:0;font-size:clamp(23px,3vw,32px);letter-spacing:-.8px}.intro p{margin:6px 0 0;color:var(--muted);font-size:14px}.source-pill{border:1px solid #d5e4ff;background:#edf5ff;color:#1c5fa1;border-radius:99px;padding:8px 13px;font-size:12px;font-weight:800}
+    .layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(340px,.95fr);align-items:start;gap:20px}.panel{background:#fff;border:1px solid #e0e7f2;box-shadow:0 10px 25px #0d2b5610;border-radius:var(--radius);overflow:hidden}.panel-head{padding:20px 23px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}.section-number{background:#eaf3ff;color:#0878ff;border-radius:10px;font-size:12px;font-weight:900;width:31px;height:31px;display:grid;place-items:center}.panel-head h3{font-size:16px;letter-spacing:-.2px;margin:0}.panel-body{padding:22px 23px 24px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:17px 16px}.field{display:flex;flex-direction:column;gap:7px;min-width:0}.field.full{grid-column:1/-1}.field label{font-size:12px;text-transform:uppercase;letter-spacing:.6px;font-weight:850;color:#4b607d}.field input,.field select{border:1px solid #d6e0ee;background:#fff;border-radius:10px;color:#153152;padding:12px 12px;min-height:47px;width:100%;outline:0}.field input:focus,.field select:focus{border-color:#0878ff;box-shadow:0 0 0 3px #0878ff19}.field input[type=number]{font-variant-numeric:tabular-nums} .field small{font-size:12px;color:#75869d;line-height:1.4}.hidden{display:none!important}.help{font-size:12px;color:#5f7591;line-height:1.5;background:#f5f8fd;border-left:3px solid #57a9ff;padding:11px 13px;border-radius:5px;margin-top:18px}.helper-warning{border-left-color:#e7a523;background:#fffbf1;color:#826224}
+    .priority-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.priority-btn{background:#f9fbff;border:1px solid #dce5f3;border-radius:12px;text-align:left;padding:12px 11px;min-height:80px;color:var(--ink)}.priority-btn strong{display:block;font-size:13px}.priority-btn small{display:block;margin-top:6px;font-size:11px;line-height:1.3;color:#6b7b92}.priority-btn.active{background:#eaf4ff;border:2px solid #0878ff;padding:11px 10px}.priority-btn:disabled{background:#f2f3f6;color:#9aa5b4}.divider-label{grid-column:1/-1;border-top:1px solid #e8edf6;margin:1px 0 -4px;padding-top:16px;color:#0d2141;font-weight:900;font-size:13px}
+    .summary{background:linear-gradient(165deg,#061a44 0%,#0c2e69 100%);padding:26px;color:#fff;position:relative}.summary:after{content:"";position:absolute;right:-80px;top:-90px;width:250px;height:250px;border:40px solid #ffffff09;border-radius:50%;pointer-events:none}.summary h3{margin:0;font-size:13px;letter-spacing:1.3px;text-transform:uppercase;font-weight:850;color:#a4c8ff}.big-amount{font-size:clamp(32px,5vw,51px);font-weight:900;letter-spacing:-1.2px;margin:10px 0 0;font-variant-numeric:tabular-nums}.big-amount .currency{font-size:21px;font-weight:700;letter-spacing:0;color:#97bded}.summary .fine{margin-top:2px;font-size:13px;color:#afc7e9}.calculation{padding:23px 25px}.row-line{display:flex;gap:10px;justify-content:space-between;align-items:baseline;font-size:14px;padding:10px 0;border-bottom:1px solid #edf0f6}.row-line span:first-child{color:#5f6f86}.row-line strong{font-variant-numeric:tabular-nums;text-align:right}.row-line.total{border-top:1.5px solid #c6d2e5;margin-top:4px;border-bottom:0;font-size:17px;font-weight:900}.row-line.total span:first-child{color:#0d2141}.tag{display:inline-block;background:#eff5ff;color:#0e63ad;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;margin:6px 6px 0 0}.source-note{color:#6a7b94;line-height:1.5;font-size:12px;margin:14px 0 0}.actions{padding:0 25px 25px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{min-height:45px;padding:11px 12px;border-radius:10px;border:1px solid #d1e0f3;background:#fff;color:#0b326a;font-weight:850;font-size:13px}.btn.primary{background:#0878ff;border-color:#0878ff;color:white}.btn.dark{background:#061a44;border-color:#061a44;color:white}.btn:hover{filter:brightness(.97)}.btn.span2{grid-column:1/-1}.btn:disabled{opacity:.45}.noquote{padding:17px;border:1px solid #ffdba6;border-radius:11px;background:#fff9ec;color:#805719;font-size:13px;line-height:1.6;margin:20px 0 0}
+    .footer{padding:35px 20px 0;text-align:center;color:#8a99ad;font-size:12px}.footer a{text-decoration:none;color:#4a76b2;font-weight:700}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#071d46;color:white;border-radius:11px;padding:13px 18px;box-shadow:0 12px 30px #08173355;z-index:20;max-width:90vw;font-size:13px}
+    .page-section{display:none}.page-section.active{display:block}.rates-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.rates-card{background:white;border-radius:15px;border:1px solid #dbe5f1;padding:20px}.rates-card h3{font-size:16px;margin:0 0 13px}.rates-card p{font-size:12px;color:var(--muted);margin:0 0 14px}.rate-list{display:grid;gap:10px}.rate-line{display:grid;grid-template-columns:minmax(0,1fr) 135px;align-items:center;gap:12px}.rate-line label{font-size:13px;color:#374c6b}.rate-line input{border:1px solid #dce5f0;width:100%;border-radius:8px;padding:9px 10px;font-variant-numeric:tabular-nums}.admin-controls{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}.admin-controls input[type=file]{display:none}.history-empty{padding:50px 20px;text-align:center;color:#7384a0;border:1px dashed #d4dfef;border-radius:14px;background:white}.history-grid{display:grid;gap:13px}.history-item{display:flex;justify-content:space-between;gap:18px;align-items:center;background:white;border-radius:13px;padding:18px;border:1px solid #dfe8f4}.history-item h3{margin:0 0 4px;font-size:15px}.history-item p{margin:0;font-size:12px;color:#74859d}.history-price{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}.history-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:7px}.history-actions button{border:0;background:#ecf3ff;color:#225083;border-radius:7px;padding:7px 9px;font-size:11px;font-weight:800}.history-actions button.delete{background:#fff0f0;color:#ba3535}
+    .package-mix{border:1px solid #dae7f7;background:#f5f9ff;border-radius:13px;padding:15px 16px;margin-top:0}
+    .package-mix .mix-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+    .package-mix .mix-heading strong{font-size:13px;color:#123b76}
+    .package-mix .mix-heading small{font-size:12px;color:#617c9c}
+    .package-mix .mix-tip{font-size:12px;line-height:1.5;color:#536f91;margin:0 0 12px}
+    .extra-package-group{border:1px solid #d9e3f1;border-radius:11px;padding:12px;background:white;margin:10px 0}
+    .mix-group-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:12px;color:#183a70;font-weight:900}
+    .mix-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .mix-fields label{display:flex;flex-direction:column;gap:7px;font-size:11px;color:#4b607d;font-weight:850;text-transform:uppercase;letter-spacing:.35px}
+    .mix-fields input{width:100%;min-width:0;min-height:45px;border:1px solid #d6e0ee;border-radius:9px;background:white;color:#153152;padding:11px;font-size:16px}
+    .remove-group{font-size:12px;color:#a33b3b;background:#fff4f4;border:1px solid #f3d3d3;border-radius:7px;padding:6px 10px}
+    .add-group{display:flex;align-items:center;justify-content:center;gap:5px;background:white;border:1px dashed #0878ff;border-radius:9px;color:#075ac1;font-weight:850;font-size:13px;padding:11px;width:100%;min-height:44px}
+    .mix-limit{font-size:12px;color:#8a6171;margin-top:8px}
+    .print-only{display:none}.hint-inline{font-size:12px;font-weight:700;color:#738299;margin:0 0 20px}.credit{font-size:12px;color:#738299;margin-top:20px}.readme{font-size:14px;color:#40536e;line-height:1.8;max-width:920px}.readme strong{color:#0d2141}
+    @media(max-width:950px){.layout{grid-template-columns:minmax(0,1fr)}.rates-grid{grid-template-columns:1fr}.header-side{text-align:left}}
+    @media(max-width:600px){.header{padding:17px 18px 20px}.wrap{padding:19px 13px 50px}.panel-head{padding:17px 16px}.panel-body{padding:18px 16px}.fields{gap:14px 11px}.brand h1{font-size:23px}.brand p{font-size:10px}.header-side{display:none}.field input,.field select{font-size:16px}.priority-btn strong{font-size:12px}.priority-btn{min-height:72px;padding:10px 7px}.priority-btn.active{padding:9px 6px}.priority-btn small{font-size:10px}.rate-line{grid-template-columns:minmax(0,1fr) 102px}.summary{padding:23px 20px}.calculation{padding:20px}.actions{padding:0 20px 20px}.history-item{align-items:flex-start;flex-direction:column}.history-right{align-self:flex-end}}
+    @media print{body{background:white;color:black}.header{padding:12px 20px;background:#061a44!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{padding:12px 0}.nav,.intro,.form-panel,.actions,.footer,.admin-controls,.source-pill,.no-print{display:none!important}.page-section{display:none!important}#pageQuote{display:block!important}.layout{display:block}.panel{border:0;box-shadow:none}.result-panel{max-width:none}.summary{print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-only{display:block;font-size:11px;color:#617089;margin-top:13px}.calculation{padding:18px 27px} .source-note{margin-top:15px}}
+  </style>
+</head>
+<body>
+  <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true">➜</span><div><h1><span>GO CARGO</span></h1><p>DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
+  <main class="wrap">
+    <nav class="nav no-print" aria-label="Secciones"><button type="button" data-nav="quote" class="active">Cotizar</button><button type="button" data-nav="history">Mis cotizaciones</button><button type="button" data-nav="rates">Tarifas y ajustes</button></nav>
+    <section class="page-section active" id="pageQuote">
+      <div class="intro"><div><p class="eyebrow">GO CARGO · HERRAMIENTA COMERCIAL</p><h2>Cotizá en segundos.</h2><p>Seleccioná la gestión y obtené el precio actualizado al instante.</p></div><span id="sourcePill" class="source-pill">Tarifario 2026 · + IVA</span></div>
+      <div class="layout">
+        <section class="panel form-panel"><div class="panel-head"><span class="section-number">01</span><h3>Datos de la cotización</h3></div><div class="panel-body"><form id="quoteForm" class="fields" autocomplete="off">
+          <div class="field full"><label for="service">Tipo de gestión</label><select id="service">
+            <option value="package">Envío de paquetería</option>
+            <option value="return">Devolución de paquetería</option>
+            <option value="documents">Envío certificado de documentos</option>
+            <option value="trescruces">Despacho en Tres Cruces</option>
+            <option value="payments">Pagos y cobranzas</option>
+            <option value="procedures">Trámites</option>
+            <option value="cash">Retiro de efectivo</option>
+            <option value="deposits">Depósito bancario por buzón</option>
+            <option value="pallet">Envío de pallets</option>
+            <option value="freight">Flete por hora</option>
+            <option value="fulfillment">Fulfillment por unidad</option>
+            <option value="palletStorage">Almacenamiento mensual por pallet</option>
+            <option value="palletMovement">Movimiento IN/OUT por pallet</option>
+            <option value="extendedStorage">Almacenamiento prolongado (+60 días)</option>
+          </select></div>
+          <div class="field full" id="destinationField"><label for="destination">Destino</label><select id="destination"><option value="mvd">Montevideo</option><option value="interior">Interior del país</option></select></div>
+          <div class="field full" id="priorityField"><label>Prioridad de entrega</label><div class="priority-grid" role="group" aria-label="Prioridad">
+            <button class="priority-btn active" data-priority="programmed" type="button"><strong>Programado</strong><small>En fecha acordada</small></button>
+            <button class="priority-btn" data-priority="express" type="button"><strong>GoExpress</strong><small>En el día · +25%</small></button>
+            <button class="priority-btn" data-priority="fast" type="button"><strong>GoFast</strong><small>Hasta 4 h · +50%</small></button>
+          </div></div>
+          <div class="field" id="weightField"><label id="weightTitle" for="weight">Grupo 1 · peso por paquete (kg)</label><input id="weight" type="number" min="0.01" max="10000" step="0.01" value="2" inputmode="decimal" /><small>Se aplica el tramo de peso superior.</small></div>
+          <div class="field" id="quantityField"><label for="quantity" id="quantityLabel">Cantidad de paquetes</label><input id="quantity" type="number" min="1" max="100000" step="1" value="1" inputmode="numeric" /><small id="quantityHelp">Para una misma entrega.</small></div>
+          <div class="package-mix field full" id="packageGroupsField"><div class="mix-heading"><strong>¿Paquetes de diferentes pesos?</strong><small id="groupStatus">1 grupo · 1 paquete</small></div><p class="mix-tip">Cargá arriba el primer grupo. Agregá otro grupo por cada peso distinto, siempre dentro de la misma gestión y con un solo destino. El adicional por km se cobra una única vez.</p><div id="extraPackageGroups"></div><button id="addPackageGroup" class="add-group" type="button">＋ Agregar otro peso</button><p id="groupLimit" class="mix-limit hidden">Máximo 30 grupos de peso por gestión.</p></div>
+          <div class="field" id="kmField"><label for="distance">Distancia total de la gestión (km)</label><input id="distance" type="number" min="0" max="10000" step="0.1" value="5" inputmode="decimal" /><small>Primeros 5 km incluidos. Adicional por gestión.</small></div>
+          <div class="field" id="palletField"><label for="palletSize">Capacidad del pallet</label><select id="palletSize"><option value="quarter">¼ pallet (80 kg)</option><option value="half">½ pallet (250 kg)</option><option value="full">Pallet hasta 1000 kg</option></select></div>
+          <div class="field" id="vehicleField"><label for="vehicle">Vehículo</label><select id="vehicle"><option value="van">Camioneta</option><option value="truck">Camión</option></select></div>
+          <div class="field" id="hoursField"><label for="hours">Horas estimadas</label><input id="hours" type="number" min="0.25" step="0.25" value="1" inputmode="decimal" /><small>Camión: mínimo facturable de 3 horas.</small></div>
+          <div class="field" id="unitSizeField"><label for="unitSize">Tamaño de unidad</label><select id="unitSize"><option value="small">Chico</option><option value="medium">Mediano</option><option value="large">Grande</option></select></div>
+          <div class="field" id="monthsField"><label for="months">Meses a facturar</label><input id="months" type="number" min="1" max="240" step="1" value="1" inputmode="numeric" /></div>
+          <div class="field full"><label for="customer">Cliente / referencia (opcional)</label><input id="customer" type="text" maxlength="100" placeholder="Ej.: Cliente nuevo · presupuesto por WhatsApp" /></div>
+        </form><p id="contextHelp" class="help" aria-live="polite"></p></div></section>
+        <section class="panel result-panel"><div class="summary"><h3 id="headline">Total cotizado · IVA incluido</h3><div class="big-amount"><span class="currency">$U</span> <span id="headlineTotal">242,78</span></div><div class="fine" id="heroSubtitle">Por 1 paquete · Montevideo</div></div>
+          <div class="calculation"><div id="quoteDetails"></div><div id="quoteLabels"></div><div class="row-line"><span>Subtotal sin IVA</span><strong id="subtotal">$ 199</strong></div><div class="row-line"><span id="ivaLabel">IVA (22%)</span><strong id="iva">$ 43,78</strong></div><div class="row-line total"><span>Total con IVA</span><strong id="total">$ 242,78</strong></div><div id="quoteWarning" class="noquote hidden"></div><p id="quoteNotes" class="source-note"></p><p class="print-only">GoCargo · www.gocargo.com.uy · 097 550 450 / 096 260 096 · Precios en pesos uruguayos.</p></div>
+          <div class="actions no-print"><button id="copyButton" class="btn primary" type="button">Copiar cotización</button><button id="whatsAppButton" class="btn dark" type="button">Compartir WhatsApp</button><button id="saveButton" class="btn" type="button">Guardar cotización</button><button id="printButton" class="btn" type="button">Imprimir / PDF</button></div>
+        </section>
+      </div>
+    </section>
+    <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">CONSULTAS RECIENTES</p><h2>Mis cotizaciones.</h2><p>Quedan almacenadas en este dispositivo, no en la nube.</p></div><button class="btn" id="clearHistory" type="button">Borrar historial</button></div><div class="history-grid" id="historyList"></div></section>
+    <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Para usar tarifas centralizadas se requiere integrar esta aplicación con la base de datos y un acceso autenticado.</p></section>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.1</footer>
+  </main>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script>
+  (()=>{
+    'use strict';
+    // Valores transcritos del Tarifario Oficial GoCargo 2026, páginas 6 a 9.
+    // No se cargan tarifas de servicios/destinos no publicados en el folleto.
+    const DEFAULT_RATES = {
+      iva:22,
+      priorities:{programmed:{name:'Programado',multiplier:1,extraKm:0},express:{name:'GoExpress',multiplier:1.25,extraKm:12},fast:{name:'GoFast',multiplier:1.5,extraKm:15}},
+      includedKm:5,
+      packages:[
+        {kg:2,mvd:199,interior:295},
+        {kg:5,mvd:280,interior:330},
+        {kg:10,mvd:320,interior:450},
+        {kg:20,mvd:450,interior:770},
+        {kg:30,mvd:560,interior:770},
+        {kg:40,mvd:1070,interior:1675},
+        {kg:50,mvd:1350,interior:2180}
+      ],
+      services:{documents:{mvd:199,interior:280},trescruces:200,payments:450,procedures:650,cash:750,deposits:250},
+      pallets:{quarter:1900,half:4100,full:5700},
+      freight:{van:900,truck:1950,truckMinHours:3},
+      fulfillment:{small:70.40,medium:96.80,large:130.90},
+      warehouse:{monthlyPallet:638,movePallet:308,extended:{small:19.80,medium:33,large:45.10}}
+    };
+    const LOCAL_RATES='gocargo-cotizador-rates-v1';
+    const LOCAL_HISTORY='gocargo-cotizador-history-v1';
+    const names={package:'Envío de paquetería',return:'Devolución de paquetería',documents:'Envío certificado de documentos',trescruces:'Despacho en Tres Cruces',payments:'Pagos y cobranzas',procedures:'Trámites',cash:'Retiro de efectivo',deposits:'Depósito bancario por buzón',pallet:'Envío de pallets',freight:'Flete',fulfillment:'Fulfillment por unidad',palletStorage:'Almacenamiento mensual por pallet',palletMovement:'Movimiento IN/OUT por pallet',extendedStorage:'Almacenamiento prolongado'};
+    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas. Para fletes al interior, solicitar una cotización especial.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
+    const $ = id => document.getElementById(id);
+    const deepClone = obj=>JSON.parse(JSON.stringify(obj));
+    const number = x => Number.isFinite(Number(x)) ? Number(x):NaN;
+    const rounded = (n, decimals=2)=>Math.round((n+Number.EPSILON)*10**decimals)/10**decimals;
+    // En el folleto las tarifas prioritarias por unidad figuran redondeadas a $1.
+    const roundPriority = (n)=>Math.round(n+Number.EPSILON);
+    const priceFmt=(n,alwaysDecimals=false)=>new Intl.NumberFormat('es-UY',{minimumFractionDigits:alwaysDecimals?2:0,maximumFractionDigits:2}).format(n);
+    const money=n=>`$ ${priceFmt(n)}`;
+    const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function loadRates(){try{const local=JSON.parse(localStorage.getItem(LOCAL_RATES));return validRates(local)?local:deepClone(DEFAULT_RATES)}catch(e){return deepClone(DEFAULT_RATES)}}
+    function validRates(r){try{if(!r||!Array.isArray(r.packages)||r.packages.length!==7)return false;const ref=JSON.stringify(Object.keys(DEFAULT_RATES).sort());if(JSON.stringify(Object.keys(r).sort())!==ref)return false;return paths.every(p=>Number.isFinite(number(getPath(r,p)))&&number(getPath(r,p))>=0)&&r.priorities.programmed.multiplier===1&&r.packages.every((v,i)=>v.kg===DEFAULT_RATES.packages[i].kg)}catch(e){return false}}
+    function getPath(obj,path){return path.split('.').reduce((v,k)=>v?.[k],obj)}
+    function setPath(obj,path,val){const pp=path.split('.');let v=obj;for(let i=0;i<pp.length-1;i++)v=v[pp[i]];v[pp[pp.length-1]]=val}
+    const paths=['iva','includedKm','priorities.express.multiplier','priorities.fast.multiplier','priorities.express.extraKm','priorities.fast.extraKm',...DEFAULT_RATES.packages.flatMap((r,i)=>[`packages.${i}.mvd`,`packages.${i}.interior`]),'services.documents.mvd','services.documents.interior','services.trescruces','services.payments','services.procedures','services.cash','services.deposits','pallets.quarter','pallets.half','pallets.full','freight.van','freight.truck','freight.truckMinHours','fulfillment.small','fulfillment.medium','fulfillment.large','warehouse.monthlyPallet','warehouse.movePallet','warehouse.extended.small','warehouse.extended.medium','warehouse.extended.large'];
+    let rates=loadRates();
+    let priority='programmed';
+    let lastQuote=null;
+    let modifiedRates=!!localStorage.getItem(LOCAL_RATES);
+    const MAX_PACKAGE_GROUPS=30;
+    function getPackageGroups(){
+      return [{weight:number($('weight').value),quantity:number($('quantity').value)},...Array.from($('extraPackageGroups').querySelectorAll('.extra-package-group')).map(el=>({weight:number(el.querySelector('[data-group-weight]').value),quantity:number(el.querySelector('[data-group-qty]').value)}))];
+    }
+    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
+    function addPackageGroup(weight=2,qty=1){
+      const container=$('extraPackageGroups');
+      if(container.children.length+1>=MAX_PACKAGE_GROUPS)return;
+      const el=document.createElement('div');
+      el.className='extra-package-group';
+      el.innerHTML='<div class="mix-group-title"><span class="mix-number">Grupo adicional</span><button class="remove-group" type="button" aria-label="Quitar este grupo de paquetes">Quitar</button></div><div class="mix-fields"><label>Peso por paquete (kg)<input data-group-weight type="number" min="0.01" max="50" step="0.01" inputmode="decimal" required></label><label>Cantidad de paquetes<input data-group-qty type="number" min="1" max="100000" step="1" inputmode="numeric" required></label></div>';
+      el.querySelector('[data-group-weight]').value=weight;
+      el.querySelector('[data-group-qty]').value=qty;
+      container.appendChild(el);
+      renumberGroups();
+    }
+    function renumberGroups(){
+      const extras=Array.from($('extraPackageGroups').children);
+      extras.forEach((el,i)=>el.querySelector('.mix-number').textContent=`Grupo ${i+2}`);
+      $('addPackageGroup').disabled=extras.length+1>=MAX_PACKAGE_GROUPS;
+      $('groupLimit').classList.toggle('hidden',extras.length+1<MAX_PACKAGE_GROUPS);
+    }
+    function canPriority(service){return ['package','documents','trescruces','payments','procedures','cash','deposits','freight'].includes(service)}
+    function canInterior(service){return ['package','return','documents'].includes(service)}
+    function canDistance(service){return service==='package'}
+    function needsQty(service){return !['freight'].includes(service)}
+    function calculate(s){
+      const result={valid:true,error:'',name:names[s.service],labels:[],notes:[],lines:[],quantity:1,subtotal:0,iva:0,total:0,source:'Tarifario oficial 2026',detail:''};
+      let unit=0, qty=s.quantity, details='',dist=0,priorityName=rates.priorities[s.priority].name;
+      if(s.service!=='package'&&s.service!=='return'&&(!Number.isInteger(qty)||qty<1||qty>100000)){result.valid=false;result.error='Ingresá una cantidad entera mayor o igual a 1.';return result}
+      if(s.destination==='interior'&&s.priority!=='programmed'&&canInterior(s.service)){result.valid=false;result.error='GoExpress y GoFast están publicados únicamente para Montevideo.';return result}
+      if(!canPriority(s.service)&&s.priority!=='programmed'){result.valid=false;result.error='La prioridad seleccionada no aplica a este servicio.';return result}
+      const multiplier=rates.priorities[s.priority].multiplier;
+      if(s.service==='package'||s.service==='return'){
+        const groups=Array.isArray(s.packageGroups)&&s.packageGroups.length?s.packageGroups:[{weight:s.weight,quantity:s.quantity}];
+        if(groups.length>MAX_PACKAGE_GROUPS){result.valid=false;result.error=`Se admiten hasta ${MAX_PACKAGE_GROUPS} grupos de peso por gestión.`;return result}
+        let packageCount=0;
+        for(const [i,group] of groups.entries()){
+          if(!Number.isInteger(group.quantity)||group.quantity<1||group.quantity>100000){result.valid=false;result.error=`Grupo ${i+1}: ingresá una cantidad válida de paquetes (entera y mayor que 0).`;return result}
+          if(!Number.isFinite(group.weight)||group.weight<=0){result.valid=false;result.error=`Grupo ${i+1}: ingresá un peso válido mayor que cero.`;return result}
+          const tier=rates.packages.find(p=>group.weight<=p.kg);
+          if(!tier){result.valid=false;result.error=`Grupo ${i+1}: el tarifario publicado llega hasta 50 kg por paquete. Cotizar este paquete manualmente.`;return result}
+          const price=s.priority==='programmed'?tier[s.destination]:roundPriority(tier.mvd*multiplier);
+          packageCount+=group.quantity;
+          result.lines.push({name:`${group.quantity} paquete${group.quantity===1?'':'s'} de ${priceFmt(group.weight)} kg (hasta ${tier.kg} kg) × ${money(price)}`,amount:rounded(group.quantity*price)});
+        }
+        if(packageCount>100000){result.valid=false;result.error='La suma de paquetes no puede superar 100.000 por gestión.';return result}
+        qty=packageCount;
+        details=`${qty} paquete${qty===1?'':'s'} · ${groups.length} grupo${groups.length===1?'':'s'} de peso · ${s.destination==='mvd'?'Montevideo':'Interior'}`;
+        result.labels.push(details);
+        if(s.service==='return')result.notes.push('La devolución se calcula con el mismo tramo de peso y tarifa de la paquetería programada.');
+        if(s.priority!=='programmed'&&s.service==='package'){
+          if(!Number.isFinite(s.distance)||s.distance<0){result.valid=false;result.error='Ingresá una distancia válida en kilómetros.';return result}
+          const extras=Math.max(0,rounded(s.distance-rates.includedKm,2));
+          dist=rounded(extras*rates.priorities[s.priority].extraKm);
+          result.lines.push({name:`Adicional ${priceFmt(extras)} km × ${money(rates.priorities[s.priority].extraKm)}`,amount:dist});
+          result.notes.push(`Se incluyen los primeros ${priceFmt(rates.includedKm)} km; el adicional se calcula una vez por gestión y un único destino, no por paquete.`);
+        }
+      } else if (s.service==='documents'){
+        unit=s.priority==='programmed'?rates.services.documents[s.destination]:roundPriority(rates.services.documents.mvd*multiplier);
+        result.lines.push({name:`${qty} envío${qty===1?'':'s'} certificado${qty===1?'':'s'} × ${money(unit)}`,amount:rounded(qty*unit)});
+        result.labels.push(s.destination==='mvd'?'Montevideo':'Interior');
+      } else if (['trescruces','payments','procedures','cash','deposits'].includes(s.service)){
+        unit=s.priority==='programmed'?rates.services[s.service]:roundPriority(rates.services[s.service]*multiplier);
+        result.lines.push({name:`${qty} gestión${qty===1?'':'es'} × ${money(unit)}`,amount:rounded(qty*unit)});
+        if(s.service==='trescruces')result.lines[0].name=`${qty} bulto${qty===1?'':'s'} × ${money(unit)}`;
+        result.notes.push('Cobertura y condiciones del servicio sujetas a confirmación operativa.');
+      } else if(s.service==='pallet'){
+        const lbl={quarter:'¼ pallet · hasta 80 kg',half:'½ pallet · hasta 250 kg',full:'Pallet · hasta 1.000 kg'};
+        unit=rates.pallets[s.palletSize];
+        result.lines.push({name:`${qty} × ${lbl[s.palletSize]} (${money(unit)})`,amount:rounded(qty*unit)});
+        result.labels.push(lbl[s.palletSize]);
+        result.notes.push('El folleto no diferencia precio por destino para pallets. Confirmar destino, manipulación y condiciones antes de enviar la cotización final.');
+      } else if (s.service==='freight'){
+        if(!Number.isFinite(s.hours)||s.hours<=0){result.valid=false;result.error='Ingresá una cantidad válida de horas.';return result}
+        qty=s.vehicle==='truck'?Math.max(s.hours,rates.freight.truckMinHours):s.hours;
+        unit=s.priority==='programmed'?rates.freight[s.vehicle]:roundPriority(rates.freight[s.vehicle]*multiplier);
+        result.lines.push({name:`${priceFmt(qty)} h × ${money(unit)}/h`,amount:rounded(qty*unit)});
+        result.labels.push(s.vehicle==='van'?'Camioneta':'Camión');
+        if(qty>s.hours)result.notes.push(`Se aplica el mínimo de ${priceFmt(rates.freight.truckMinHours)} horas para camión; solicitaste ${priceFmt(s.hours)} h.`);
+        result.notes.push('Tarifas por hora únicamente dentro de Montevideo. Tiempo adicional y servicios fuera de Montevideo requieren confirmación.');
+      } else if(s.service==='fulfillment'){
+        const labels={small:'Chico · hasta 1.200 cm³',medium:'Mediano · hasta 30.000 cm³',large:'Grande · hasta 70.000 cm³'};
+        unit=rates.fulfillment[s.unitSize];
+        result.lines.push({name:`${qty} unidad${qty===1?'':'es'} (${labels[s.unitSize]}) × ${money(unit)}`,amount:rounded(qty*unit)});
+        result.labels.push(labels[s.unitSize]);
+        result.notes.push('La tarifa corresponde al servicio de fulfillment por unidad; transporte y almacenaje prolongado se cotizan por separado.');
+      } else if(s.service==='palletStorage'){
+        if(!Number.isInteger(s.months)||s.months<1){result.valid=false;result.error='Ingresá una cantidad de meses entera mayor o igual a 1.';return result}
+        unit=rates.warehouse.monthlyPallet;
+        result.lines.push({name:`${qty} pallet${qty===1?'':'s'} × ${s.months} mes${s.months===1?'':'es'} × ${money(unit)}`,amount:rounded(qty*s.months*unit)});
+      } else if(s.service==='palletMovement'){
+        unit=rates.warehouse.movePallet;
+        result.lines.push({name:`${qty} movimiento${qty===1?'':'s'} × ${money(unit)}`,amount:rounded(qty*unit)});
+      } else if(s.service==='extendedStorage'){
+        if(!Number.isInteger(s.months)||s.months<1){result.valid=false;result.error='Ingresá una cantidad de meses entera mayor o igual a 1.';return result}
+        unit=rates.warehouse.extended[s.unitSize];
+        const labels={small:'Chico',medium:'Mediano',large:'Grande'};
+        result.lines.push({name:`${qty} unidad${qty===1?'':'es'} ${labels[s.unitSize]} × ${s.months} mes${s.months===1?'':'es'} × ${money(unit)}`,amount:rounded(qty*s.months*unit)});
+        result.notes.push('Se aplica únicamente cuando transcurrieron los 60 días de almacenamiento gratuito.');
+      }
+      result.quantity=qty;
+      result.subtotal=rounded(result.lines.reduce((sum,l)=>sum+l.amount,0));
+      result.iva=rounded(result.subtotal*rates.iva/100);
+      result.total=rounded(result.subtotal+result.iva);
+      result.labels.unshift(priorityName);
+      result.detail=details;
+      return result;
+    }
+    function showServiceFields(){
+      const s=getInput();
+      const packageOrReturn=['package','return'].includes(s.service);
+      const qty=needsQty(s.service);
+      $('destinationField').classList.toggle('hidden',!canInterior(s.service));
+      $('priorityField').classList.toggle('hidden',!canPriority(s.service));
+      $('weightField').classList.toggle('hidden',!packageOrReturn);
+      $('quantityField').classList.toggle('hidden',!qty);
+      $('packageGroupsField').classList.toggle('hidden',!packageOrReturn);
+      $('weightTitle').textContent=packageOrReturn?'Grupo 1 · peso por paquete (kg)':'Peso por paquete (kg)';
+      renumberGroups();
+      if(packageOrReturn){const groups=getPackageGroups(),count=groups.reduce((acc,g)=>acc+(Number.isInteger(g.quantity)&&g.quantity>0?g.quantity:0),0);$('groupStatus').textContent=`${groups.length} grupo${groups.length===1?'':'s'} · ${count} paquete${count===1?'':'s'}`;}
+      $('kmField').classList.toggle('hidden',!(canDistance(s.service)&&priority!=='programmed'));
+      $('palletField').classList.toggle('hidden',s.service!=='pallet');
+      $('vehicleField').classList.toggle('hidden',s.service!=='freight');
+      $('hoursField').classList.toggle('hidden',s.service!=='freight');
+      $('unitSizeField').classList.toggle('hidden',!['fulfillment','extendedStorage'].includes(s.service));
+      $('monthsField').classList.toggle('hidden',!['palletStorage','extendedStorage'].includes(s.service));
+      $('quantityLabel').textContent=({package:'Grupo 1 · cantidad',return:'Grupo 1 · cantidad',documents:'Cantidad de documentos/envíos',trescruces:'Cantidad de bultos',payments:'Cantidad de gestiones',procedures:'Cantidad de gestiones',cash:'Cantidad de gestiones',deposits:'Cantidad de gestiones',pallet:'Cantidad de pallets',fulfillment:'Cantidad de unidades',palletStorage:'Cantidad de pallets',palletMovement:'Cantidad de movimientos',extendedStorage:'Cantidad de unidades'})[s.service]||'Cantidad';
+      const showPriority=canPriority(s.service);
+      document.querySelectorAll('.priority-btn').forEach(el=>{
+        const p=el.dataset.priority;
+        const disabled=(p!=='programmed' && ((canInterior(s.service) && s.destination==='interior') || !showPriority));
+        el.disabled=disabled;
+        el.classList.toggle('active',priority===p);
+        const small=el.querySelector('small');
+        small.textContent= p==='programmed'?'En fecha acordada':p==='express'?`En el día · +${Math.round((rates.priorities.express.multiplier-1)*100)}%`:`Hasta 4 h · +${Math.round((rates.priorities.fast.multiplier-1)*100)}%`;
+      });
+      if(((canInterior(s.service)&&s.destination==='interior')||!showPriority)&&priority!=='programmed'){priority='programmed';document.querySelectorAll('.priority-btn').forEach(el=>el.classList.toggle('active',el.dataset.priority===priority))}
+      $('contextHelp').textContent=serviceHelp[s.service];
+      $('contextHelp').classList.toggle('helper-warning',s.service==='pallet');
+    }
+    function update(){showServiceFields();const s=getInput();const res=calculate(s);lastQuote={form:s,result:res,time:new Date().toISOString()};
+      $('headlineTotal').textContent=res.valid?priceFmt(res.total):'—';
+      $('heroSubtitle').textContent=res.valid?res.name:`${res.name} · revisar datos`;
+      $('quoteDetails').innerHTML=res.valid?res.lines.map(l=>`<div class="row-line"><span>${escapeHtml(l.name)}</span><strong>${money(l.amount)}</strong></div>`).join(''):'';
+      $('quoteLabels').innerHTML=res.valid?res.labels.map(l=>`<span class="tag">${escapeHtml(l)}</span>`).join(''):'';
+      $('subtotal').textContent=res.valid?money(res.subtotal):'—';
+      $('iva').textContent=res.valid?money(res.iva):'—';
+      $('ivaLabel').textContent=`IVA (${priceFmt(rates.iva)}%)`;
+      $('total').textContent=res.valid?money(res.total):'—';
+      $('quoteWarning').classList.toggle('hidden',res.valid);$('quoteWarning').textContent=res.error;
+      $('quoteNotes').textContent=res.valid?[...res.notes,'Importes en pesos uruguayos. Tarifas según folleto GoCargo 2026.'].join(' '):'Cotización manual requerida para combinaciones no incluidas en el tarifario.';
+      $('sourcePill').textContent=modifiedRates?'Tarifas ajustadas en este dispositivo':'Tarifario 2026 · + IVA';
+      ['copyButton','whatsAppButton','saveButton','printButton'].forEach(id=>$(id).disabled=!res.valid);
+    }
+    function quoteText(obj=lastQuote){const {form:f,result:r}=obj;
+      if(!r.valid)return 'Cotización pendiente de revisión';
+      return ['GO CARGO | Cotización',f.customer?`Cliente: ${f.customer}`:null,`Servicio: ${r.name}`,`Prioridad: ${rates.priorities[f.priority].name}`,canInterior(f.service)?`Destino: ${f.destination==='mvd'?'Montevideo':'Interior'}`:null,...(f.service==='package'||f.service==='return'?[`Paquetes en la gestión: ${r.quantity} (${(f.packageGroups?.length)||1} grupo(s) de peso)`]:[]),f.service==='package'&&f.priority!=='programmed'?`Distancia total: ${priceFmt(f.distance)} km`:null,...r.lines.map(l=>`${l.name}: ${money(l.amount)}`),`Subtotal: ${money(r.subtotal)}`,`IVA ${priceFmt(rates.iva)}%: ${money(r.iva)}`,`TOTAL: ${money(r.total)}`,r.notes.length?r.notes.join(' '):null,'Precios en pesos uruguayos.', 'GoCargo · www.gocargo.com.uy','097 550 450 / 096 260 096'].filter(Boolean).join('\n');
+    }
+    function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toast._timer);toast._timer=setTimeout(()=>el.classList.add('hidden'),3000)}
+    async function copyText(str){try{await navigator.clipboard.writeText(str)}catch(e){const area=document.createElement('textarea');area.value=str;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}}
+    function getHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY))||[]}catch(e){return []}}
+    function saveHistory(history){try{localStorage.setItem(LOCAL_HISTORY,JSON.stringify(history.slice(0,100)))}catch(e){toast('No se pudo guardar el historial en este dispositivo.')}}
+    function renderHistory(){const hs=getHistory();$('historyList').innerHTML=hs.length?hs.map((v,i)=>`<div class="history-item"><div><h3>${escapeHtml(v.form.customer||v.result.name)}</h3><p>${escapeHtml(v.result.name)} · ${escapeHtml(v.form.priority==='programmed'?'Programado':v.form.priority==='express'?'GoExpress':'GoFast')} · ${new Date(v.time).toLocaleString('es-UY')}</p></div><div class="history-right"><div class="history-price">${money(v.result.total)}</div><div class="history-actions"><button type="button" data-load="${i}">Reutilizar</button><button type="button" data-copy="${i}">Copiar</button><button class="delete" type="button" data-delete="${i}">Borrar</button></div></div></div>`).join(''):'<div class="history-empty">Todavía no guardaste cotizaciones.<br/>Generá una en la pestaña <strong>Cotizar</strong> y presioná <strong>Guardar cotización</strong>.</div>'}
+    function changePage(name){document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));document.querySelectorAll('.page-section').forEach(el=>el.classList.toggle('active',el.id==='page'+name[0].toUpperCase()+name.slice(1)));if(name==='history')renderHistory();if(name==='rates')renderRates();window.scrollTo({top:0,behavior:'smooth'})}
+    const groups=[
+      {title:'Impuestos y prioridades',desc:'El recargo se aplica sobre la tarifa base por servicio; los kilómetros adicionales se agregan a la paquetería prioritaria.',items:[['iva','IVA (%)'],['includedKm','Km incluidos'],['priorities.express.multiplier','Factor GoExpress (1,25 = +25%)'],['priorities.fast.multiplier','Factor GoFast (1,5 = +50%)'],['priorities.express.extraKm','GoExpress, $/km extra'],['priorities.fast.extraKm','GoFast, $/km extra']]},
+      {title:'Paquetería programada',desc:'Tarifa por paquete según peso y destino.',items:DEFAULT_RATES.packages.flatMap((v,i)=>[[`packages.${i}.mvd`,`Hasta ${v.kg} kg · Montevideo`],[`packages.${i}.interior`,`Hasta ${v.kg} kg · Interior`]])},
+      {title:'Gestiones y documentos',desc:'Precios base programados sin IVA.',items:[['services.documents.mvd','Documentos certificados · MVD'],['services.documents.interior','Documentos certificados · Interior'],['services.trescruces','Tres Cruces / bulto'],['services.payments','Pagos y cobranzas'],['services.procedures','Trámites'],['services.cash','Retiro de efectivo'],['services.deposits','Depósito por buzón']]},
+      {title:'Pallets y fletes',desc:'Fletes dentro de Montevideo y precios de pallets publicados.',items:[['pallets.quarter','¼ pallet (80 kg)'],['pallets.half','½ pallet (250 kg)'],['pallets.full','Pallet completo (1000 kg)'],['freight.van','Camioneta, $/hora'],['freight.truck','Camión, $/hora'],['freight.truckMinHours','Camión, mínimo horas']]},
+      {title:'Fulfillment',desc:'Tarifa por unidad, sin IVA.',items:[['fulfillment.small','Unidad chica'],['fulfillment.medium','Unidad mediana'],['fulfillment.large','Unidad grande']]},
+      {title:'Almacenamiento',desc:'Mes, movimiento o unidad según servicio.',items:[['warehouse.monthlyPallet','Almacenamiento pallet / mes'],['warehouse.movePallet','Movimiento IN/OUT / pallet'],['warehouse.extended.small','Prolongado · Chico / mes'],['warehouse.extended.medium','Prolongado · Mediano / mes'],['warehouse.extended.large','Prolongado · Grande / mes']]}
+    ];
+    function renderRates(){$('ratesGrid').innerHTML=groups.map(g=>`<section class="rates-card"><h3>${escapeHtml(g.title)}</h3><p>${escapeHtml(g.desc)}</p><div class="rate-list">${g.items.map(([path,label])=>`<div class="rate-line"><label for="rate_${path.replaceAll('.','_')}">${escapeHtml(label)}</label><input type="number" min="0" step="any" id="rate_${path.replaceAll('.','_')}" data-rate="${path}" value="${getPath(rates,path)}" /></div>`).join('')}</div></section>`).join('')}
+    function applyForm(f){
+      $('service').value=f.service;$('destination').value=f.destination;
+      const groups=Array.isArray(f.packageGroups)&&f.packageGroups.length?f.packageGroups:[{weight:f.weight,quantity:f.quantity}];
+      $('weight').value=groups[0].weight;$('quantity').value=groups[0].quantity;
+      $('extraPackageGroups').replaceChildren();
+      for(const g of groups.slice(1,MAX_PACKAGE_GROUPS))addPackageGroup(g.weight,g.quantity);
+      $('distance').value=f.distance;$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
+    }
+    // Interacciones
+    document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>changePage(btn.dataset.nav)));
+    document.querySelectorAll('.priority-btn').forEach(btn=>btn.addEventListener('click',()=>{if(btn.disabled)return;priority=btn.dataset.priority;update()}));
+    $('addPackageGroup').addEventListener('click',()=>{addPackageGroup();update()});
+    $('extraPackageGroups').addEventListener('click',e=>{if(e.target.closest('.remove-group')){e.target.closest('.extra-package-group').remove();update()}});
+    $('quoteForm').addEventListener('input',update);$('quoteForm').addEventListener('change',update);$('quoteForm').addEventListener('submit',e=>e.preventDefault());
+    $('copyButton').addEventListener('click',async()=>{await copyText(quoteText());toast('Cotización copiada. Podés pegarla en WhatsApp o correo.')});
+    $('whatsAppButton').addEventListener('click',()=>{const url='https://wa.me/?text='+encodeURIComponent(quoteText());const w=window.open(url,'_blank','noopener');if(!w)window.location.href=url});
+    $('saveButton').addEventListener('click',()=>{const h=getHistory();h.unshift(deepClone(lastQuote));saveHistory(h);toast('Cotización guardada en este dispositivo.')});
+    $('printButton').addEventListener('click',()=>window.print());
+    $('historyList').addEventListener('click',async e=>{const btn=e.target.closest('button');if(!btn)return;const hs=getHistory();if(btn.dataset.load!==undefined){applyForm(hs[Number(btn.dataset.load)].form)}else if(btn.dataset.copy!==undefined){await copyText(quoteText(hs[Number(btn.dataset.copy)]));toast('Cotización copiada.')}else if(btn.dataset.delete!==undefined){hs.splice(Number(btn.dataset.delete),1);saveHistory(hs);renderHistory()}});
+    $('clearHistory').addEventListener('click',()=>{if(!confirm('¿Borrar todas las cotizaciones guardadas en este dispositivo?'))return;localStorage.removeItem(LOCAL_HISTORY);renderHistory();toast('Historial eliminado.')});
+    $('saveRates').addEventListener('click',()=>{const next=deepClone(rates);for(const el of document.querySelectorAll('[data-rate]')){if(el.value.trim()===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){toast('Revisá los importes: deben ser números no negativos.');el.focus();return}setPath(next,el.dataset.rate,Number(el.value))}if(next.priorities.express.multiplier<1||next.priorities.fast.multiplier<1||next.includedKm<0||next.iva>100||next.freight.truckMinHours<=0){toast('Revisá los factores, el IVA y las horas mínimas.');return}if(!validRates(next)){toast('No se pudieron validar las tarifas.');return}rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;update();toast('Tarifas guardadas en este dispositivo.')});
+    $('resetRates').addEventListener('click',()=>{if(!confirm('¿Restablecer todas las tarifas a los importes del PDF 2026?'))return;rates=deepClone(DEFAULT_RATES);localStorage.removeItem(LOCAL_RATES);modifiedRates=false;renderRates();update();toast('Tarifas originales restauradas.')});
+    $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
+    $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=parsed.rates||parsed;if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
+    update();
+    if('serviceWorker' in navigator&&['https:','http:'].includes(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+  })();
+  </script>
+</body>
+</html>

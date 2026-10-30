@@ -250,6 +250,93 @@ body{background:#f4f7fc}
 @media(max-width:355px){#appShell .suite-brand-copy h1{font-size:15px}#appShell .suite-brand-copy p{font-size:7px}#appShell .priority-btn>svg{width:16px;height:16px}#appShell .suite-package-labels,#appShell .suite-package-row{grid-template-columns:minmax(0,1fr) 98px 25px;gap:4px}}
 @media print{#appShell .suite-quote-form{display:none!important}#appShell .quote-form-column{display:none!important}#appShell .nav{display:none!important}#appShell .layout{display:block!important}}
 
+  
+/* GoCargo Cotizador v1.6.1 — imprimir solo el presupuesto, sin hoja extra.
+   La PWA usa min-height:100dvh en pantalla: al imprimir debe ser auto. */
+@page { size: auto; margin: 12mm; }
+@media print {
+  html, body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  #appShell {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  #appShell .header {
+    position: static !important;
+    margin: 0 0 5mm !important;
+    padding: 11px 16px !important;
+    box-shadow: none !important;
+  }
+  #appShell .header-inner { max-width: none !important; }
+  #appShell .suite-user,
+  #appShell .nav,
+  #appShell .cloud-panel,
+  #appShell .intro,
+  #appShell .quote-form-column,
+  #appShell .suite-quote-form,
+  #appShell .form-panel,
+  #appShell .actions,
+  #appShell .footer,
+  #appShell #pageHistory,
+  #appShell #pageRates,
+  #appShell .no-print,
+  #toast,
+  #authGate {
+    display: none !important;
+  }
+  #appShell .wrap {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  #pageQuote, #appShell .layout {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  #appShell .result-panel {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  #appShell .summary { padding: 17px 20px !important; break-after: avoid; page-break-after: avoid; }
+  #appShell .calculation { padding: 13px 17px !important; }
+  #appShell .row-line { padding: 7px 0 !important; }
+  #appShell .row-line.total,
+  #appShell .print-only { break-inside: avoid; page-break-inside: avoid; }
+  #appShell .source-note { margin-top: 9px !important; }
+}
+
   </style>
 </head>
 <body>
@@ -381,7 +468,7 @@ body{background:#f4f7fc}
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.6 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.6.1 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

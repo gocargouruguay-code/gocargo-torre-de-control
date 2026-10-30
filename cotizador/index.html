@@ -33,6 +33,17 @@
     .remove-group{font-size:12px;color:#a33b3b;background:#fff4f4;border:1px solid #f3d3d3;border-radius:7px;padding:6px 10px}
     .add-group{display:flex;align-items:center;justify-content:center;gap:5px;background:white;border:1px dashed #0878ff;border-radius:9px;color:#075ac1;font-weight:850;font-size:13px;padding:11px;width:100%;min-height:44px}
     .mix-limit{font-size:12px;color:#8a6171;margin-top:8px}
+    .cloud-panel{border:1px solid #cbdcf2;background:#fff;border-radius:16px;padding:16px 20px;margin:0 0 19px;box-shadow:0 4px 18px #0d2b560b}
+    .cloud-head{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .cloud-head strong{color:#103667;font-size:14px}
+    .cloud-head p{margin:4px 0 0;font-size:12px;color:#637893;line-height:1.5}
+    .cloud-login{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+    .cloud-login label{font-size:12px;font-weight:800;color:#4a6281;display:flex;flex:1 1 185px;flex-direction:column;gap:5px}
+    .cloud-login input{width:100%;border:1px solid #d3e1f0;padding:10px 12px;border-radius:9px;min-height:43px;font-size:16px}
+    .cloud-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+    .cloud-indicator{display:inline-block;width:9px;height:9px;border-radius:50%;background:#adbdca;margin-right:7px}
+    .cloud-indicator.online{background:#159264}
+    .cloud-message{color:#90521c;font-size:12px;margin:10px 0 0;line-height:1.5}
     .print-only{display:none}.hint-inline{font-size:12px;font-weight:700;color:#738299;margin:0 0 20px}.credit{font-size:12px;color:#738299;margin-top:20px}.readme{font-size:14px;color:#40536e;line-height:1.8;max-width:920px}.readme strong{color:#0d2141}
     @media(max-width:950px){.layout{grid-template-columns:minmax(0,1fr)}.rates-grid{grid-template-columns:1fr}.header-side{text-align:left}}
     @media(max-width:600px){.header{padding:17px 18px 20px}.wrap{padding:19px 13px 50px}.panel-head{padding:17px 16px}.panel-body{padding:18px 16px}.fields{gap:14px 11px}.brand h1{font-size:23px}.brand p{font-size:10px}.header-side{display:none}.field input,.field select{font-size:16px}.priority-btn strong{font-size:12px}.priority-btn{min-height:72px;padding:10px 7px}.priority-btn.active{padding:9px 6px}.priority-btn small{font-size:10px}.rate-line{grid-template-columns:minmax(0,1fr) 102px}.summary{padding:23px 20px}.calculation{padding:20px}.actions{padding:0 20px 20px}.history-item{align-items:flex-start;flex-direction:column}.history-right{align-self:flex-end}}
@@ -43,6 +54,12 @@
   <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true">➜</span><div><h1><span>GO CARGO</span></h1><p>DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
   <main class="wrap">
     <nav class="nav no-print" aria-label="Secciones"><button type="button" data-nav="quote" class="active">Cotizar</button><button type="button" data-nav="history">Mis cotizaciones</button><button type="button" data-nav="rates">Tarifas y ajustes</button></nav>
+    <section class="cloud-panel no-print" aria-label="Acceso a cotizaciones compartidas">
+      <div class="cloud-head"><div><strong><span class="cloud-indicator" id="cloudDot"></span><span id="cloudTitle">Conectá con GoCargo Contable</span></strong><p id="cloudDescription">Ingresá con tu usuario de GoCargo para compartir las cotizaciones entre dispositivos.</p></div><button class="btn hidden" type="button" id="cloudLogout">Cerrar sesión</button></div>
+      <form id="cloudLogin" class="cloud-login"><label>Correo electrónico<input type="email" id="cloudEmail" autocomplete="username" required placeholder="tu@correo.com"></label><label>Contraseña<input type="password" id="cloudPassword" autocomplete="current-password" required></label><button id="cloudLoginButton" class="btn primary" type="submit">Conectar</button></form>
+      <div class="cloud-actions hidden" id="cloudConnected"><button class="btn" type="button" id="cloudSync">Actualizar cotizaciones</button><button class="btn" type="button" id="cloudImport">Importar cotizaciones de este dispositivo</button></div>
+      <p class="cloud-message hidden" id="cloudMessage" role="alert"></p>
+    </section>
     <section class="page-section active" id="pageQuote">
       <div class="intro"><div><p class="eyebrow">GO CARGO · HERRAMIENTA COMERCIAL</p><h2>Cotizá en segundos.</h2><p>Seleccioná la gestión y obtené el precio actualizado al instante.</p></div><span id="sourcePill" class="source-pill">Tarifario 2026 · + IVA</span></div>
       <div class="layout">
@@ -86,9 +103,9 @@
         </section>
       </div>
     </section>
-    <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">CONSULTAS RECIENTES</p><h2>Mis cotizaciones.</h2><p>Quedan almacenadas en este dispositivo, no en la nube.</p></div><button class="btn" id="clearHistory" type="button">Borrar historial</button></div><div class="history-grid" id="historyList"></div></section>
-    <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Para usar tarifas centralizadas se requiere integrar esta aplicación con la base de datos y un acceso autenticado.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.1</footer>
+    <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
+    <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.2 · nube</footer>
   </main>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script>
@@ -134,6 +151,10 @@
     function setPath(obj,path,val){const pp=path.split('.');let v=obj;for(let i=0;i<pp.length-1;i++)v=v[pp[i]];v[pp[pp.length-1]]=val}
     const paths=['iva','includedKm','priorities.express.multiplier','priorities.fast.multiplier','priorities.express.extraKm','priorities.fast.extraKm',...DEFAULT_RATES.packages.flatMap((r,i)=>[`packages.${i}.mvd`,`packages.${i}.interior`]),'services.documents.mvd','services.documents.interior','services.trescruces','services.payments','services.procedures','services.cash','services.deposits','pallets.quarter','pallets.half','pallets.full','freight.van','freight.truck','freight.truckMinHours','fulfillment.small','fulfillment.medium','fulfillment.large','warehouse.monthlyPallet','warehouse.movePallet','warehouse.extended.small','warehouse.extended.medium','warehouse.extended.large'];
     let rates=loadRates();
+    const SUPABASE_URL='https://gdobmjcmunxvioodcgbj.supabase.co';
+    const SUPABASE_KEY='sb_publishable_yngYFd42DbU490x8nIKBQQ_KAf4BdyI';
+    const SESSION_KEY='gocargo-cotizador-auth-v1';
+    let cloudSession=null, cloudEmpresa=null, cloudHistory=[], cloudLoading=false, cloudRefreshing=null;
     let priority='programmed';
     let lastQuote=null;
     let modifiedRates=!!localStorage.getItem(LOCAL_RATES);
@@ -290,18 +311,138 @@
       $('quoteWarning').classList.toggle('hidden',res.valid);$('quoteWarning').textContent=res.error;
       $('quoteNotes').textContent=res.valid?[...res.notes,'Importes en pesos uruguayos. Tarifas según folleto GoCargo 2026.'].join(' '):'Cotización manual requerida para combinaciones no incluidas en el tarifario.';
       $('sourcePill').textContent=modifiedRates?'Tarifas ajustadas en este dispositivo':'Tarifario 2026 · + IVA';
-      ['copyButton','whatsAppButton','saveButton','printButton'].forEach(id=>$(id).disabled=!res.valid);
+      ['copyButton','whatsAppButton','printButton'].forEach(id=>$(id).disabled=!res.valid);$('saveButton').disabled=!res.valid||!connected()||cloudLoading;
     }
-    function quoteText(obj=lastQuote){const {form:f,result:r}=obj;
+    function quoteText(obj=lastQuote){const {form:f,result:r}=obj;const snapshot=obj.ratesSnapshot||rates;
       if(!r.valid)return 'Cotización pendiente de revisión';
-      return ['GO CARGO | Cotización',f.customer?`Cliente: ${f.customer}`:null,`Servicio: ${r.name}`,`Prioridad: ${rates.priorities[f.priority].name}`,canInterior(f.service)?`Destino: ${f.destination==='mvd'?'Montevideo':'Interior'}`:null,...(f.service==='package'||f.service==='return'?[`Paquetes en la gestión: ${r.quantity} (${(f.packageGroups?.length)||1} grupo(s) de peso)`]:[]),f.service==='package'&&f.priority!=='programmed'?`Distancia total: ${priceFmt(f.distance)} km`:null,...r.lines.map(l=>`${l.name}: ${money(l.amount)}`),`Subtotal: ${money(r.subtotal)}`,`IVA ${priceFmt(rates.iva)}%: ${money(r.iva)}`,`TOTAL: ${money(r.total)}`,r.notes.length?r.notes.join(' '):null,'Precios en pesos uruguayos.', 'GoCargo · www.gocargo.com.uy','097 550 450 / 096 260 096'].filter(Boolean).join('\n');
+      return ['GO CARGO | Cotización',f.customer?`Cliente: ${f.customer}`:null,`Servicio: ${r.name}`,`Prioridad: ${snapshot.priorities[f.priority].name}`,canInterior(f.service)?`Destino: ${f.destination==='mvd'?'Montevideo':'Interior'}`:null,...(f.service==='package'||f.service==='return'?[`Paquetes en la gestión: ${r.quantity} (${(f.packageGroups?.length)||1} grupo(s) de peso)`]:[]),f.service==='package'&&f.priority!=='programmed'?`Distancia total: ${priceFmt(f.distance)} km`:null,...r.lines.map(l=>`${l.name}: ${money(l.amount)}`),`Subtotal: ${money(r.subtotal)}`,`IVA ${priceFmt(snapshot.iva)}%: ${money(r.iva)}`,`TOTAL: ${money(r.total)}`,r.notes.length?r.notes.join(' '):null,'Precios en pesos uruguayos.', 'GoCargo · www.gocargo.com.uy','097 550 450 / 096 260 096'].filter(Boolean).join('\n');
     }
     function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toast._timer);toast._timer=setTimeout(()=>el.classList.add('hidden'),3000)}
     async function copyText(str){try{await navigator.clipboard.writeText(str)}catch(e){const area=document.createElement('textarea');area.value=str;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}}
-    function getHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY))||[]}catch(e){return []}}
-    function saveHistory(history){try{localStorage.setItem(LOCAL_HISTORY,JSON.stringify(history.slice(0,100)))}catch(e){toast('No se pudo guardar el historial en este dispositivo.')}}
-    function renderHistory(){const hs=getHistory();$('historyList').innerHTML=hs.length?hs.map((v,i)=>`<div class="history-item"><div><h3>${escapeHtml(v.form.customer||v.result.name)}</h3><p>${escapeHtml(v.result.name)} · ${escapeHtml(v.form.priority==='programmed'?'Programado':v.form.priority==='express'?'GoExpress':'GoFast')} · ${new Date(v.time).toLocaleString('es-UY')}</p></div><div class="history-right"><div class="history-price">${money(v.result.total)}</div><div class="history-actions"><button type="button" data-load="${i}">Reutilizar</button><button type="button" data-copy="${i}">Copiar</button><button class="delete" type="button" data-delete="${i}">Borrar</button></div></div></div>`).join(''):'<div class="history-empty">Todavía no guardaste cotizaciones.<br/>Generá una en la pestaña <strong>Cotizar</strong> y presioná <strong>Guardar cotización</strong>.</div>'}
-    function changePage(name){document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));document.querySelectorAll('.page-section').forEach(el=>el.classList.toggle('active',el.id==='page'+name[0].toUpperCase()+name.slice(1)));if(name==='history')renderHistory();if(name==='rates')renderRates();window.scrollTo({top:0,behavior:'smooth'})}
+    function getHistory(){return cloudHistory}
+    function currentUser(){return cloudSession?.user||null}
+    function connected(){return !!(cloudSession&&cloudEmpresa)}
+    function cloudError(msg){$('cloudMessage').textContent=msg;$('cloudMessage').classList.remove('hidden')}
+    function cloudClearError(){$('cloudMessage').textContent='';$('cloudMessage').classList.add('hidden')}
+    function updateCloudUI(){
+      const ok=connected();const account=currentUser();
+      $('cloudDot').classList.toggle('online',ok);
+      $('cloudLogin').classList.toggle('hidden',!!account);
+      $('cloudLogout').classList.toggle('hidden',!account);
+      $('cloudConnected').classList.toggle('hidden',!ok);
+      $('cloudTitle').textContent=ok?'Supabase conectado · GoCargo':account?'Usuario sin acceso a GoCargo':'Conectá con GoCargo Contable';
+      $('cloudDescription').textContent=ok?`Sesión: ${account.email||'usuario'} · historial compartido entre dispositivos`:account?'Este usuario no figura como miembro activo de GoCargo. Pedí que lo habiliten en Contable.':'Ingresá con tu usuario de GoCargo Contable para guardar y compartir cotizaciones.';
+      $('cloudImport').disabled=!getLocalHistory().length;
+      $('cloudImport').textContent=`Importar guardadas aquí (${getLocalHistory().length})`;
+      $('saveButton').disabled=!ok||!lastQuote?.result?.valid||cloudLoading;
+    }
+    function getLocalHistory(){try{const x=JSON.parse(localStorage.getItem(LOCAL_HISTORY));return Array.isArray(x)?x:[]}catch(e){return []}}
+    function saveSession(s){cloudSession=s;if(s)localStorage.setItem(SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SESSION_KEY)}
+    async function authRequest(grant,body){
+      const response=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(result.msg||result.error_description||result.message||'No se pudo autenticar.');
+      if(!result.access_token||!result.user)throw Error('La sesión no tiene los datos esperados.');
+      return {...result,expires_at:Math.floor(Date.now()/1000)+Number(result.expires_in||3600)};
+    }
+    async function validToken(force=false){
+      if(!cloudSession)throw Error('Iniciá sesión para acceder a las cotizaciones.');
+      if(!force&&cloudSession.expires_at>Date.now()/1000+90)return cloudSession.access_token;
+      if(cloudRefreshing)return cloudRefreshing;
+      cloudRefreshing=(async()=>{
+        try{const next=await authRequest('refresh_token',{refresh_token:cloudSession.refresh_token});saveSession(next);return next.access_token}
+        catch(err){saveSession(null);cloudEmpresa=null;cloudHistory=[];updateCloudUI();throw Error('La sesión venció. Iniciá sesión nuevamente.')}
+        finally{cloudRefreshing=null}
+      })();
+      return cloudRefreshing;
+    }
+    async function cloudFetch(table,method='GET',query='',payload=null,extraHeaders={}){
+      const call=async token=>{
+        const response=await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`,{method,headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json',Accept:'application/json',...extraHeaders},...(payload===null?{}:{body:JSON.stringify(payload)})});
+        const body=await response.text();let data=null;try{data=body?JSON.parse(body):null}catch(e){data={message:'Respuesta inesperada del servidor.'}}
+        if(!response.ok){const e=new Error(data?.message||data?.error||`Error HTTP ${response.status}`);e.status=response.status;throw e}
+        return data;
+      };
+      let token=await validToken();
+      try{return await call(token)}catch(err){if(err.status===401){token=await validToken(true);return call(token)}throw err}
+    }
+    async function findEmpresa(){
+      const u=currentUser();if(!u)return;
+      const memberships=await cloudFetch('empresa_usuarios','GET',`?select=empresa_id,rol,activo&user_id=eq.${encodeURIComponent(u.id)}&activo=is.true&limit=1`);
+      cloudEmpresa=memberships?.[0]||null;
+      updateCloudUI();
+    }
+    function historyRecord(row){return {...row.contenido,id:row.id,created_by:row.created_by,time:row.created_at}}
+    async function refreshCloudHistory(){
+      if(!connected()){cloudHistory=[];renderHistory();return}
+      const e=cloudEmpresa.empresa_id;
+      try{
+        const rows=await cloudFetch('cotizador_cotizaciones','GET',`?select=id,contenido,created_at,created_by&empresa_id=eq.${encodeURIComponent(e)}&order=created_at.desc&limit=300`);
+        cloudHistory=(rows||[]).map(historyRecord).filter(row=>row.form&&row.result);
+        renderHistory();cloudClearError();
+      }catch(err){cloudError(`No se pudo sincronizar el historial: ${err.message}`);renderHistory()}
+    }
+    function payloadForQuote(q,id){return {...(id?{id}:{}),empresa_id:cloudEmpresa.empresa_id,created_by:currentUser().id,cliente:String(q.form.customer||'').slice(0,100),servicio:String(q.form.service||''),prioridad:String(q.form.priority||'programmed'),total:q.result.total,contenido:q}}
+    async function saveCloudQuote(){
+      if(!connected()){cloudError('Iniciá sesión con un usuario habilitado antes de guardar.');return}
+      if(!lastQuote?.result.valid)return;
+      cloudLoading=true;updateCloudUI();
+      try{
+        const q=deepClone({...lastQuote,ratesSnapshot:rates});
+        await cloudFetch('cotizador_cotizaciones','POST','',payloadForQuote(q),{Prefer:'return=minimal'});
+        await refreshCloudHistory();toast('Cotización guardada en Supabase. Ya está disponible en tus dispositivos.');
+      }catch(err){cloudError(`No se pudo guardar en Supabase: ${err.message}`);toast('Error al guardar. No se registró la cotización.');}
+      finally{cloudLoading=false;updateCloudUI()}
+    }
+    async function deleteCloudQuote(q){
+      if(!connected()||!q.id)return;
+      if(!confirm('¿Borrar esta cotización del historial compartido de GoCargo?'))return;
+      try{await cloudFetch('cotizador_cotizaciones','DELETE',`?id=eq.${encodeURIComponent(q.id)}&empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}`,null,{Prefer:'return=minimal'});await refreshCloudHistory();toast('Cotización eliminada de Supabase.')}
+      catch(err){cloudError(`No se pudo borrar: ${err.message}`)}
+    }
+    async function importLocalHistory(){
+      if(!connected())return;
+      const local=getLocalHistory();if(!local.length){toast('No hay cotizaciones anteriores en este dispositivo.');return}
+      if(!confirm(`¿Importar ${local.length} cotizaciones guardadas anteriormente en este dispositivo a Supabase?`))return;
+      try{
+        // Guardar los identificadores antes del envío permite repetir sin duplicar en caso de error.
+        for(const v of local){if(!v.id)v.id=crypto.randomUUID();}
+        localStorage.setItem(LOCAL_HISTORY,JSON.stringify(local));
+        const payload=local.filter(v=>v.form&&v.result?.valid).map(v=>payloadForQuote(v,v.id));
+        if(!payload.length)throw Error('Las cotizaciones locales no tienen el formato esperado.');
+        await cloudFetch('cotizador_cotizaciones','POST','?on_conflict=id',payload,{Prefer:'resolution=ignore-duplicates,return=minimal'});
+        localStorage.removeItem(LOCAL_HISTORY);
+        await refreshCloudHistory();updateCloudUI();toast(`${payload.length} cotización(es) importadas a Supabase.`);
+      }catch(err){cloudError(`No se pudo importar: ${err.message}. Las cotizaciones locales siguen guardadas.`)}
+    }
+    function renderHistory(){
+      const hs=getHistory();
+      if(!connected()){$('historyList').innerHTML='<div class="history-empty">Iniciá sesión con un usuario autorizado de GoCargo para acceder al historial compartido.</div>';return}
+      const canDelete=v=>v.created_by===currentUser()?.id||['owner','admin'].includes(cloudEmpresa.rol);
+      $('historyList').innerHTML=hs.length?hs.map((v,i)=>`<div class="history-item"><div><h3>${escapeHtml(v.form.customer||v.result.name)}</h3><p>${escapeHtml(v.result.name)} · ${escapeHtml(v.form.priority==='programmed'?'Programado':v.form.priority==='express'?'GoExpress':'GoFast')} · ${new Date(v.time).toLocaleString('es-UY')}</p></div><div class="history-right"><div class="history-price">${money(v.result.total)}</div><div class="history-actions"><button type="button" data-load="${i}">Reutilizar</button><button type="button" data-copy="${i}">Copiar</button>${canDelete(v)?`<button class="delete" type="button" data-delete="${i}">Borrar</button>`:''}</div></div></div>`).join(''):'<div class="history-empty">Todavía no hay cotizaciones compartidas. Generá una en Cotizar y presioná Guardar cotización.</div>';
+    }
+    function changePage(name){document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));document.querySelectorAll('.page-section').forEach(el=>el.classList.toggle('active',el.id==='page'+name[0].toUpperCase()+name.slice(1)));if(name==='history'){renderHistory();if(connected())refreshCloudHistory()}if(name==='rates')renderRates();window.scrollTo({top:0,behavior:'smooth'})}
+    async function startupCloud(){
+      try{
+        const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+        if(s?.access_token&&s?.refresh_token&&s?.user){cloudSession=s;await validToken();await findEmpresa();if(connected())await refreshCloudHistory()}
+      }catch(err){cloudError(`No se pudo restaurar la sesión: ${err.message}`)}
+      finally{updateCloudUI();renderHistory()}
+    }
+    async function cloudSignIn(e){
+      e.preventDefault();$('cloudLoginButton').disabled=true;cloudClearError();
+      try{
+        saveSession(await authRequest('password',{email:$('cloudEmail').value.trim(),password:$('cloudPassword').value}));
+        $('cloudPassword').value='';await findEmpresa();
+        if(!connected())cloudError('El usuario existe, pero no tiene una membresía activa en GoCargo Contable.');
+        else {await refreshCloudHistory();toast('Conectado a GoCargo. Historial sincronizado.')}
+      }catch(err){cloudError(`No se pudo iniciar sesión: ${err.message}`)}
+      finally{$('cloudLoginButton').disabled=false;updateCloudUI()}
+    }
+    async function cloudSignOut(){
+      try{const token=cloudSession?.access_token;if(token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`}})}catch(e){}
+      saveSession(null);cloudEmpresa=null;cloudHistory=[];cloudClearError();updateCloudUI();renderHistory();toast('Sesión cerrada en este dispositivo.');
+    }
     const groups=[
       {title:'Impuestos y prioridades',desc:'El recargo se aplica sobre la tarifa base por servicio; los kilómetros adicionales se agregan a la paquetería prioritaria.',items:[['iva','IVA (%)'],['includedKm','Km incluidos'],['priorities.express.multiplier','Factor GoExpress (1,25 = +25%)'],['priorities.fast.multiplier','Factor GoFast (1,5 = +50%)'],['priorities.express.extraKm','GoExpress, $/km extra'],['priorities.fast.extraKm','GoFast, $/km extra']]},
       {title:'Paquetería programada',desc:'Tarifa por paquete según peso y destino.',items:DEFAULT_RATES.packages.flatMap((v,i)=>[[`packages.${i}.mvd`,`Hasta ${v.kg} kg · Montevideo`],[`packages.${i}.interior`,`Hasta ${v.kg} kg · Interior`]])},
@@ -327,15 +468,22 @@
     $('quoteForm').addEventListener('input',update);$('quoteForm').addEventListener('change',update);$('quoteForm').addEventListener('submit',e=>e.preventDefault());
     $('copyButton').addEventListener('click',async()=>{await copyText(quoteText());toast('Cotización copiada. Podés pegarla en WhatsApp o correo.')});
     $('whatsAppButton').addEventListener('click',()=>{const url='https://wa.me/?text='+encodeURIComponent(quoteText());const w=window.open(url,'_blank','noopener');if(!w)window.location.href=url});
-    $('saveButton').addEventListener('click',()=>{const h=getHistory();h.unshift(deepClone(lastQuote));saveHistory(h);toast('Cotización guardada en este dispositivo.')});
+    $('saveButton').addEventListener('click',saveCloudQuote);
     $('printButton').addEventListener('click',()=>window.print());
-    $('historyList').addEventListener('click',async e=>{const btn=e.target.closest('button');if(!btn)return;const hs=getHistory();if(btn.dataset.load!==undefined){applyForm(hs[Number(btn.dataset.load)].form)}else if(btn.dataset.copy!==undefined){await copyText(quoteText(hs[Number(btn.dataset.copy)]));toast('Cotización copiada.')}else if(btn.dataset.delete!==undefined){hs.splice(Number(btn.dataset.delete),1);saveHistory(hs);renderHistory()}});
-    $('clearHistory').addEventListener('click',()=>{if(!confirm('¿Borrar todas las cotizaciones guardadas en este dispositivo?'))return;localStorage.removeItem(LOCAL_HISTORY);renderHistory();toast('Historial eliminado.')});
+    $('historyList').addEventListener('click',async e=>{const btn=e.target.closest('button');if(!btn)return;const hs=getHistory();if(btn.dataset.load!==undefined){applyForm(hs[Number(btn.dataset.load)].form)}else if(btn.dataset.copy!==undefined){await copyText(quoteText(hs[Number(btn.dataset.copy)]));toast('Cotización copiada.')}else if(btn.dataset.delete!==undefined){await deleteCloudQuote(hs[Number(btn.dataset.delete)])}});
+    $('clearHistory').addEventListener('click',refreshCloudHistory);
     $('saveRates').addEventListener('click',()=>{const next=deepClone(rates);for(const el of document.querySelectorAll('[data-rate]')){if(el.value.trim()===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){toast('Revisá los importes: deben ser números no negativos.');el.focus();return}setPath(next,el.dataset.rate,Number(el.value))}if(next.priorities.express.multiplier<1||next.priorities.fast.multiplier<1||next.includedKm<0||next.iva>100||next.freight.truckMinHours<=0){toast('Revisá los factores, el IVA y las horas mínimas.');return}if(!validRates(next)){toast('No se pudieron validar las tarifas.');return}rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;update();toast('Tarifas guardadas en este dispositivo.')});
     $('resetRates').addEventListener('click',()=>{if(!confirm('¿Restablecer todas las tarifas a los importes del PDF 2026?'))return;rates=deepClone(DEFAULT_RATES);localStorage.removeItem(LOCAL_RATES);modifiedRates=false;renderRates();update();toast('Tarifas originales restauradas.')});
     $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
     $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=parsed.rates||parsed;if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
-    update();
+    $('cloudLogin').addEventListener('submit',cloudSignIn);
+    $('cloudLogout').addEventListener('click',cloudSignOut);
+    $('cloudSync').addEventListener('click',async()=>{await refreshCloudHistory();toast('Historial actualizado.');});
+    $('cloudImport').addEventListener('click',importLocalHistory);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&connected())refreshCloudHistory()});
+    window.addEventListener('online',()=>{if(connected())refreshCloudHistory()});
+    setInterval(()=>{if(!document.hidden&&connected()&&$('pageHistory').classList.contains('active'))refreshCloudHistory()},45000);
+    update();updateCloudUI();startupCloud();
     if('serviceWorker' in navigator&&['https:','http:'].includes(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
   })();
   </script>

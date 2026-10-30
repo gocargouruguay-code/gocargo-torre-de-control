@@ -1,5 +1,5 @@
-const CACHE='gocargo-cotizador-2026-v1.4-suite-redesign';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./assets/suite-quote.svg','./assets/suite-quote-192.png','./assets/suite-quote-512.png'];
+const CACHE='gocargo-cotizador-2026-v1.5-login-reference';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./assets/suite-quote.svg','./assets/suite-quote-192.png','./assets/suite-quote-512.png','./assets/login-photo-v15.webp'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('gocargo-cotizador-')&&k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
 self.addEventListener('fetch',event=>{

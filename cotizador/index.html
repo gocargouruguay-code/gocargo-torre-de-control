@@ -121,27 +121,75 @@ body{background:#f4f7fc}
 @media(max-width:650px){.header{padding:15px 15px}.header-side{display:none}.brand .mark,.brand .mark img{width:46px;height:46px}.brand h1{font-size:22px}.brand p{font-size:9px;letter-spacing:.75px}.wrap{padding:12px 10px 45px}.nav{margin-bottom:13px;padding:5px}.nav button{min-height:64px;font-size:11px}.suite-tab-icon{font-size:20px}.intro{display:none}.panel-head{padding:17px 15px}.panel-body{padding:17px 15px 21px}.field label{font-size:13px}.priority-btn{min-height:88px}.priority-btn strong{font-size:11px}.priority-btn small{font-size:9px}.auth-card{padding:26px 21px}}
 @media print{.nav{display:none!important}.intro{display:none!important}.auth-gate{display:none!important}}
 
+
+/* GoCargo Cotizador · acceso fotográfico rediseñado desde referencia de cliente */
+.auth-gate{position:relative;isolation:isolate;min-height:100vh;min-height:100dvh;display:block;overflow-x:hidden;background:linear-gradient(180deg,#0c4d87 0%,#104880 19%,#061c41 55%,#041636 100%);padding:0 14px;color:white}
+.auth-gate:before{content:"";position:absolute;z-index:-2;inset:0 0 auto;height:240px;background:linear-gradient(180deg,#1265a5c9 0%,#105e9b6b 45%,transparent 95%);pointer-events:none}
+.auth-photo{position:absolute;z-index:-1;left:50%;transform:translateX(-50%);top:112px;width:min(100%,760px);height:clamp(205px,36dvh,390px);background:linear-gradient(180deg,transparent 2%,transparent 55%,#061936 100%),url('./assets/login-photo-v15.webp') center top / 100% auto no-repeat;pointer-events:none}
+.auth-surface{width:min(100%,470px);position:relative;min-height:100vh;min-height:100dvh;margin:auto;display:flex;flex-direction:column;align-items:stretch;padding:36px 0 17px}
+.auth-identity{display:flex;align-items:center;flex-direction:column;justify-content:center;gap:5px;margin:0;text-align:center;flex-shrink:0;text-shadow:0 2px 12px #00152d80}
+.auth-main-logo{display:flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(28px,8.2vw,42px);font-weight:950;letter-spacing:.4px;white-space:nowrap;line-height:1}
+.auth-arrow{color:#087bff;font-size:1.06em;line-height:1}
+.auth-brand-note{color:#e5f1ff;font-weight:650;font-size:clamp(9px,2.5vw,12px);letter-spacing:clamp(1.4px,.43vw,3.5px)}
+.auth-photo-spacer{flex:1 0 150px;min-height:150px}
+.auth-card{background:#fff;color:#0d2141;border-radius:22px;padding:25px 26px 20px;box-shadow:0 12px 40px #04133160;position:relative}
+.auth-card h1{font-size:clamp(23px,6.3vw,30px);font-weight:900;letter-spacing:-.8px;line-height:1.2;text-align:center;margin:2px 0 12px;color:#071d46}
+.auth-subtitle{font-size:clamp(13px,3.6vw,15px);line-height:1.48;color:#62768f;text-align:left;margin:0 0 16px}
+.auth-form{display:flex;flex-direction:column;gap:11px;margin-top:0;align-items:stretch}
+.auth-form .auth-entry{position:relative;display:block;flex:none;margin:0;width:100%;font-size:14px}
+.auth-entry>svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);height:22px;width:22px;color:#263d5c;pointer-events:none}
+.auth-form .auth-entry input{display:block;width:100%;height:49px;min-height:49px;padding:10px 46px 10px 49px;border:1.5px solid #cbd8e7;border-radius:11px;background:#fff;color:#172d4b;font-size:16px;box-shadow:0 1px 3px #0b2d5408;outline:none}
+.auth-form .auth-entry input::placeholder{color:#687991;opacity:1}
+.auth-form .auth-entry input:focus{border-color:#0b7afa;box-shadow:0 0 0 3px #0878ff20}
+.auth-password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0!important;background:transparent!important;width:38px!important;height:40px!important;min-height:40px!important;padding:8px!important;display:grid;place-items:center;color:#314966!important;border-radius:8px!important;cursor:pointer}
+.auth-password-toggle svg{width:21px;height:21px}
+.auth-password-toggle:hover{background:#ebf4ff!important}
+.auth-submit{height:51px;min-height:51px;width:100%;margin-top:3px;background:#0878ff!important;color:white!important;font-size:16px!important;border-radius:10px!important;font-weight:850!important;box-shadow:0 4px 10px #0878ff35}
+.auth-remember{display:flex!important;flex-direction:row!important;align-items:center!important;gap:9px!important;margin:3px 0 0!important;flex:none!important;color:#244161!important;font-size:13px!important;font-weight:550!important;cursor:pointer}
+.auth-remember input{appearance:auto;flex:none;accent-color:#0878ff;height:19px;width:19px;margin:0}
+.auth-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:0;margin:21px 0 0;color:#f0f6ff;text-align:center}
+.auth-benefits>div{display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 6px;min-height:75px;font-size:11px;line-height:1.35}
+.auth-benefits>div+div{border-left:1px solid #ffffff45}
+.auth-benefits svg{width:27px;height:27px;color:white;stroke-width:1.7}
+.auth-foot{text-align:center;font-size:10px;opacity:.6;color:#d2e5fc;margin:15px 0 0}
+.auth-checking{font-size:13px;gap:9px;padding:15px 0}
+.auth-switch{margin-top:12px;width:100%}
+.auth-visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-height:730px){.auth-surface{padding-top:22px}.auth-photo-spacer{min-height:125px;flex-basis:125px}.auth-card{padding:20px 22px 16px}.auth-benefits{margin-top:15px}.auth-benefits>div{font-size:10px;min-height:65px}.auth-benefits svg{height:23px;width:23px}.auth-foot{margin-top:8px}}
+@media(min-width:700px){.auth-gate{background:linear-gradient(90deg,#061936,#0a3464 43%,#061936)}.auth-photo{top:120px;width:min(100%,880px);height:480px;background-size:100% 100%,100% auto}.auth-surface{padding-top:45px}.auth-photo-spacer{min-height:245px;flex-basis:245px}.auth-card{padding:32px 34px 24px}.auth-benefits{margin-top:24px}}
+@media(max-width:380px){.auth-gate{padding:0 10px}.auth-main-logo{font-size:28px}.auth-card{padding:22px 19px 18px}.auth-benefits>div{font-size:10px;padding:0 3px}.auth-photo{top:110px}.auth-brand-note{letter-spacing:1.2px}}
+@media print{.auth-gate{display:none!important}}
+
   </style>
 </head>
 <body>
 <section id="authGate" class="auth-gate no-print" aria-label="Inicio de sesión GoCargo Cotizador">
+  <div class="auth-photo" aria-hidden="true"></div>
   <div class="auth-surface">
     <div class="auth-identity">
-      <img class="auth-app-icon" src="./assets/suite-quote.svg" alt="" width="80" height="80"/>
-      <div><span class="auth-brand">GO CARGO</span><span class="auth-brand-note">DISTRIBUCIÓN Y LOGÍSTICA</span></div>
+      <div class="auth-main-logo"><span class="auth-arrow" aria-hidden="true">➜</span><span>GO CARGO</span></div>
+      <span class="auth-brand-note">DISTRIBUCIÓN Y LOGÍSTICA</span>
     </div>
+    <div class="auth-photo-spacer" aria-hidden="true"></div>
     <div class="auth-card">
-      <p class="auth-kicker">ACCESO AL COTIZADOR</p>
-      <h1>Ingresá a GoCargo Cotizador</h1>
-      <p class="auth-subtitle">Usá tu usuario de GoCargo Contable para ver y guardar las cotizaciones compartidas.</p>
+      <h1>GoCargo Cotizador</h1>
+      <p class="auth-subtitle">Ingresá con tu usuario de GoCargo Contable para acceder a la aplicación.</p>
       <div id="authChecking" class="auth-checking" role="status" aria-live="polite"><span class="auth-spinner"></span>Verificando sesión…</div>
-      <form id="cloudLogin" class="cloud-login auth-form"><label>Correo electrónico<input type="email" id="cloudEmail" autocomplete="username" required placeholder="tu@correo.com"></label><label>Contraseña<input type="password" id="cloudPassword" autocomplete="current-password" required></label><button id="cloudLoginButton" class="btn primary" type="submit">Iniciar sesión</button></form>
+      <form id="cloudLogin" class="cloud-login auth-form">
+        <label class="auth-entry" for="cloudEmail"><span class="auth-visually-hidden">Correo electrónico</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input type="email" id="cloudEmail" autocomplete="username" required placeholder="Correo electrónico"></label>
+        <label class="auth-entry" for="cloudPassword"><span class="auth-visually-hidden">Contraseña</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg><input type="password" id="cloudPassword" autocomplete="current-password" required placeholder="Contraseña"><button id="authShowPassword" class="auth-password-toggle" type="button" aria-label="Mostrar contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></button></label>
+        <button id="cloudLoginButton" class="btn primary auth-submit" type="submit">Iniciar sesión</button>
+        <label class="auth-remember" for="rememberDevice"><input id="rememberDevice" type="checkbox" checked><span>Recordarme en este dispositivo</span></label>
+      </form>
       <button type="button" id="authSwitchAccount" class="btn auth-switch hidden">Cerrar sesión y usar otro usuario</button>
       <p class="cloud-message hidden" id="cloudMessage" role="alert"></p>
-      <div class="auth-divider"></div>
-      <p class="auth-footnote">Las cotizaciones solo están disponibles para los usuarios habilitados de GoCargo. Si no tenés acceso, solicitá la habilitación al administrador.</p>
     </div>
-    <p class="auth-foot">GoCargo · Tu carga. Nuestro compromiso.</p>
+    <div class="auth-benefits" aria-label="Beneficios del sistema">
+      <div><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.3 8.4 8 11 4.7-2.6 8-6 8-11V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg><span>Cotizaciones<br>seguras</span></div>
+      <div><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 19a5 5 0 1 1 0-10 6 6 0 0 1 11.5 2A4 4 0 0 1 18 19H7z"/></svg><span>Acceso desde<br>cualquier dispositivo</span></div>
+      <div><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2 20v-1a7 7 0 0 1 14 0v1"/><path d="M17 5a3 3 0 0 1 0 6"/><path d="M17 14a6 6 0 0 1 5 6"/></svg><span>Información<br>centralizada</span></div>
+    </div>
+    <p class="auth-foot">GoCargo · Distribución y logística</p>
   </div>
 </section>
 <div id="appShell" class="hidden">
@@ -199,7 +247,7 @@ body{background:#f4f7fc}
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.4 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.5 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -436,7 +484,7 @@ body{background:#f4f7fc}
       $('saveButton').disabled=!ok||!lastQuote?.result?.valid||cloudLoading;
     }
     function getLocalHistory(){try{const x=JSON.parse(localStorage.getItem(LOCAL_HISTORY));return Array.isArray(x)?x:[]}catch(e){return []}}
-    function saveSession(s){cloudSession=s;if(s)localStorage.setItem(SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SESSION_KEY)}
+    function saveSession(s){cloudSession=s;localStorage.removeItem(SESSION_KEY);sessionStorage.removeItem(SESSION_KEY);if(s){const storage=$('rememberDevice')?.checked===false?sessionStorage:localStorage;storage.setItem(SESSION_KEY,JSON.stringify(s))}}
     async function authRequest(grant,body){
       const response=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
       const result=await response.json().catch(()=>({}));
@@ -523,7 +571,7 @@ body{background:#f4f7fc}
     function changePage(name){document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));document.querySelectorAll('.page-section').forEach(el=>el.classList.toggle('active',el.id==='page'+name[0].toUpperCase()+name.slice(1)));if(name==='history'){renderHistory();if(connected())refreshCloudHistory()}if(name==='rates')renderRates();window.scrollTo({top:0,behavior:'smooth'})}
     async function startupCloud(){
       try{
-        const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+        const sesionTemporal=sessionStorage.getItem(SESSION_KEY);$('rememberDevice').checked=!sesionTemporal;const s=JSON.parse(sesionTemporal||localStorage.getItem(SESSION_KEY)||'null');
         if(s?.access_token&&s?.refresh_token&&s?.user){cloudSession=s;await validToken();await findEmpresa();if(connected())await refreshCloudHistory()}
       }catch(err){cloudError(`No se pudo restaurar la sesión: ${err.message}`)}
       finally{authChecking=false;updateCloudUI();renderHistory()}
@@ -576,6 +624,12 @@ body{background:#f4f7fc}
     $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
     $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=parsed.rates||parsed;if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
     $('cloudLogin').addEventListener('submit',cloudSignIn);
+    $('authShowPassword').addEventListener('click',()=>{
+      const input=$('cloudPassword'),button=$('authShowPassword'),visible=input.type==='password';
+      input.type=visible?'text':'password';
+      button.setAttribute('aria-label',visible?'Ocultar contraseña':'Mostrar contraseña');
+      button.setAttribute('aria-pressed',String(visible));
+    });
     $('cloudLogout').addEventListener('click',cloudSignOut);
     $('authSwitchAccount').addEventListener('click',cloudSignOut);
     $('cloudSync').addEventListener('click',async()=>{await refreshCloudHistory();toast('Historial actualizado.');});

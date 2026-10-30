@@ -5,18 +5,18 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#065469",
+  "background_color": "#f4f7fc",
+  "theme_color": "#061a44",
   "description": "Torre de Control GoCargo para envíos UES y RyR",
   "icons": [
     {
-      "src": "/icons/control-192.png",
+      "src": "/icons/suite-tower-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/control-512.png",
+      "src": "/icons/suite-tower-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

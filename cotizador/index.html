@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#061a44" />
   <meta name="description" content="Cotizaciones instantáneas de envíos, fletes y servicios de GoCargo con el tarifario oficial 2026." />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./assets/icon-cotizador-v3.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="./assets/icon-cotizador-192-v3.png" />
+  <link rel="icon" href="./assets/suite-quote.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="./assets/suite-quote-192.png" />
   <title>GoCargo | Cotizador</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#0d2141;background:#f4f7fc;font-synthesis:none;--navy:#061a44;--blue:#0878ff;--blue2:#0aa6ed;--ink:#142a4b;--muted:#64738e;--line:#dde5f2;--radius:18px}
@@ -74,13 +74,60 @@
     .brand .mark{overflow:hidden;padding:0;background:transparent}.brand .mark img{width:100%;height:100%;display:block;object-fit:cover;border-radius:13px}
     @media(max-width:600px){.auth-gate{padding:23px 16px}.auth-identity{margin-bottom:20px}.auth-card{padding:25px 22px}.auth-brand{font-size:25px}.auth-app-icon{height:65px;width:65px}}
     @media print{.auth-gate{display:none!important}}
+
+/* GoCargo Suite · Cotizador v1.4 — misma identidad que Contable, Stock y Torre */
+:root{--navy:#061a44;--blue:#0878f6;--ink:#102747;--muted:#6a7d96;--line:#dce7f4;--radius:20px}
+body{background:#f4f7fc}
+.header{background:linear-gradient(112deg,#061936,#0b3068 85%,#0c438a);padding:17px clamp(17px,4vw,55px);box-shadow:0 6px 22px #06193627}
+.header-inner{align-items:center}
+.brand{gap:13px}
+.brand .mark,.brand .mark img{height:50px;width:50px;border-radius:13px}
+.brand h1{font-size:25px;letter-spacing:.7px}
+.brand p{font-size:11px;letter-spacing:1.1px;opacity:.88}
+.wrap{padding-top:19px}
+.nav{background:#fff;padding:7px;border-radius:17px;border:1px solid #e1eaf5;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;box-shadow:0 4px 18px #0d2b5609}
+.nav button{border:0;background:transparent;color:#163154;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:66px;font-size:13px;font-weight:750;padding:9px 5px;text-align:center}
+.nav button.active{background:#061a44;color:white;box-shadow:0 5px 16px #081c3c30}
+.suite-tab-icon{font-size:21px;line-height:1;min-height:22px}
+.cloud-panel{padding:14px 20px;border:1px solid #dfebf6;border-radius:17px;background:#fff}
+.cloud-head strong{font-size:14px;color:#0b2b58}
+.cloud-head p{font-size:12px}
+.intro{margin:18px 0 20px}
+.intro h2{font-size:clamp(23px,3vw,30px);color:#061a44}
+.layout{gap:18px}
+.panel{border:1px solid #dce6f4;border-radius:20px;box-shadow:0 5px 20px #0d2b560b}
+.panel-head{padding:20px 21px;border-bottom:1px solid #e5ecf6}
+.panel-head h3{font-weight:900;color:#061a44}
+.section-number{border-radius:11px;background:#eaf4ff;font-weight:900}
+.panel-body{padding:20px 21px 24px}
+.field label{text-transform:none;letter-spacing:0;font-size:13px;color:#244264;font-weight:800}
+.field input,.field select{border-radius:12px;min-height:48px;border-color:#cad9ea;font-size:15px}
+.priority-btn{border-radius:13px;text-align:center;min-height:89px;padding:11px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.priority-btn.active{background:#eaf4ff;box-shadow:0 0 0 1px #0878f6}
+.priority-btn strong{font-weight:850;font-size:13px}
+.priority-btn small{margin:0;font-size:10px}
+.suite-priority-icon{font-size:20px;line-height:24px}
+.btn{border-radius:12px;min-height:45px}
+.btn.primary{background:#0878f6;border-color:#0878f6}
+.summary{background:linear-gradient(145deg,#061a44,#0c3571)}
+.auth-gate{background:radial-gradient(circle at 80% 15%,#176db366,transparent 44%),linear-gradient(155deg,#061936,#0b376b 76%,#061936)}
+.auth-gate:before{content:"";position:fixed;inset:0 0 55% 0;z-index:0;opacity:.24;pointer-events:none;background:repeating-linear-gradient(90deg,#153e6b 0px,#153e6b 46px,#082854 47px,#082854 55px),linear-gradient(#123a6b,#123a6b);clip-path:polygon(0 56%,100% 11%,100% 100%,0 100%)}
+.auth-surface{position:relative;z-index:1}
+.auth-card{border-radius:25px;padding:31px 30px}
+.auth-brand{font-size:27px}
+.auth-form label{color:#2f4a6b}
+.auth-form input{border-radius:12px;min-height:52px}
+.auth-foot{font-size:12px}
+@media(max-width:650px){.header{padding:15px 15px}.header-side{display:none}.brand .mark,.brand .mark img{width:46px;height:46px}.brand h1{font-size:22px}.brand p{font-size:9px;letter-spacing:.75px}.wrap{padding:12px 10px 45px}.nav{margin-bottom:13px;padding:5px}.nav button{min-height:64px;font-size:11px}.suite-tab-icon{font-size:20px}.intro{display:none}.panel-head{padding:17px 15px}.panel-body{padding:17px 15px 21px}.field label{font-size:13px}.priority-btn{min-height:88px}.priority-btn strong{font-size:11px}.priority-btn small{font-size:9px}.auth-card{padding:26px 21px}}
+@media print{.nav{display:none!important}.intro{display:none!important}.auth-gate{display:none!important}}
+
   </style>
 </head>
 <body>
 <section id="authGate" class="auth-gate no-print" aria-label="Inicio de sesión GoCargo Cotizador">
   <div class="auth-surface">
     <div class="auth-identity">
-      <img class="auth-app-icon" src="./assets/icon-cotizador-v3.svg" alt="" width="80" height="80"/>
+      <img class="auth-app-icon" src="./assets/suite-quote.svg" alt="" width="80" height="80"/>
       <div><span class="auth-brand">GO CARGO</span><span class="auth-brand-note">DISTRIBUCIÓN Y LOGÍSTICA</span></div>
     </div>
     <div class="auth-card">
@@ -98,9 +145,9 @@
   </div>
 </section>
 <div id="appShell" class="hidden">
-  <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true"><img src="./assets/icon-cotizador-v3.svg" alt="" width="52" height="52"></span><div><h1><span>GO CARGO</span></h1><p>DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
+  <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true"><img src="./assets/suite-quote.svg" alt="" width="52" height="52"></span><div><h1><span>GO CARGO</span></h1><p>COTIZADOR · DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
   <main class="wrap">
-    <nav class="nav no-print" aria-label="Secciones"><button type="button" data-nav="quote" class="active">Cotizar</button><button type="button" data-nav="history">Mis cotizaciones</button><button type="button" data-nav="rates">Tarifas y ajustes</button></nav>
+    <nav class="nav no-print" aria-label="Secciones"><button type="button" data-nav="quote" class="active"><span class="suite-tab-icon">▤</span><span>Cotizar</span></button><button type="button" data-nav="history"><span class="suite-tab-icon">☷</span><span>Mis cotizaciones</span></button><button type="button" data-nav="rates"><span class="suite-tab-icon">⚙</span><span>Tarifas y ajustes</span></button></nav>
     <section class="cloud-panel no-print" aria-label="Acceso a cotizaciones compartidas">
       <div class="cloud-head"><div><strong><span class="cloud-indicator" id="cloudDot"></span><span id="cloudTitle">Conectá con GoCargo Contable</span></strong><p id="cloudDescription">Ingresá con tu usuario de GoCargo para compartir las cotizaciones entre dispositivos.</p></div><button class="btn hidden" type="button" id="cloudLogout">Cerrar sesión</button></div>
       
@@ -129,9 +176,9 @@
           </select></div>
           <div class="field full" id="destinationField"><label for="destination">Destino</label><select id="destination"><option value="mvd">Montevideo</option><option value="interior">Interior del país</option></select></div>
           <div class="field full" id="priorityField"><label>Prioridad de entrega</label><div class="priority-grid" role="group" aria-label="Prioridad">
-            <button class="priority-btn active" data-priority="programmed" type="button"><strong>Programado</strong><small>En fecha acordada</small></button>
-            <button class="priority-btn" data-priority="express" type="button"><strong>GoExpress</strong><small>En el día · +25%</small></button>
-            <button class="priority-btn" data-priority="fast" type="button"><strong>GoFast</strong><small>Hasta 4 h · +50%</small></button>
+            <button class="priority-btn active" data-priority="programmed" type="button"><span class="suite-priority-icon">▦</span><strong>Programado</strong><small>En fecha acordada</small></button>
+            <button class="priority-btn" data-priority="express" type="button"><span class="suite-priority-icon">⚡</span><strong>GoExpress</strong><small>En el día · +25%</small></button>
+            <button class="priority-btn" data-priority="fast" type="button"><span class="suite-priority-icon">🚀</span><strong>GoFast</strong><small>Hasta 4 h · +50%</small></button>
           </div></div>
           <div class="field" id="weightField"><label id="weightTitle" for="weight">Grupo 1 · peso por paquete (kg)</label><input id="weight" type="number" min="0.01" max="10000" step="0.01" value="2" inputmode="decimal" /><small>Se aplica el tramo de peso superior.</small></div>
           <div class="field" id="quantityField"><label for="quantity" id="quantityLabel">Cantidad de paquetes</label><input id="quantity" type="number" min="1" max="100000" step="1" value="1" inputmode="numeric" /><small id="quantityHelp">Para una misma entrega.</small></div>
@@ -152,7 +199,7 @@
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.3 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.4 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

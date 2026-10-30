@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GoCargo Torre de Control</title>
-<meta name="theme-color" content="#065469" />
+<meta name="theme-color" content="#061a44" />
 <link rel="manifest" href="/manifest.webmanifest" />
-<link rel="icon" type="image/png" href="/icons/control-192.png" />
-<link rel="apple-touch-icon" href="/icons/control-192.png" />
+<link rel="icon" type="image/png" href="/icons/suite-tower-192.png" />
+<link rel="apple-touch-icon" href="/icons/suite-tower-192.png" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="GC Control" />
 <meta name="description" content="Torre de Control GoCargo - UES y RyR" />
@@ -45,19 +45,61 @@ label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:12p
 .toast{position:fixed;right:18px;bottom:18px;z-index:100;background:#172033;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:var(--shadow);font-size:13px;max-width:360px}
 @media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.health-grid,.detail-grid{grid-template-columns:1fr}.review{grid-template-columns:1fr}.review-actions{justify-content:flex-start}.filters{grid-template-columns:1fr 1fr}.pod-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.metrics{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr}.hero{display:block}.hero-actions{margin-top:10px}.topbar .brand small{display:none}.search-row{flex-direction:column}.detail-grid{grid-template-columns:1fr}}
+
+/* GoCargo Suite 2026 · Torre de Control · capa de diseño (sin modificar integración). */
+:root{--navy:#061a44;--blue:#0878f6;--bg:#f4f7fc;--text:#102747;--muted:#657b96;--line:#dce7f4;--shadow:0 8px 28px #0d376112}
+body{background:var(--bg)}
+.topbar{background:linear-gradient(110deg,#061936,#0a306a);padding:12px 22px;min-height:72px;box-shadow:0 5px 20px #06193626}
+.topbar .brand{display:flex;align-items:center;gap:12px;font-weight:900;font-size:19px;letter-spacing:.7px}
+.topbar .brand small{display:block;font-size:11px;letter-spacing:.65px;color:#b5d4f0;margin:5px 0 0;font-weight:650;opacity:1}
+.suite-control-icon{width:47px;height:47px;border-radius:13px;box-shadow:0 3px 12px #041b3940}
+.container{padding-bottom:58px}
+.card{border:1px solid #dce7f4;border-radius:19px;box-shadow:0 6px 22px #102b560c;background:#fff}
+.hero h1,.section-head h2,.manual-head h2{font-weight:900;color:#061a44}
+.metric .value{font-weight:900}
+.btn{border-radius:11px;padding:11px 15px}
+.btn.primary{background:#0878f6;color:#fff;box-shadow:0 3px 9px #0878f62b}
+.btn.primary:hover{background:#086bdd}
+.btn.secondary{background:#eaf3fe;color:#0755aa}
+.input{border-radius:11px;border:1px solid #cbd9e9;min-height:43px;font-size:15px}
+.input:focus{border-color:#0878f6;box-shadow:0 0 0 3px #0878f61a}
+.metrics .metric{padding:19px}
+.search-card,.manual-card{padding:19px}
+.review{border-radius:16px}
+.tabs .tab.active{background:#061a44;color:white}
+body:has(#login:not(.hidden)){background:radial-gradient(circle at 85% 12%,#147dc147,transparent 40%),linear-gradient(155deg,#061936,#092c5d 68%,#061936);min-height:100vh;min-height:100dvh}
+body:has(#login:not(.hidden)) .topbar{display:none}
+body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;display:grid;place-items:center;margin:0 auto;padding:22px}
+#login{width:100%;max-width:440px;margin:0!important;padding:30px 30px 27px;border:0;box-shadow:0 23px 65px #0004;border-radius:25px;position:relative}
+.suite-login-logo{display:flex;align-items:center;justify-content:center;gap:13px;margin-bottom:24px}
+.suite-login-logo img{width:72px;height:72px;border-radius:19px;box-shadow:0 7px 20px #0619362b}
+.suite-login-logo strong{font-size:24px;font-weight:900;letter-spacing:1px;color:#061a44;display:block}
+.suite-login-logo small{display:block;font-size:10px;letter-spacing:1.2px;color:#64809d;margin-top:6px}
+.suite-login-kicker{font-size:11px;font-weight:900;letter-spacing:1.4px;color:#0878f6;margin-bottom:13px}
+#login .login-title{font-size:27px;line-height:1.22;font-weight:900;letter-spacing:-.7px}
+#login .login-sub{font-size:14px;line-height:1.6;color:#687f9a;margin-top:10px}
+#login label{margin-top:20px;margin-bottom:8px;font-size:13px;color:#385475}
+#login .input{min-height:51px;font-size:16px;padding:12px 14px}
+#login .btn.primary{min-height:52px;font-size:16px;margin-top:17px}
+#login #countBadge{font-size:12px;color:#66809a;margin-top:16px}
+#login #loginMsg{margin-top:12px}
+@media(max-width:600px){.topbar{padding:11px 14px;min-height:65px}.topbar .brand{font-size:15px}.topbar .brand small{font-size:9px;display:block}.suite-control-icon{height:40px;width:40px}#login{padding:26px 23px}.container{padding:0 13px 48px}}
+
 </style>
 </head>
 <body>
-<div class="topbar"><div class="topbar-inner"><div class="brand">GoCargo <small>Integraciones UES / RyR</small></div><div class="spacer"></div><div id="topStatus" class="top-status"><span class="dot"></span><span>Verificando…</span></div></div></div>
+<div class="topbar"><div class="topbar-inner"><div class="brand"><img src="/icons/suite-tower.svg" class="suite-control-icon" alt="" /><span>GO CARGO <small>TORRE DE CONTROL · UES / RyR</small></span></div><div class="spacer"></div><div id="topStatus" class="top-status"><span class="dot"></span><span>Verificando…</span></div></div></div>
 
 <div class="container">
   <div id="login" class="card">
-    <div class="login-title">Torre de control</div>
-    <div class="login-sub">Monitoreo, revisión y diagnóstico de la integración.</div>
+    <div class="suite-login-logo"><img src="/icons/suite-tower.svg" alt="" /><span><strong>GO CARGO</strong><small>DISTRIBUCIÓN Y LOGÍSTICA</small></span></div>
+    <div class="suite-login-kicker">ACCESO AL SISTEMA</div>
+    <div class="login-title">GoCargo Torre de Control</div>
+    <div class="login-sub">Ingresá para monitorear y administrar los envíos UES y RyR.</div>
     <div id="countBadge">Consultando casos pendientes…</div>
-    <label>Contraseña</label>
+    <label for="password">Contraseña</label>
     <input class="input" type="password" id="password" autocomplete="current-password" autofocus />
-    <button class="btn primary wide" id="loginBtn" onclick="login()">Entrar</button>
+    <button class="btn primary wide" id="loginBtn" onclick="login()">Iniciar sesión</button>
     <div id="loginMsg"></div>
   </div>
 

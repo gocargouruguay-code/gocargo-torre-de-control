@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#061a44" />
   <meta name="description" content="Cotizaciones instantáneas de envíos, fletes y servicios de GoCargo con el tarifario oficial 2026." />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="./assets/icon-cotizador-v3.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="./assets/icon-cotizador-192-v3.png" />
   <title>GoCargo | Cotizador</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#0d2141;background:#f4f7fc;font-synthesis:none;--navy:#061a44;--blue:#0878ff;--blue2:#0aa6ed;--ink:#142a4b;--muted:#64738e;--line:#dde5f2;--radius:18px}
@@ -48,17 +48,64 @@
     @media(max-width:950px){.layout{grid-template-columns:minmax(0,1fr)}.rates-grid{grid-template-columns:1fr}.header-side{text-align:left}}
     @media(max-width:600px){.header{padding:17px 18px 20px}.wrap{padding:19px 13px 50px}.panel-head{padding:17px 16px}.panel-body{padding:18px 16px}.fields{gap:14px 11px}.brand h1{font-size:23px}.brand p{font-size:10px}.header-side{display:none}.field input,.field select{font-size:16px}.priority-btn strong{font-size:12px}.priority-btn{min-height:72px;padding:10px 7px}.priority-btn.active{padding:9px 6px}.priority-btn small{font-size:10px}.rate-line{grid-template-columns:minmax(0,1fr) 102px}.summary{padding:23px 20px}.calculation{padding:20px}.actions{padding:0 20px 20px}.history-item{align-items:flex-start;flex-direction:column}.history-right{align-self:flex-end}}
     @media print{body{background:white;color:black}.header{padding:12px 20px;background:#061a44!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{padding:12px 0}.nav,.intro,.form-panel,.actions,.footer,.admin-controls,.source-pill,.no-print{display:none!important}.page-section{display:none!important}#pageQuote{display:block!important}.layout{display:block}.panel{border:0;box-shadow:none}.result-panel{max-width:none}.summary{print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-only{display:block;font-size:11px;color:#617089;margin-top:13px}.calculation{padding:18px 27px} .source-note{margin-top:15px}}
+
+    /* Pantalla de acceso independiente y bloqueo de la app antes de la sesión. */
+    .auth-gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:42px 16px;background:radial-gradient(circle at 85% 12%,#0b63a8 0%,transparent 36%),linear-gradient(150deg,#061634,#082956 72%,#061634);color:white}
+    .auth-surface{width:min(100%,470px)}
+    .auth-identity{display:flex;align-items:center;justify-content:center;gap:15px;margin:0 0 25px}
+    .auth-app-icon{width:74px;height:74px;border-radius:18px;box-shadow:0 11px 30px #0004}
+    .auth-brand{display:block;font-weight:950;font-size:29px;letter-spacing:2px;line-height:1}
+    .auth-brand-note{display:block;font-size:10px;letter-spacing:2px;opacity:.78;margin-top:8px}
+    .auth-card{background:#fff;color:#102747;padding:30px;border-radius:25px;box-shadow:0 22px 65px #0005}
+    .auth-kicker{color:#0778ed;font-size:12px;font-weight:900;letter-spacing:1.6px;margin:0 0 9px}
+    .auth-card h1{font-size:clamp(23px,5vw,30px);letter-spacing:-.7px;line-height:1.18;margin:0 0 11px}
+    .auth-subtitle{color:#697a90;font-size:14px;line-height:1.65;margin:0}
+    .auth-form{display:flex;flex-direction:column;align-items:stretch;gap:17px;margin-top:24px}
+    .auth-form label{display:flex;flex:none;flex-direction:column;font-size:13px;font-weight:800;color:#34516d;gap:8px}
+    .auth-form input{font-size:16px;border:1px solid #cdd9e9;border-radius:12px;padding:14px 15px;min-height:52px}
+    .auth-form button{min-height:52px;width:100%;border-radius:12px;font-weight:850;font-size:16px}
+    .auth-checking{display:flex;gap:11px;align-items:center;justify-content:center;padding:23px 0;color:#64758c;font-weight:700;font-size:14px}
+    .auth-spinner{height:20px;width:20px;border:3px solid #dbe7f8;border-top-color:#0b7af5;border-radius:50%;animation:auth-spin .85s linear infinite}
+    @keyframes auth-spin{to{transform:rotate(360deg)}}
+    .auth-switch{margin-top:23px;width:100%}
+    .auth-divider{height:1px;background:#e5ebf5;margin:23px 0 15px}
+    .auth-footnote{color:#75869c;font-size:12px;line-height:1.55;margin:0}
+    .auth-foot{text-align:center;color:#d7e8ff9a;font-size:12px;margin:22px 0 0}
+    .brand .mark{overflow:hidden;padding:0;background:transparent}.brand .mark img{width:100%;height:100%;display:block;object-fit:cover;border-radius:13px}
+    @media(max-width:600px){.auth-gate{padding:23px 16px}.auth-identity{margin-bottom:20px}.auth-card{padding:25px 22px}.auth-brand{font-size:25px}.auth-app-icon{height:65px;width:65px}}
+    @media print{.auth-gate{display:none!important}}
   </style>
 </head>
 <body>
-  <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true">➜</span><div><h1><span>GO CARGO</span></h1><p>DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
+<section id="authGate" class="auth-gate no-print" aria-label="Inicio de sesión GoCargo Cotizador">
+  <div class="auth-surface">
+    <div class="auth-identity">
+      <img class="auth-app-icon" src="./assets/icon-cotizador-v3.svg" alt="" width="80" height="80"/>
+      <div><span class="auth-brand">GO CARGO</span><span class="auth-brand-note">DISTRIBUCIÓN Y LOGÍSTICA</span></div>
+    </div>
+    <div class="auth-card">
+      <p class="auth-kicker">ACCESO AL COTIZADOR</p>
+      <h1>Ingresá a GoCargo Cotizador</h1>
+      <p class="auth-subtitle">Usá tu usuario de GoCargo Contable para ver y guardar las cotizaciones compartidas.</p>
+      <div id="authChecking" class="auth-checking" role="status" aria-live="polite"><span class="auth-spinner"></span>Verificando sesión…</div>
+      <form id="cloudLogin" class="cloud-login auth-form"><label>Correo electrónico<input type="email" id="cloudEmail" autocomplete="username" required placeholder="tu@correo.com"></label><label>Contraseña<input type="password" id="cloudPassword" autocomplete="current-password" required></label><button id="cloudLoginButton" class="btn primary" type="submit">Iniciar sesión</button></form>
+      <button type="button" id="authSwitchAccount" class="btn auth-switch hidden">Cerrar sesión y usar otro usuario</button>
+      <p class="cloud-message hidden" id="cloudMessage" role="alert"></p>
+      <div class="auth-divider"></div>
+      <p class="auth-footnote">Las cotizaciones solo están disponibles para los usuarios habilitados de GoCargo. Si no tenés acceso, solicitá la habilitación al administrador.</p>
+    </div>
+    <p class="auth-foot">GoCargo · Tu carga. Nuestro compromiso.</p>
+  </div>
+</section>
+<div id="appShell" class="hidden">
+  <header class="header"><div class="header-inner"><div class="brand"><span class="mark" aria-hidden="true"><img src="./assets/icon-cotizador-v3.svg" alt="" width="52" height="52"></span><div><h1><span>GO CARGO</span></h1><p>DISTRIBUCIÓN Y LOGÍSTICA</p></div></div><div class="header-side"><strong>GO CARGO · COTIZADOR</strong><small>Tarifario oficial 2026 · Uruguay</small></div></div></header>
   <main class="wrap">
     <nav class="nav no-print" aria-label="Secciones"><button type="button" data-nav="quote" class="active">Cotizar</button><button type="button" data-nav="history">Mis cotizaciones</button><button type="button" data-nav="rates">Tarifas y ajustes</button></nav>
     <section class="cloud-panel no-print" aria-label="Acceso a cotizaciones compartidas">
       <div class="cloud-head"><div><strong><span class="cloud-indicator" id="cloudDot"></span><span id="cloudTitle">Conectá con GoCargo Contable</span></strong><p id="cloudDescription">Ingresá con tu usuario de GoCargo para compartir las cotizaciones entre dispositivos.</p></div><button class="btn hidden" type="button" id="cloudLogout">Cerrar sesión</button></div>
-      <form id="cloudLogin" class="cloud-login"><label>Correo electrónico<input type="email" id="cloudEmail" autocomplete="username" required placeholder="tu@correo.com"></label><label>Contraseña<input type="password" id="cloudPassword" autocomplete="current-password" required></label><button id="cloudLoginButton" class="btn primary" type="submit">Conectar</button></form>
+      
       <div class="cloud-actions hidden" id="cloudConnected"><button class="btn" type="button" id="cloudSync">Actualizar cotizaciones</button><button class="btn" type="button" id="cloudImport">Importar cotizaciones de este dispositivo</button></div>
-      <p class="cloud-message hidden" id="cloudMessage" role="alert"></p>
+      <p class="cloud-message hidden" id="cloudAppMessage" role="alert"></p>
     </section>
     <section class="page-section active" id="pageQuote">
       <div class="intro"><div><p class="eyebrow">GO CARGO · HERRAMIENTA COMERCIAL</p><h2>Cotizá en segundos.</h2><p>Seleccioná la gestión y obtené el precio actualizado al instante.</p></div><span id="sourcePill" class="source-pill">Tarifario 2026 · + IVA</span></div>
@@ -105,8 +152,9 @@
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.2 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.3 · nube</footer>
   </main>
+</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script>
   (()=>{
@@ -154,7 +202,7 @@
     const SUPABASE_URL='https://gdobmjcmunxvioodcgbj.supabase.co';
     const SUPABASE_KEY='sb_publishable_yngYFd42DbU490x8nIKBQQ_KAf4BdyI';
     const SESSION_KEY='gocargo-cotizador-auth-v1';
-    let cloudSession=null, cloudEmpresa=null, cloudHistory=[], cloudLoading=false, cloudRefreshing=null;
+    let cloudSession=null, cloudEmpresa=null, cloudHistory=[], cloudLoading=false, cloudRefreshing=null, authChecking=true;
     let priority='programmed';
     let lastQuote=null;
     let modifiedRates=!!localStorage.getItem(LOCAL_RATES);
@@ -322,12 +370,16 @@
     function getHistory(){return cloudHistory}
     function currentUser(){return cloudSession?.user||null}
     function connected(){return !!(cloudSession&&cloudEmpresa)}
-    function cloudError(msg){$('cloudMessage').textContent=msg;$('cloudMessage').classList.remove('hidden')}
-    function cloudClearError(){$('cloudMessage').textContent='';$('cloudMessage').classList.add('hidden')}
+    function cloudError(msg){['cloudMessage','cloudAppMessage'].forEach(id=>{const el=$(id);el.textContent=msg;el.classList.remove('hidden')})}
+    function cloudClearError(){['cloudMessage','cloudAppMessage'].forEach(id=>{const el=$(id);el.textContent='';el.classList.add('hidden')})}
     function updateCloudUI(){
       const ok=connected();const account=currentUser();
+      $('appShell').classList.toggle('hidden',!ok);
+      $('authGate').classList.toggle('hidden',ok);
+      $('authChecking').classList.toggle('hidden',!authChecking);
+      $('cloudLogin').classList.toggle('hidden',authChecking||!!account);
+      $('authSwitchAccount').classList.toggle('hidden',authChecking||!account||ok);
       $('cloudDot').classList.toggle('online',ok);
-      $('cloudLogin').classList.toggle('hidden',!!account);
       $('cloudLogout').classList.toggle('hidden',!account);
       $('cloudConnected').classList.toggle('hidden',!ok);
       $('cloudTitle').textContent=ok?'Supabase conectado · GoCargo':account?'Usuario sin acceso a GoCargo':'Conectá con GoCargo Contable';
@@ -427,7 +479,7 @@
         const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
         if(s?.access_token&&s?.refresh_token&&s?.user){cloudSession=s;await validToken();await findEmpresa();if(connected())await refreshCloudHistory()}
       }catch(err){cloudError(`No se pudo restaurar la sesión: ${err.message}`)}
-      finally{updateCloudUI();renderHistory()}
+      finally{authChecking=false;updateCloudUI();renderHistory()}
     }
     async function cloudSignIn(e){
       e.preventDefault();$('cloudLoginButton').disabled=true;cloudClearError();
@@ -478,6 +530,7 @@
     $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=parsed.rates||parsed;if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
     $('cloudLogin').addEventListener('submit',cloudSignIn);
     $('cloudLogout').addEventListener('click',cloudSignOut);
+    $('authSwitchAccount').addEventListener('click',cloudSignOut);
     $('cloudSync').addEventListener('click',async()=>{await refreshCloudHistory();toast('Historial actualizado.');});
     $('cloudImport').addEventListener('click',importLocalHistory);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&connected())refreshCloudHistory()});

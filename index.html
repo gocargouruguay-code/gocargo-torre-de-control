@@ -119,6 +119,21 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
 
     <div class="card manual-card">
       <div class="manual-head">
+        <div>
+          <h2>Verificar carga por ORD</h2>
+          <p>Busca la ORD exacta contra la clave externa de UES y RyR. No usa nombre, teléfono ni dirección para decidir si la orden existe.</p>
+        </div>
+      </div>
+      <div class="search-row">
+        <input id="externalKeySearch" class="input mono" placeholder="ORD41XX" onkeydown="if(event.key==='Enter') buscarEstadoClaveExterna()" />
+        <button class="btn primary" id="externalKeySearchBtn" onclick="buscarEstadoClaveExterna()">Verificar en UES y RyR</button>
+      </div>
+      <div id="externalKeyResults" class="manual-preview"></div>
+    </div>
+
+
+    <div class="card manual-card">
+      <div class="manual-head">
         <div><h2>Enviar orden manualmente</h2><p>Ingresá una ORD de SendGround, elegí UES o RyR y la Torre verificará ambos proveedores antes de habilitar el envío. Si la Transferencia quedó en otro depósito, la excepción queda auditada para esa ORD + taskId + locationId.</p></div>
       </div>
       <div class="manual-row">
@@ -1538,6 +1553,103 @@ async function enviarOrdenManual(){
     await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
   }catch(e){
     el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+function etiquetaEstadoClave(row){
+  const state=String(row?.state||"").toUpperCase();
+  if(state==="CARGADA")return {label:"Cargada",cls:"green"};
+  if(state==="PENDIENTE_CARGA")return {label:"Pendiente de carga",cls:"blue"};
+  if(state==="PENDIENTE_REVISION")return {label:"Pendiente / revisión",cls:"yellow"};
+  if(state==="NO_CARGADA")return {label:"No cargada",cls:"red"};
+  return {label:"Sin determinar",cls:"red"};
+}
+
+function renderEstadoClaveProveedor(provider,row){
+  if(!row){
+    return `<div class="card detail-card"><div class="detail-title">${provider}</div><div class="alert err">No se obtuvo respuesta del proveedor.</div></div>`;
+  }
+
+  const e=etiquetaEstadoClave(row);
+  const remote=row.remoteExactExists===true
+    ?"Sí"
+    :row.remoteChecked===false
+    ?"No disponible"
+    :"No";
+  const local=row.localLinked===true?"Sí":"No";
+  const providerCode=row.providerOrderCode||"—";
+  const badgeStyle=e.cls==="yellow"
+    ?'style="background:#fff5cc;color:#805b00;border:1px solid #f1d36b"'
+    :"";
+  const badgeClass=e.cls==="yellow"?"":e.cls;
+
+  return `<div class="card detail-card">
+    <div class="detail-title">${provider}</div>
+    <div style="margin-bottom:10px"><span class="badge ${badgeClass}" ${badgeStyle}>${esc(e.label)}</span></div>
+    <div class="kv">
+      <div class="k">Clave externa</div><div class="v mono">${esc(row.externalKey||row.orderCode||"—")}</div>
+      <div class="k">Campo proveedor</div><div class="v">${esc(row.externalKeyField||"—")}</div>
+      <div class="k">Existe remoto exacto</div><div class="v">${esc(remote)}</div>
+      <div class="k">Vínculo local</div><div class="v">${esc(local)}</div>
+      <div class="k">Código proveedor</div><div class="v mono">${esc(providerCode)}</div>
+    </div>
+    <div class="muted" style="font-size:12px;margin-top:10px">${esc(row.detail||"")}</div>
+  </div>`;
+}
+
+async function buscarEstadoClaveExterna(){
+  const input=document.getElementById("externalKeySearch");
+  const el=document.getElementById("externalKeyResults");
+  const btn=document.getElementById("externalKeySearchBtn");
+  const orderCode=String(input?.value||"").trim().toUpperCase();
+
+  if(!/^ORD[A-Z0-9_-]+$/.test(orderCode)){
+    el.innerHTML='<div class="alert err">Ingresá una ORD válida, por ejemplo ORD41XX.</div>';
+    return;
+  }
+
+  if(input)input.value=orderCode;
+  const original=btn?.textContent||"Verificar en UES y RyR";
+  if(btn){btn.disabled=true;btn.textContent="Verificando…";}
+  el.innerHTML='<div class="alert warn">Consultando la clave externa exacta en UES y RyR…</div>';
+
+  try{
+    const [u,r]=await Promise.allSettled([
+      apiUesDatos("external-status",{query:{orderCode}}),
+      apiRyrDatos("external-status",{query:{orderCode}})
+    ]);
+
+    const ues=u.status==="fulfilled"
+      ?u.value
+      :{state:"ERROR",detail:u.reason?.message||"Error consultando UES"};
+    const ryr=r.status==="fulfilled"
+      ?r.value
+      :{state:"ERROR",detail:r.reason?.message||"Error consultando RyR"};
+
+    const loaded=[];
+    if(ues.loaded)loaded.push("UES");
+    if(ryr.loaded)loaded.push("RyR");
+
+    const pending=[];
+    if(ues.state==="PENDIENTE_CARGA")pending.push("UES");
+    if(ryr.state==="PENDIENTE_CARGA")pending.push("RyR");
+
+    let summary;
+    if(loaded.length===2){
+      summary='<div class="alert err"><b>Atención:</b> la misma ORD aparece cargada en UES y RyR. Revisar posible duplicado entre proveedores.</div>';
+    }else if(loaded.length===1){
+      summary=`<div class="alert ok"><b>${esc(orderCode)}</b> está cargada en <b>${esc(loaded[0])}</b> por clave externa exacta.</div>`;
+    }else if(pending.length){
+      summary=`<div class="alert warn"><b>${esc(orderCode)}</b> todavía no está cargada en los proveedores consultados. Figura pendiente de carga en <b>${esc(pending.join(" y "))}</b>.</div>`;
+    }else{
+      summary=`<div class="alert err"><b>${esc(orderCode)}</b> no aparece cargada ni en UES ni en RyR por clave externa exacta.</div>`;
+    }
+
+    el.innerHTML=`${summary}<div class="manual-summary">${renderEstadoClaveProveedor("UES",ues)}${renderEstadoClaveProveedor("RyR",ryr)}</div>`;
+  }catch(e){
+    el.innerHTML=`<div class="alert err">${esc(e.message||e)}</div>`;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=original;}
   }
 }
 

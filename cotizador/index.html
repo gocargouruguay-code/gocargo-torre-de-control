@@ -343,6 +343,15 @@ body{background:#f4f7fc}
 #appShell #freightKmCard .field small{font-size:11px;line-height:1.5;color:#607791}
 #appShell #freightKmCard .suite-km-explanation{margin-top:12px}
 @media(max-width:570px){#appShell .suite-freight-fields{grid-template-columns:1fr}}
+
+/* Tarifa fija compartida de GoCargo */
+#appShell .suite-global-rate{margin:0 0 19px;border-color:#bbd9fb;background:linear-gradient(115deg,#fff,#f3f9ff)}
+#appShell .suite-cloud-rate-editor{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+#appShell .suite-cloud-rate-editor .field{flex:1 1 215px;min-width:190px}
+#appShell .suite-cloud-rate-editor input{width:100%;min-height:45px;border-radius:11px;border:1px solid #cbd9eb;padding:9px 12px;font-size:16px}
+#appShell .suite-cloud-rate-status{margin:12px 0 0;font-size:12px;line-height:1.5;color:#416083}
+#appShell #freightKmRate[readonly]{background:#edf5ff;border-color:#b8d6f7;font-weight:800;color:#0b4b94}
+@media(max-width:600px){#appShell .suite-cloud-rate-editor{flex-direction:column;align-items:stretch}#appShell .suite-cloud-rate-editor .field{min-width:100%;flex:auto}}
   </style>
 </head>
 <body>
@@ -466,7 +475,7 @@ body{background:#f4f7fc}
   <div class="panel-body">
     <div class="suite-freight-fields">
       <div class="field"><label for="freightKm">Kilómetros totales a recorrer</label><input id="freightKm" type="number" min="0.1" max="100000" step="0.1" inputmode="decimal" value="" placeholder="Ej.: 250" /><small>Ingresá el recorrido total del vehículo. Incluí ida y vuelta si corresponde.</small></div>
-      <div class="field"><label for="freightKmRate">Precio por kilómetro ($U, sin IVA)</label><input id="freightKmRate" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" value="" placeholder="Configurá la tarifa" /><small id="freightKmRateInfo">Configurable en Tarifas y ajustes; podés cambiarlo para esta cotización.</small></div>
+      <div class="field"><label for="freightKmRate">Tarifa fija por kilómetro ($U, sin IVA)</label><input id="freightKmRate" type="text" value="" readonly aria-readonly="true" placeholder="Consultar Supabase" /><small id="freightKmRateInfo">La tarifa fija se obtiene de Supabase. Solo administradores pueden modificarla en Tarifas y ajustes.</small></div>
     </div>
     <p class="suite-km-explanation">Se cobra la totalidad de los km ingresados × el precio por km. No se aplica el adicional de GoExpress/GoFast ni los primeros 5 km incluidos de paquetería.</p>
   </div>
@@ -484,8 +493,18 @@ body{background:#f4f7fc}
       </div>
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
-    <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.7 · nube</footer>
+    <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><section class="rates-card suite-global-rate" id="cloudFreightRatePanel">
+        <h3>Tarifa fija de fletes al interior · Supabase</h3>
+        <p>Se aplica a todos los dispositivos autorizados de GoCargo. Únicamente un administrador puede actualizarla. Importes sin IVA.</p>
+        <div class="suite-cloud-rate-editor">
+          <div class="field"><label for="cloudKmRate">Precio fijo por kilómetro ($U, sin IVA)</label><input id="cloudKmRate" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="Sin configurar" /></div>
+          <button id="cloudKmRateSave" type="button" class="btn primary" disabled>Guardar tarifa en Supabase</button>
+          <button id="cloudKmRateRefresh" type="button" class="btn">Actualizar</button>
+        </div>
+        <p id="cloudKmRateStatus" class="suite-cloud-rate-status" role="status" aria-live="polite">Iniciá sesión para consultar el valor central.</p>
+      </section>
+      <div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: la tarifa fija por kilómetro de fletes al interior sí se sincroniza en Supabase. Las demás tarifas de esta sección continúan siendo locales.</p></section>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.8 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -516,7 +535,7 @@ body{background:#f4f7fc}
     const LOCAL_RATES='gocargo-cotizador-rates-v1';
     const LOCAL_HISTORY='gocargo-cotizador-history-v1';
     const names={package:'Envío de paquetería',return:'Devolución de paquetería',documents:'Envío certificado de documentos',trescruces:'Despacho en Tres Cruces',payments:'Pagos y cobranzas',procedures:'Trámites',cash:'Retiro de efectivo',deposits:'Depósito bancario por buzón',pallet:'Envío de pallets',freight:'Flete por hora',freightKm:'Flete fuera de Montevideo por kilómetro',fulfillment:'Fulfillment por unidad',palletStorage:'Almacenamiento mensual por pallet',palletMovement:'Movimiento IN/OUT por pallet',extendedStorage:'Almacenamiento prolongado'};
-    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas.',freightKm:'Ingresá los kilómetros totales que va a recorrer el vehículo. La distancia incluye ida y vuelta cuando corresponda: no se duplica automáticamente. La tarifa por km se configura en Tarifas y ajustes y puede cambiarse para esta cotización.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
+    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas.',freightKm:'Ingresá los kilómetros totales que va a recorrer el vehículo. La tarifa fija por kilómetro se consulta desde Supabase, es única para todos los dispositivos y solo un administrador puede cambiarla en Tarifas y ajustes.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
     const $ = id => document.getElementById(id);
     const deepClone = obj=>JSON.parse(JSON.stringify(obj));
     const number = x => Number.isFinite(Number(x)) ? Number(x):NaN;
@@ -540,6 +559,65 @@ body{background:#f4f7fc}
     const SUPABASE_URL='https://gdobmjcmunxvioodcgbj.supabase.co';
     const SUPABASE_KEY='sb_publishable_yngYFd42DbU490x8nIKBQQ_KAf4BdyI';
     const SESSION_KEY='gocargo-cotizador-auth-v1';
+    let globalKmRate=null,globalKmRow=null,globalKmReady=false,globalKmFetching=null,globalKmError='',globalKmSaving=false;
+    const isRateAdmin=()=>connected()&&['owner','admin'].includes(cloudEmpresa?.rol);
+    const hasGlobalKmRate=()=>globalKmReady&&Number.isFinite(globalKmRate)&&globalKmRate>0;
+    function syncGlobalRateUI(){
+      const ready=hasGlobalKmRate(),admin=isRateAdmin();
+      $('freightKmRate').value=ready?priceFmt(globalKmRate,true):'';
+      $('freightKmRate').placeholder=globalKmFetching?'Consultando Supabase…':ready?'':'Sin configurar';
+      $('freightKmRateInfo').textContent=globalKmFetching?'Actualizando tarifa central de Supabase…':ready?`Tarifa fija: ${money(globalKmRate)}/km sin IVA, compartida entre dispositivos. No se modifica en esta cotización.`:globalKmError?`No se pudo verificar la tarifa en Supabase: ${globalKmError}`:'Tarifa sin configurar. Un administrador debe registrarla en Tarifas y ajustes.';
+      $('cloudKmRate').disabled=!admin||globalKmSaving;
+      $('cloudKmRateSave').disabled=!admin||globalKmSaving||!globalKmRow;
+      $('cloudKmRateRefresh').disabled=!connected()||globalKmSaving;
+      if(document.activeElement!==$('cloudKmRate'))$('cloudKmRate').value=ready?String(globalKmRate):'';
+      $('cloudKmRateStatus').textContent=globalKmFetching?'Consultando Supabase…':globalKmError?`Error de sincronización: ${globalKmError}`:ready?`Tarifa vigente: ${money(globalKmRate)}/km sin IVA · Compartida con todos los dispositivos · Última actualización: ${new Date(globalKmRow.updated_at).toLocaleString('es-UY')}`:'No hay tarifa fija configurada. Solo el administrador puede asignarla.';
+      if(!admin&&connected())$('cloudKmRateStatus').textContent+=' Tu usuario tiene acceso de consulta.';
+      if(!connected())$('cloudKmRateStatus').textContent='Iniciá sesión para consultar la tarifa compartida.';
+    }
+    async function refreshGlobalKmRate(){
+      if(!connected()){globalKmRate=null;globalKmReady=false;globalKmRow=null;globalKmError='';syncGlobalRateUI();update();return}
+      if(globalKmFetching)return globalKmFetching;
+      globalKmReady=false;globalKmError='';
+      syncGlobalRateUI();update();
+      globalKmFetching=(async()=>{
+        try{
+          const query=`?select=empresa_id,precio_km,updated_at,updated_by&empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&limit=1`;
+          const records=await cloudFetch('cotizador_tarifas_flete_km','GET',query);
+          if(!Array.isArray(records)||records.length!==1)throw Error('No se encontró la tarifa central de GoCargo.');
+          globalKmRow=records[0];
+          globalKmRate=globalKmRow.precio_km===null?null:Number(globalKmRow.precio_km);
+          globalKmReady=true;
+          globalKmError='';
+          rates.freight.interiorPerKm=globalKmRate??0;
+        }catch(err){
+          globalKmRate=null;globalKmRow=null;globalKmReady=false;globalKmError=err.message;
+        }finally{
+          globalKmFetching=null;
+          syncGlobalRateUI();
+          update();
+        }
+      })();
+      return globalKmFetching;
+    }
+    async function saveGlobalKmRate(){
+      if(!isRateAdmin()){toast('Solo los administradores pueden cambiar la tarifa fija.');return}
+      const raw=$('cloudKmRate').value.trim();
+      const value=Number(raw.replace(',','.'));
+      if(!raw||!Number.isFinite(value)||value<=0||value>100000||!/^\d+(?:\.\d{1,2})?$/.test(raw.replace(',','.'))){toast('Ingresá una tarifa por km válida, positiva y con hasta dos decimales.');return}
+      globalKmSaving=true;syncGlobalRateUI();
+      try{
+        if(!globalKmRow)await refreshGlobalKmRate();
+        if(!globalKmRow)throw Error('No se encontró el registro central; recargá la página.');
+        const query=`?empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&updated_at=eq.${encodeURIComponent(globalKmRow.updated_at)}&select=precio_km,updated_at,updated_by,empresa_id`;
+        const result=await cloudFetch('cotizador_tarifas_flete_km','PATCH',query,{precio_km:value,updated_by:currentUser().id},{Prefer:'return=representation'});
+        if(!Array.isArray(result)||result.length!==1)throw Error('La tarifa cambió en otro dispositivo. Actualizá antes de guardar.');
+        globalKmRow=result[0];globalKmRate=Number(result[0].precio_km);globalKmReady=true;globalKmError='';
+        rates.freight.interiorPerKm=globalKmRate;
+        toast(`Tarifa fija actualizada a ${money(globalKmRate)}/km en Supabase.`);
+      }catch(err){globalKmReady=false;globalKmRate=null;globalKmError=err.message;toast('No se pudo actualizar la tarifa.');}
+      finally{globalKmSaving=false;syncGlobalRateUI();update()}
+    }
     let cloudSession=null, cloudEmpresa=null, cloudHistory=[], cloudLoading=false, cloudRefreshing=null, authChecking=true;
     let priority='programmed';
     let lastQuote=null;
@@ -548,7 +626,7 @@ body{background:#f4f7fc}
     function getPackageGroups(){
       return [{weight:number($('weight').value),quantity:number($('quantity').value)},...Array.from($('extraPackageGroups').querySelectorAll('.extra-package-group')).map(el=>({weight:number(el.querySelector('[data-group-weight]').value),quantity:number(el.querySelector('[data-group-qty]').value)}))];
     }
-    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),freightKm:$('freightKm').value.trim()===''?NaN:number($('freightKm').value),freightKmRate:$('freightKmRate').value.trim()===''?number(rates.freight.interiorPerKm):number($('freightKmRate').value),palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
+    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),freightKm:$('freightKm').value.trim()===''?NaN:number($('freightKm').value),freightKmRate:hasGlobalKmRate()?globalKmRate:NaN,palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
     function addPackageGroup(weight=2,qty=1){
       const container=$('extraPackageGroups');
       if(container.children.length+1>=MAX_PACKAGE_GROUPS)return;
@@ -708,8 +786,8 @@ body{background:#f4f7fc}
       $('packageCard').classList.toggle('hidden',!packageOrReturn);
       $('kmCard').classList.toggle('hidden',!canDistance(s.service));
       $('freightKmCard').classList.toggle('hidden',s.service!=='freightKm');
-      $('freightKmRate').placeholder=rates.freight.interiorPerKm>0?priceFmt(rates.freight.interiorPerKm):'Configurá la tarifa';
-      $('freightKmRateInfo').textContent=rates.freight.interiorPerKm>0?`Tarifa habitual guardada: ${money(rates.freight.interiorPerKm)}/km sin IVA. Podés modificarla solo para esta cotización.`:'No hay tarifa habitual cargada. Ingresá el precio aquí o configurá uno en Tarifas y ajustes.';
+      // La tarifa de flete por km se consulta exclusivamente en Supabase.
+      $('freightKmRate').value=hasGlobalKmRate()?priceFmt(globalKmRate,true):'';
       $('kmExplanation').classList.toggle('hidden',priority!=='programmed');
       document.querySelectorAll('[data-destination]').forEach(btn=>{
         const selected=btn.dataset.destination===s.destination;
@@ -801,6 +879,15 @@ body{background:#f4f7fc}
       header.push('','_Importes en pesos uruguayos._','', '🌐 www.gocargo.com.uy','📞 097 550 450 · 096 260 096');
       return header.join('\n');
     }
+    async function verifyBeforeSharing(){
+      if(!lastQuote?.result.valid){toast('Completá los datos de la cotización.');return false}
+      if(lastQuote.form.service!=='freightKm')return true;
+      const before=lastQuote.form.freightKmRate;
+      await refreshGlobalKmRate();
+      if(!hasGlobalKmRate()){toast('No se pudo verificar la tarifa fija en Supabase.');return false}
+      if(before!==globalKmRate){toast('La tarifa central cambió; revisá el importe actualizado antes de compartir.');return false}
+      return true;
+    }
     function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toast._timer);toast._timer=setTimeout(()=>el.classList.add('hidden'),3000)}
     async function copyText(str){try{await navigator.clipboard.writeText(str)}catch(e){const area=document.createElement('textarea');area.value=str;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}}
     function getHistory(){return cloudHistory}
@@ -828,6 +915,7 @@ body{background:#f4f7fc}
       $('cloudDescription').textContent=ok?`Sesión: ${account.email||'usuario'} · historial compartido entre dispositivos`:account?'Este usuario no figura como miembro activo de GoCargo. Pedí que lo habiliten en Contable.':'Ingresá con tu usuario de GoCargo Contable para guardar y compartir cotizaciones.';
       $('cloudImport').disabled=!getLocalHistory().length;
       $('cloudImport').textContent=`Importar guardadas aquí (${getLocalHistory().length})`;
+      syncGlobalRateUI();
       $('saveButton').disabled=!ok||!lastQuote?.result?.valid||cloudLoading;
     }
     function getLocalHistory(){try{const x=JSON.parse(localStorage.getItem(LOCAL_HISTORY));return Array.isArray(x)?x:[]}catch(e){return []}}
@@ -882,6 +970,13 @@ body{background:#f4f7fc}
       if(!lastQuote?.result.valid)return;
       cloudLoading=true;updateCloudUI();
       try{
+        if(lastQuote.form.service==='freightKm'){
+          const priorRate=lastQuote.form.freightKmRate;
+          await refreshGlobalKmRate();
+          if(!hasGlobalKmRate())throw Error('La tarifa central no está disponible. No se guardó el presupuesto.');
+          if(globalKmRate!==priorRate)throw Error('La tarifa central cambió. Revisá el nuevo importe antes de guardar.');
+        }
+        if(!lastQuote?.result.valid)throw Error('La cotización no es válida.');
         const q=deepClone({...lastQuote,ratesSnapshot:rates});
         await cloudFetch('cotizador_cotizaciones','POST','',payloadForQuote(q),{Prefer:'return=minimal'});
         await refreshCloudHistory();toast('Cotización guardada en Supabase. Ya está disponible en tus dispositivos.');
@@ -919,7 +1014,7 @@ body{background:#f4f7fc}
     async function startupCloud(){
       try{
         const sesionTemporal=sessionStorage.getItem(SESSION_KEY);$('rememberDevice').checked=!sesionTemporal;const s=JSON.parse(sesionTemporal||localStorage.getItem(SESSION_KEY)||'null');
-        if(s?.access_token&&s?.refresh_token&&s?.user){cloudSession=s;await validToken();await findEmpresa();if(connected())await refreshCloudHistory()}
+        if(s?.access_token&&s?.refresh_token&&s?.user){cloudSession=s;await validToken();await findEmpresa();if(connected()){await refreshGlobalKmRate();await refreshCloudHistory()}}
       }catch(err){cloudError(`No se pudo restaurar la sesión: ${err.message}`)}
       finally{authChecking=false;updateCloudUI();renderHistory()}
     }
@@ -929,19 +1024,19 @@ body{background:#f4f7fc}
         saveSession(await authRequest('password',{email:$('cloudEmail').value.trim(),password:$('cloudPassword').value}));
         $('cloudPassword').value='';await findEmpresa();
         if(!connected())cloudError('El usuario existe, pero no tiene una membresía activa en GoCargo Contable.');
-        else {await refreshCloudHistory();toast('Conectado a GoCargo. Historial sincronizado.')}
+        else {await refreshGlobalKmRate();await refreshCloudHistory();toast('Conectado a GoCargo. Historial sincronizado.')}
       }catch(err){cloudError(`No se pudo iniciar sesión: ${err.message}`)}
       finally{$('cloudLoginButton').disabled=false;updateCloudUI()}
     }
     async function cloudSignOut(){
       try{const token=cloudSession?.access_token;if(token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`}})}catch(e){}
-      saveSession(null);cloudEmpresa=null;cloudHistory=[];cloudClearError();updateCloudUI();renderHistory();toast('Sesión cerrada en este dispositivo.');
+      saveSession(null);cloudEmpresa=null;cloudHistory=[];globalKmRate=null;globalKmRow=null;globalKmReady=false;globalKmError='';cloudClearError();updateCloudUI();syncGlobalRateUI();update();renderHistory();toast('Sesión cerrada en este dispositivo.');
     }
     const groups=[
       {title:'Impuestos y prioridades',desc:'El recargo se aplica sobre la tarifa base por servicio; los kilómetros adicionales se agregan a la paquetería prioritaria.',items:[['iva','IVA (%)'],['includedKm','Km incluidos'],['priorities.express.multiplier','Factor GoExpress (1,25 = +25%)'],['priorities.fast.multiplier','Factor GoFast (1,5 = +50%)'],['priorities.express.extraKm','GoExpress, $/km extra'],['priorities.fast.extraKm','GoFast, $/km extra']]},
       {title:'Paquetería programada',desc:'Tarifa por paquete según peso y destino.',items:DEFAULT_RATES.packages.flatMap((v,i)=>[[`packages.${i}.mvd`,`Hasta ${v.kg} kg · Montevideo`],[`packages.${i}.interior`,`Hasta ${v.kg} kg · Interior`]])},
       {title:'Gestiones y documentos',desc:'Precios base programados sin IVA.',items:[['services.documents.mvd','Documentos certificados · MVD'],['services.documents.interior','Documentos certificados · Interior'],['services.trescruces','Tres Cruces / bulto'],['services.payments','Pagos y cobranzas'],['services.procedures','Trámites'],['services.cash','Retiro de efectivo'],['services.deposits','Depósito por buzón']]},
-      {title:'Pallets y fletes',desc:'Fletes por hora dentro de Montevideo; fletes fuera de Montevideo por kilómetros totales recorridos. La tarifa por km es configurable y no figura en el PDF.',items:[['pallets.quarter','¼ pallet (80 kg)'],['pallets.half','½ pallet (250 kg)'],['pallets.full','Pallet completo (1000 kg)'],['freight.van','Camioneta, $/hora'],['freight.truck','Camión, $/hora'],['freight.truckMinHours','Camión, mínimo horas'],['freight.interiorPerKm','Fuera de Montevideo: $/km sin IVA']]},
+      {title:'Pallets y fletes',desc:'Fletes por hora dentro de Montevideo y precios de pallets. La tarifa fija por km para el interior se modifica únicamente en el panel Supabase superior.',items:[['pallets.quarter','¼ pallet (80 kg)'],['pallets.half','½ pallet (250 kg)'],['pallets.full','Pallet completo (1000 kg)'],['freight.van','Camioneta, $/hora'],['freight.truck','Camión, $/hora'],['freight.truckMinHours','Camión, mínimo horas']]},
       {title:'Fulfillment',desc:'Tarifa por unidad, sin IVA.',items:[['fulfillment.small','Unidad chica'],['fulfillment.medium','Unidad mediana'],['fulfillment.large','Unidad grande']]},
       {title:'Almacenamiento',desc:'Mes, movimiento o unidad según servicio.',items:[['warehouse.monthlyPallet','Almacenamiento pallet / mes'],['warehouse.movePallet','Movimiento IN/OUT / pallet'],['warehouse.extended.small','Prolongado · Chico / mes'],['warehouse.extended.medium','Prolongado · Mediano / mes'],['warehouse.extended.large','Prolongado · Grande / mes']]}
     ];
@@ -952,7 +1047,7 @@ body{background:#f4f7fc}
       $('weight').value=groups[0].weight;$('quantity').value=groups[0].quantity;
       $('extraPackageGroups').replaceChildren();
       for(const g of groups.slice(1,MAX_PACKAGE_GROUPS))addPackageGroup(g.weight,g.quantity);
-      $('distance').value=f.distance;$('freightKm').value=f.freightKm??'';$('freightKmRate').value=f.service==='freightKm'&&Number.isFinite(Number(f.freightKmRate))?f.freightKmRate:'';$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
+      $('distance').value=f.distance;$('freightKm').value=f.freightKm??'';$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
     }
     // Interacciones
     $('profileToggle').addEventListener('click',()=>setProfileMenu($('profileMenu').classList.contains('hidden')));
@@ -1001,16 +1096,18 @@ body{background:#f4f7fc}
     $('addPackageGroup').addEventListener('click',()=>{addPackageGroup();update()});
     $('extraPackageGroups').addEventListener('click',e=>{if(e.target.closest('.remove-group')){e.target.closest('.extra-package-group').remove();update()}});
     $('quoteForm').addEventListener('input',update);$('quoteForm').addEventListener('change',update);$('quoteForm').addEventListener('submit',e=>e.preventDefault());
-    $('copyButton').addEventListener('click',async()=>{await copyText(quoteText());toast('Cotización copiada. Podés pegarla en WhatsApp o correo.')});
-    $('whatsAppButton').addEventListener('click',()=>{const url='https://wa.me/?text='+encodeURIComponent(quoteText());const w=window.open(url,'_blank','noopener');if(!w)window.location.href=url});
+    $('copyButton').addEventListener('click',async()=>{if(!await verifyBeforeSharing())return;await copyText(quoteText());toast('Cotización copiada. Podés pegarla en WhatsApp o correo.')});
+    $('whatsAppButton').addEventListener('click',async()=>{if(!await verifyBeforeSharing())return;const url='https://wa.me/?text='+encodeURIComponent(quoteText());window.location.href=url});
     $('saveButton').addEventListener('click',saveCloudQuote);
-    $('printButton').addEventListener('click',()=>window.print());
+    $('printButton').addEventListener('click',async()=>{if(await verifyBeforeSharing())window.print()});
     $('historyList').addEventListener('click',async e=>{const btn=e.target.closest('button');if(!btn)return;const hs=getHistory();if(btn.dataset.load!==undefined){applyForm(hs[Number(btn.dataset.load)].form)}else if(btn.dataset.copy!==undefined){await copyText(quoteText(hs[Number(btn.dataset.copy)]));toast('Cotización copiada.')}else if(btn.dataset.delete!==undefined){await deleteCloudQuote(hs[Number(btn.dataset.delete)])}});
     $('clearHistory').addEventListener('click',refreshCloudHistory);
     $('saveRates').addEventListener('click',()=>{const next=deepClone(rates);for(const el of document.querySelectorAll('[data-rate]')){if(el.value.trim()===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){toast('Revisá los importes: deben ser números no negativos.');el.focus();return}setPath(next,el.dataset.rate,Number(el.value))}if(next.priorities.express.multiplier<1||next.priorities.fast.multiplier<1||next.includedKm<0||next.iva>100||next.freight.truckMinHours<=0){toast('Revisá los factores, el IVA y las horas mínimas.');return}if(!validRates(next)){toast('No se pudieron validar las tarifas.');return}rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;update();toast('Tarifas guardadas en este dispositivo.')});
     $('resetRates').addEventListener('click',()=>{if(!confirm('¿Restablecer todas las tarifas a los importes del PDF 2026?'))return;rates=deepClone(DEFAULT_RATES);localStorage.removeItem(LOCAL_RATES);modifiedRates=false;renderRates();update();toast('Tarifas originales restauradas.')});
     $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
     $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=migrateRates(parsed.rates||parsed);if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
+    $('cloudKmRateSave').addEventListener('click',saveGlobalKmRate);
+    $('cloudKmRateRefresh').addEventListener('click',refreshGlobalKmRate);
     $('cloudLogin').addEventListener('submit',cloudSignIn);
     $('authShowPassword').addEventListener('click',()=>{
       const input=$('cloudPassword'),button=$('authShowPassword'),visible=input.type==='password';
@@ -1020,12 +1117,12 @@ body{background:#f4f7fc}
     });
     $('cloudLogout').addEventListener('click',cloudSignOut);
     $('authSwitchAccount').addEventListener('click',cloudSignOut);
-    $('cloudSync').addEventListener('click',async()=>{await refreshCloudHistory();toast('Historial actualizado.');});
+    $('cloudSync').addEventListener('click',async()=>{await Promise.all([refreshCloudHistory(),refreshGlobalKmRate()]);toast('Historial y tarifa central actualizados.');});
     $('cloudImport').addEventListener('click',importLocalHistory);
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&connected())refreshCloudHistory()});
-    window.addEventListener('online',()=>{if(connected())refreshCloudHistory()});
-    setInterval(()=>{if(!document.hidden&&connected()&&$('pageHistory').classList.contains('active'))refreshCloudHistory()},45000);
-    update();updateCloudUI();startupCloud();
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&connected()){refreshCloudHistory();refreshGlobalKmRate()}});
+    window.addEventListener('online',()=>{if(connected()){refreshCloudHistory();refreshGlobalKmRate()}});
+    setInterval(()=>{if(!document.hidden&&connected())refreshGlobalKmRate();if(!document.hidden&&connected()&&$('pageHistory').classList.contains('active'))refreshCloudHistory()},60000);
+    update();updateCloudUI();syncGlobalRateUI();startupCloud();
     if('serviceWorker' in navigator&&['https:','http:'].includes(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
   })();
   </script>

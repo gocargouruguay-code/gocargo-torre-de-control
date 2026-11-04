@@ -337,6 +337,12 @@ body{background:#f4f7fc}
   #appShell .source-note { margin-top: 9px !important; }
 }
 
+
+/* GoCargo Cotizador v1.7 · Fletes por kilómetro fuera de Montevideo */
+#appShell .suite-freight-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+#appShell #freightKmCard .field small{font-size:11px;line-height:1.5;color:#607791}
+#appShell #freightKmCard .suite-km-explanation{margin-top:12px}
+@media(max-width:570px){#appShell .suite-freight-fields{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -415,7 +421,8 @@ body{background:#f4f7fc}
             <option value="cash">Retiro de efectivo</option>
             <option value="deposits">Depósito bancario por buzón</option>
             <option value="pallet">Envío de pallets</option>
-            <option value="freight">Flete por hora</option>
+            <option value="freight">Flete por hora · Montevideo</option>
+            <option value="freightKm">Flete fuera de Montevideo · por km</option>
             <option value="fulfillment">Fulfillment por unidad</option>
             <option value="palletStorage">Almacenamiento mensual por pallet</option>
             <option value="palletMovement">Movimiento IN/OUT por pallet</option>
@@ -454,6 +461,16 @@ body{background:#f4f7fc}
     <div class="suite-hidden-model"><div class="field" id="weightField"><label id="weightTitle" for="weight">Grupo 1 · peso por paquete (kg)</label><input id="weight" type="number" min="0.01" max="10000" step="0.01" value="2" inputmode="decimal" /><small>Se aplica el tramo de peso superior.</small></div><div class="package-mix field full" id="packageGroupsField"><div class="mix-heading"><strong>¿Paquetes de diferentes pesos?</strong><small id="groupStatus">1 grupo · 1 paquete</small></div><p class="mix-tip">Cargá arriba el primer grupo. Agregá otro grupo por cada peso distinto, siempre dentro de la misma gestión y con un solo destino. El adicional por km se cobra una única vez.</p><div id="extraPackageGroups"></div><button id="addPackageGroup" class="add-group" type="button">＋ Agregar otro peso</button><p id="groupLimit" class="mix-limit hidden">Máximo 30 grupos de peso por gestión.</p></div></div>
   </div>
 </section>
+<section class="panel suite-distance-panel hidden" id="freightKmCard">
+  <div class="panel-head"><span class="section-number">02</span><h3>Flete por kilómetro · fuera de Montevideo</h3></div>
+  <div class="panel-body">
+    <div class="suite-freight-fields">
+      <div class="field"><label for="freightKm">Kilómetros totales a recorrer</label><input id="freightKm" type="number" min="0.1" max="100000" step="0.1" inputmode="decimal" value="" placeholder="Ej.: 250" /><small>Ingresá el recorrido total del vehículo. Incluí ida y vuelta si corresponde.</small></div>
+      <div class="field"><label for="freightKmRate">Precio por kilómetro ($U, sin IVA)</label><input id="freightKmRate" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" value="" placeholder="Configurá la tarifa" /><small id="freightKmRateInfo">Configurable en Tarifas y ajustes; podés cambiarlo para esta cotización.</small></div>
+    </div>
+    <p class="suite-km-explanation">Se cobra la totalidad de los km ingresados × el precio por km. No se aplica el adicional de GoExpress/GoFast ni los primeros 5 km incluidos de paquetería.</p>
+  </div>
+</section>
 <section class="panel suite-distance-panel" id="kmCard">
   <div class="panel-head"><span class="section-number">03</span><h3>Distancia (solo Express / Fast)</h3><span class="suite-distance-help" title="Se cobran únicamente los kilómetros adicionales a los 5 incluidos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2.4-2.5 4M12 17h.01"/></svg></span></div>
   <div class="panel-body"><div class="field" id="kmField"><label for="distance">Distancia total de la gestión (km)</label><input id="distance" type="number" min="0" max="10000" step="0.1" value="5" inputmode="decimal" /><small>Primeros 5 km incluidos. Adicional por gestión.</small></div><p id="kmExplanation" class="suite-km-explanation">Para envíos programados no se aplica adicional por distancia.</p></div>
@@ -468,7 +485,7 @@ body{background:#f4f7fc}
     </section>
     <section class="page-section" id="pageHistory"><div class="intro"><div><p class="eyebrow">COTIZACIONES DE GOCARGO</p><h2>Historial compartido.</h2><p>Guardadas en Supabase y disponibles para los usuarios autorizados en todos sus dispositivos.</p></div><button class="btn" id="clearHistory" type="button">Actualizar historial</button></div><div class="history-grid" id="historyList"></div></section>
     <section class="page-section" id="pageRates"><div class="intro"><div><p class="eyebrow">CONFIGURACIÓN LOCAL</p><h2>Tarifas y ajustes.</h2><p>Modificá los importes sin editar código. Se guardan únicamente en este navegador.</p></div><span class="source-pill">Valores originales: PDF 2026</span></div><div class="admin-controls"><button class="btn primary" id="saveRates" type="button">Guardar tarifas</button><button class="btn" id="resetRates" type="button">Restablecer valores del PDF</button><button class="btn" id="exportRates" type="button">Exportar JSON</button><label class="btn" for="importRates" style="display:flex;align-items:center">Importar JSON</label><input type="file" accept="application/json,.json" id="importRates" /></div><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: las modificaciones locales no se sincronizan con otros dispositivos. Las cotizaciones se sincronizan con Supabase; las tarifas de esta sección permanecen locales hasta una futura sincronización de tarifas.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.6.2 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.7 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -492,14 +509,14 @@ body{background:#f4f7fc}
       ],
       services:{documents:{mvd:199,interior:280},trescruces:200,payments:450,procedures:650,cash:750,deposits:250},
       pallets:{quarter:1900,half:4100,full:5700},
-      freight:{van:900,truck:1950,truckMinHours:3},
+      freight:{van:900,truck:1950,truckMinHours:3,interiorPerKm:0},
       fulfillment:{small:70.40,medium:96.80,large:130.90},
       warehouse:{monthlyPallet:638,movePallet:308,extended:{small:19.80,medium:33,large:45.10}}
     };
     const LOCAL_RATES='gocargo-cotizador-rates-v1';
     const LOCAL_HISTORY='gocargo-cotizador-history-v1';
-    const names={package:'Envío de paquetería',return:'Devolución de paquetería',documents:'Envío certificado de documentos',trescruces:'Despacho en Tres Cruces',payments:'Pagos y cobranzas',procedures:'Trámites',cash:'Retiro de efectivo',deposits:'Depósito bancario por buzón',pallet:'Envío de pallets',freight:'Flete',fulfillment:'Fulfillment por unidad',palletStorage:'Almacenamiento mensual por pallet',palletMovement:'Movimiento IN/OUT por pallet',extendedStorage:'Almacenamiento prolongado'};
-    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas. Para fletes al interior, solicitar una cotización especial.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
+    const names={package:'Envío de paquetería',return:'Devolución de paquetería',documents:'Envío certificado de documentos',trescruces:'Despacho en Tres Cruces',payments:'Pagos y cobranzas',procedures:'Trámites',cash:'Retiro de efectivo',deposits:'Depósito bancario por buzón',pallet:'Envío de pallets',freight:'Flete por hora',freightKm:'Flete fuera de Montevideo por kilómetro',fulfillment:'Fulfillment por unidad',palletStorage:'Almacenamiento mensual por pallet',palletMovement:'Movimiento IN/OUT por pallet',extendedStorage:'Almacenamiento prolongado'};
+    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas.',freightKm:'Ingresá los kilómetros totales que va a recorrer el vehículo. La distancia incluye ida y vuelta cuando corresponda: no se duplica automáticamente. La tarifa por km se configura en Tarifas y ajustes y puede cambiarse para esta cotización.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
     const $ = id => document.getElementById(id);
     const deepClone = obj=>JSON.parse(JSON.stringify(obj));
     const number = x => Number.isFinite(Number(x)) ? Number(x):NaN;
@@ -509,11 +526,16 @@ body{background:#f4f7fc}
     const priceFmt=(n,alwaysDecimals=false)=>new Intl.NumberFormat('es-UY',{minimumFractionDigits:alwaysDecimals?2:0,maximumFractionDigits:2}).format(n);
     const money=n=>`$ ${priceFmt(n)}`;
     const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    function loadRates(){try{const local=JSON.parse(localStorage.getItem(LOCAL_RATES));return validRates(local)?local:deepClone(DEFAULT_RATES)}catch(e){return deepClone(DEFAULT_RATES)}}
+    function migrateRates(obj){
+      if(obj&&typeof obj==='object'&&obj.freight&&obj.freight.interiorPerKm===undefined)
+        obj.freight.interiorPerKm=0;
+      return obj;
+    }
+    function loadRates(){try{const local=migrateRates(JSON.parse(localStorage.getItem(LOCAL_RATES)));return validRates(local)?local:deepClone(DEFAULT_RATES)}catch(e){return deepClone(DEFAULT_RATES)}}
     function validRates(r){try{if(!r||!Array.isArray(r.packages)||r.packages.length!==7)return false;const ref=JSON.stringify(Object.keys(DEFAULT_RATES).sort());if(JSON.stringify(Object.keys(r).sort())!==ref)return false;return paths.every(p=>Number.isFinite(number(getPath(r,p)))&&number(getPath(r,p))>=0)&&r.priorities.programmed.multiplier===1&&r.packages.every((v,i)=>v.kg===DEFAULT_RATES.packages[i].kg)}catch(e){return false}}
     function getPath(obj,path){return path.split('.').reduce((v,k)=>v?.[k],obj)}
     function setPath(obj,path,val){const pp=path.split('.');let v=obj;for(let i=0;i<pp.length-1;i++)v=v[pp[i]];v[pp[pp.length-1]]=val}
-    const paths=['iva','includedKm','priorities.express.multiplier','priorities.fast.multiplier','priorities.express.extraKm','priorities.fast.extraKm',...DEFAULT_RATES.packages.flatMap((r,i)=>[`packages.${i}.mvd`,`packages.${i}.interior`]),'services.documents.mvd','services.documents.interior','services.trescruces','services.payments','services.procedures','services.cash','services.deposits','pallets.quarter','pallets.half','pallets.full','freight.van','freight.truck','freight.truckMinHours','fulfillment.small','fulfillment.medium','fulfillment.large','warehouse.monthlyPallet','warehouse.movePallet','warehouse.extended.small','warehouse.extended.medium','warehouse.extended.large'];
+    const paths=['iva','includedKm','priorities.express.multiplier','priorities.fast.multiplier','priorities.express.extraKm','priorities.fast.extraKm',...DEFAULT_RATES.packages.flatMap((r,i)=>[`packages.${i}.mvd`,`packages.${i}.interior`]),'services.documents.mvd','services.documents.interior','services.trescruces','services.payments','services.procedures','services.cash','services.deposits','pallets.quarter','pallets.half','pallets.full','freight.van','freight.truck','freight.truckMinHours','freight.interiorPerKm','fulfillment.small','fulfillment.medium','fulfillment.large','warehouse.monthlyPallet','warehouse.movePallet','warehouse.extended.small','warehouse.extended.medium','warehouse.extended.large'];
     let rates=loadRates();
     const SUPABASE_URL='https://gdobmjcmunxvioodcgbj.supabase.co';
     const SUPABASE_KEY='sb_publishable_yngYFd42DbU490x8nIKBQQ_KAf4BdyI';
@@ -526,7 +548,7 @@ body{background:#f4f7fc}
     function getPackageGroups(){
       return [{weight:number($('weight').value),quantity:number($('quantity').value)},...Array.from($('extraPackageGroups').querySelectorAll('.extra-package-group')).map(el=>({weight:number(el.querySelector('[data-group-weight]').value),quantity:number(el.querySelector('[data-group-qty]').value)}))];
     }
-    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
+    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),freightKm:$('freightKm').value.trim()===''?NaN:number($('freightKm').value),freightKmRate:$('freightKmRate').value.trim()===''?number(rates.freight.interiorPerKm):number($('freightKmRate').value),palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
     function addPackageGroup(weight=2,qty=1){
       const container=$('extraPackageGroups');
       if(container.children.length+1>=MAX_PACKAGE_GROUPS)return;
@@ -577,7 +599,7 @@ body{background:#f4f7fc}
     function canPriority(service){return ['package','documents','trescruces','payments','procedures','cash','deposits','freight'].includes(service)}
     function canInterior(service){return ['package','return','documents'].includes(service)}
     function canDistance(service){return service==='package'}
-    function needsQty(service){return !['freight'].includes(service)}
+    function needsQty(service){return !['freight','freightKm'].includes(service)}
     function calculate(s){
       const result={valid:true,error:'',name:names[s.service],labels:[],notes:[],lines:[],quantity:1,subtotal:0,iva:0,total:0,source:'Tarifario oficial 2026',detail:''};
       let unit=0, qty=s.quantity, details='',dist=0,priorityName=rates.priorities[s.priority].name;
@@ -625,6 +647,19 @@ body{background:#f4f7fc}
         result.lines.push({name:`${qty} × ${lbl[s.palletSize]} (${money(unit)})`,amount:rounded(qty*unit)});
         result.labels.push(lbl[s.palletSize]);
         result.notes.push('El folleto no diferencia precio por destino para pallets. Confirmar destino, manipulación y condiciones antes de enviar la cotización final.');
+      } else if (s.service==='freightKm'){
+        if(!Number.isFinite(s.freightKm)||s.freightKm<=0||s.freightKm>100000){
+          result.valid=false;result.error='Ingresá los kilómetros totales del recorrido del vehículo (mayores que cero).';return result;
+        }
+        if(!Number.isFinite(s.freightKmRate)||s.freightKmRate<=0||s.freightKmRate>100000){
+          result.valid=false;result.error='Configurá un precio por kilómetro mayor que cero en el formulario o en Tarifas y ajustes.';return result;
+        }
+        qty=1;
+        unit=s.freightKmRate;
+        result.lines.push({name:`Flete por distancia: ${priceFmt(s.freightKm)} km × ${money(unit)}/km`,amount:rounded(s.freightKm*unit)});
+        result.labels.push(`Fuera de Montevideo · ${priceFmt(s.freightKm)} km`);
+        result.notes.push('Los kilómetros fueron ingresados manualmente e incluyen ida y vuelta únicamente si así se cargó el recorrido. No se duplica la distancia automáticamente.');
+        result.source='Tarifa por km configurada manualmente';
       } else if (s.service==='freight'){
         if(!Number.isFinite(s.hours)||s.hours<=0){result.valid=false;result.error='Ingresá una cantidad válida de horas.';return result}
         qty=s.vehicle==='truck'?Math.max(s.hours,rates.freight.truckMinHours):s.hours;
@@ -672,6 +707,9 @@ body{background:#f4f7fc}
       $('packageGroupsField').classList.add('hidden');
       $('packageCard').classList.toggle('hidden',!packageOrReturn);
       $('kmCard').classList.toggle('hidden',!canDistance(s.service));
+      $('freightKmCard').classList.toggle('hidden',s.service!=='freightKm');
+      $('freightKmRate').placeholder=rates.freight.interiorPerKm>0?priceFmt(rates.freight.interiorPerKm):'Configurá la tarifa';
+      $('freightKmRateInfo').textContent=rates.freight.interiorPerKm>0?`Tarifa habitual guardada: ${money(rates.freight.interiorPerKm)}/km sin IVA. Podés modificarla solo para esta cotización.`:'No hay tarifa habitual cargada. Ingresá el precio aquí o configurá uno en Tarifas y ajustes.';
       $('kmExplanation').classList.toggle('hidden',priority!=='programmed');
       document.querySelectorAll('[data-destination]').forEach(btn=>{
         const selected=btn.dataset.destination===s.destination;
@@ -714,7 +752,7 @@ body{background:#f4f7fc}
       $('ivaLabel').textContent=`IVA (${priceFmt(rates.iva)}%)`;
       $('total').textContent=res.valid?money(res.total):'—';
       $('quoteWarning').classList.toggle('hidden',res.valid);$('quoteWarning').textContent=res.error;
-      $('quoteNotes').textContent=res.valid?[...res.notes,'Importes en pesos uruguayos. Tarifas según folleto GoCargo 2026.'].join(' '):'Cotización manual requerida para combinaciones no incluidas en el tarifario.';
+      $('quoteNotes').textContent=res.valid?[...res.notes,s.service==='freightKm'?'Tarifa por kilómetro configurable, no incluida en el folleto 2026. Importes en pesos uruguayos.':'Importes en pesos uruguayos. Tarifas según folleto GoCargo 2026.'].join(' '):'Cotización manual requerida: completá o revisá los campos de la gestión.';
       $('sourcePill').textContent=modifiedRates?'Tarifas ajustadas en este dispositivo':'Tarifario 2026 · + IVA';
       ['copyButton','whatsAppButton','printButton'].forEach(id=>$(id).disabled=!res.valid);$('saveButton').disabled=!res.valid||!connected()||cloudLoading;
     }
@@ -725,7 +763,7 @@ body{background:#f4f7fc}
       const priorityName=snapshot?.priorities?.[f.priority]?.name||({programmed:'Programado',express:'GoExpress',fast:'GoFast'}[f.priority]||'Programado');
       const header=['*GO CARGO*','_Distribución y logística_','','📄 *COTIZACIÓN*','━━━━━━━━━━━━━━'];
       if(f.customer)header.push(`👤 *Cliente:* ${clean(f.customer)}`);
-      header.push(`*Servicio:* ${clean(r.name)}`,`*Prioridad:* ${clean(priorityName)}`);
+      header.push(`*Servicio:* ${clean(r.name)}`);if(f.service==='freightKm')header.push('📍 *Recorrido:* Fuera de Montevideo');else header.push(`*Prioridad:* ${clean(priorityName)}`);
       if(canInterior(f.service))header.push(`📍 *Destino:* ${f.destination==='mvd'?'Montevideo':'Interior del país'}`);
       header.push('');
       const groups=Array.isArray(f.packageGroups)&&f.packageGroups.length?f.packageGroups:[{weight:f.weight,quantity:f.quantity}];
@@ -903,7 +941,7 @@ body{background:#f4f7fc}
       {title:'Impuestos y prioridades',desc:'El recargo se aplica sobre la tarifa base por servicio; los kilómetros adicionales se agregan a la paquetería prioritaria.',items:[['iva','IVA (%)'],['includedKm','Km incluidos'],['priorities.express.multiplier','Factor GoExpress (1,25 = +25%)'],['priorities.fast.multiplier','Factor GoFast (1,5 = +50%)'],['priorities.express.extraKm','GoExpress, $/km extra'],['priorities.fast.extraKm','GoFast, $/km extra']]},
       {title:'Paquetería programada',desc:'Tarifa por paquete según peso y destino.',items:DEFAULT_RATES.packages.flatMap((v,i)=>[[`packages.${i}.mvd`,`Hasta ${v.kg} kg · Montevideo`],[`packages.${i}.interior`,`Hasta ${v.kg} kg · Interior`]])},
       {title:'Gestiones y documentos',desc:'Precios base programados sin IVA.',items:[['services.documents.mvd','Documentos certificados · MVD'],['services.documents.interior','Documentos certificados · Interior'],['services.trescruces','Tres Cruces / bulto'],['services.payments','Pagos y cobranzas'],['services.procedures','Trámites'],['services.cash','Retiro de efectivo'],['services.deposits','Depósito por buzón']]},
-      {title:'Pallets y fletes',desc:'Fletes dentro de Montevideo y precios de pallets publicados.',items:[['pallets.quarter','¼ pallet (80 kg)'],['pallets.half','½ pallet (250 kg)'],['pallets.full','Pallet completo (1000 kg)'],['freight.van','Camioneta, $/hora'],['freight.truck','Camión, $/hora'],['freight.truckMinHours','Camión, mínimo horas']]},
+      {title:'Pallets y fletes',desc:'Fletes por hora dentro de Montevideo; fletes fuera de Montevideo por kilómetros totales recorridos. La tarifa por km es configurable y no figura en el PDF.',items:[['pallets.quarter','¼ pallet (80 kg)'],['pallets.half','½ pallet (250 kg)'],['pallets.full','Pallet completo (1000 kg)'],['freight.van','Camioneta, $/hora'],['freight.truck','Camión, $/hora'],['freight.truckMinHours','Camión, mínimo horas'],['freight.interiorPerKm','Fuera de Montevideo: $/km sin IVA']]},
       {title:'Fulfillment',desc:'Tarifa por unidad, sin IVA.',items:[['fulfillment.small','Unidad chica'],['fulfillment.medium','Unidad mediana'],['fulfillment.large','Unidad grande']]},
       {title:'Almacenamiento',desc:'Mes, movimiento o unidad según servicio.',items:[['warehouse.monthlyPallet','Almacenamiento pallet / mes'],['warehouse.movePallet','Movimiento IN/OUT / pallet'],['warehouse.extended.small','Prolongado · Chico / mes'],['warehouse.extended.medium','Prolongado · Mediano / mes'],['warehouse.extended.large','Prolongado · Grande / mes']]}
     ];
@@ -914,7 +952,7 @@ body{background:#f4f7fc}
       $('weight').value=groups[0].weight;$('quantity').value=groups[0].quantity;
       $('extraPackageGroups').replaceChildren();
       for(const g of groups.slice(1,MAX_PACKAGE_GROUPS))addPackageGroup(g.weight,g.quantity);
-      $('distance').value=f.distance;$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
+      $('distance').value=f.distance;$('freightKm').value=f.freightKm??'';$('freightKmRate').value=f.service==='freightKm'&&Number.isFinite(Number(f.freightKmRate))?f.freightKmRate:'';$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
     }
     // Interacciones
     $('profileToggle').addEventListener('click',()=>setProfileMenu($('profileMenu').classList.contains('hidden')));
@@ -972,7 +1010,7 @@ body{background:#f4f7fc}
     $('saveRates').addEventListener('click',()=>{const next=deepClone(rates);for(const el of document.querySelectorAll('[data-rate]')){if(el.value.trim()===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){toast('Revisá los importes: deben ser números no negativos.');el.focus();return}setPath(next,el.dataset.rate,Number(el.value))}if(next.priorities.express.multiplier<1||next.priorities.fast.multiplier<1||next.includedKm<0||next.iva>100||next.freight.truckMinHours<=0){toast('Revisá los factores, el IVA y las horas mínimas.');return}if(!validRates(next)){toast('No se pudieron validar las tarifas.');return}rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;update();toast('Tarifas guardadas en este dispositivo.')});
     $('resetRates').addEventListener('click',()=>{if(!confirm('¿Restablecer todas las tarifas a los importes del PDF 2026?'))return;rates=deepClone(DEFAULT_RATES);localStorage.removeItem(LOCAL_RATES);modifiedRates=false;renderRates();update();toast('Tarifas originales restauradas.')});
     $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
-    $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=parsed.rates||parsed;if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
+    $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=migrateRates(parsed.rates||parsed);if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
     $('cloudLogin').addEventListener('submit',cloudSignIn);
     $('authShowPassword').addEventListener('click',()=>{
       const input=$('cloudPassword'),button=$('authShowPassword'),visible=input.type==='password';

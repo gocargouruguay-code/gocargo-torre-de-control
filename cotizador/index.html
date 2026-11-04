@@ -474,10 +474,10 @@ body{background:#f4f7fc}
   <div class="panel-head"><span class="section-number">02</span><h3>Flete por kilómetro · fuera de Montevideo</h3></div>
   <div class="panel-body">
     <div class="suite-freight-fields">
-      <div class="field"><label for="freightKm">Kilómetros totales a recorrer</label><input id="freightKm" type="number" min="0.1" max="100000" step="0.1" inputmode="decimal" value="" placeholder="Ej.: 250" /><small>Ingresá el recorrido total del vehículo. Incluí ida y vuelta si corresponde.</small></div>
+      <div class="field"><label for="freightKm">Kilómetros totales a recorrer (IDA + VUELTA)</label><input id="freightKm" type="number" min="0.1" max="100000" step="0.1" inputmode="decimal" value="" placeholder="Ej.: 250" /><small>Ingresá la suma de los kilómetros de IDA y VUELTA. Ej.: 130 km de ida + 130 km de vuelta = 260 km totales. No ingreses solo la ida.</small></div>
       <div class="field"><label for="freightKmRate">Tarifa fija por kilómetro ($U, sin IVA)</label><input id="freightKmRate" type="text" value="" readonly aria-readonly="true" placeholder="Consultar Supabase" /><small id="freightKmRateInfo">La tarifa fija se obtiene de Supabase. Solo administradores pueden modificarla en Tarifas y ajustes.</small></div>
     </div>
-    <p class="suite-km-explanation">Se cobra la totalidad de los km ingresados × el precio por km. No se aplica el adicional de GoExpress/GoFast ni los primeros 5 km incluidos de paquetería.</p>
+    <p class="suite-km-explanation">Importante: cotizá siempre el viaje completo, IDA + VUELTA. La app no multiplica automáticamente por dos. Se cobra el total ingresado × la tarifa fija por km, más IVA.</p>
   </div>
 </section>
 <section class="panel suite-distance-panel" id="kmCard">
@@ -504,7 +504,7 @@ body{background:#f4f7fc}
         <p id="cloudKmRateStatus" class="suite-cloud-rate-status" role="status" aria-live="polite">Iniciá sesión para consultar el valor central.</p>
       </section>
       <div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: la tarifa fija por kilómetro de fletes al interior sí se sincroniza en Supabase. Las demás tarifas de esta sección continúan siendo locales.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.8 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.8.1 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -535,7 +535,7 @@ body{background:#f4f7fc}
     const LOCAL_RATES='gocargo-cotizador-rates-v1';
     const LOCAL_HISTORY='gocargo-cotizador-history-v1';
     const names={package:'Envío de paquetería',return:'Devolución de paquetería',documents:'Envío certificado de documentos',trescruces:'Despacho en Tres Cruces',payments:'Pagos y cobranzas',procedures:'Trámites',cash:'Retiro de efectivo',deposits:'Depósito bancario por buzón',pallet:'Envío de pallets',freight:'Flete por hora',freightKm:'Flete fuera de Montevideo por kilómetro',fulfillment:'Fulfillment por unidad',palletStorage:'Almacenamiento mensual por pallet',palletMovement:'Movimiento IN/OUT por pallet',extendedStorage:'Almacenamiento prolongado'};
-    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas.',freightKm:'Ingresá los kilómetros totales que va a recorrer el vehículo. La tarifa fija por kilómetro se consulta desde Supabase, es única para todos los dispositivos y solo un administrador puede cambiarla en Tarifas y ajustes.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
+    const serviceHelp={package:'La tarifa se elige según el peso de cada paquete. Los importes para el interior están disponibles solamente como programados.',return:'El folleto establece que las devoluciones se cobran según el mismo precio por peso de paquetería. Se cotizan como programadas.',documents:'Los documentos certificados incluyen entrega contra firma. La prioridad Express o Fast figura en el tarifario para Montevideo.',trescruces:'Tarifa por bulto despachado en agencias de Tres Cruces; los importes prioritarios siguen la tabla 2026.',payments:'Tarifa por gestión de pagos o cobranzas.',procedures:'Tarifa por gestión de trámites.',cash:'Retiro de efectivo en ventanilla o cobro de cheques, con retorno.',deposits:'Depósitos bancarios efectuados por buzón.',pallet:'El folleto publica tarifas según tamaño del pallet, pero no discrimina destino. Confirmar cobertura y destino antes de comprometer el servicio.',freight:'Tarifa por hora dentro de Montevideo. El camión tiene mínimo de 3 horas.',freightKm:'Ingresá obligatoriamente los kilómetros de IDA + VUELTA sumados. Si el viaje es de 130 km de ida y 130 km de regreso, ingresá 260 km. La tarifa fija de $/km se consulta en Supabase y es única para todos los dispositivos.',fulfillment:'Servicio de preparación y expedición por unidad. Tamaños: chico hasta 1.200 cm³; mediano hasta 30.000 cm³; grande hasta 70.000 cm³.',palletStorage:'Almacenamiento mensual por pallet (cada uno). Consultar condiciones de contratación.',palletMovement:'Movimiento IN/OUT por pallet (cada movimiento).',extendedStorage:'Almacenamiento prolongado después de 60 días, por unidad y mes. Durante los primeros 60 días, el folleto indica almacenamiento gratis.'};
     const $ = id => document.getElementById(id);
     const deepClone = obj=>JSON.parse(JSON.stringify(obj));
     const number = x => Number.isFinite(Number(x)) ? Number(x):NaN;
@@ -734,10 +734,10 @@ body{background:#f4f7fc}
         }
         qty=1;
         unit=s.freightKmRate;
-        result.lines.push({name:`Flete por distancia: ${priceFmt(s.freightKm)} km × ${money(unit)}/km`,amount:rounded(s.freightKm*unit)});
-        result.labels.push(`Fuera de Montevideo · ${priceFmt(s.freightKm)} km`);
-        result.notes.push('Los kilómetros fueron ingresados manualmente e incluyen ida y vuelta únicamente si así se cargó el recorrido. No se duplica la distancia automáticamente.');
-        result.source='Tarifa por km configurada manualmente';
+        result.lines.push({name:`Flete ida y vuelta: ${priceFmt(s.freightKm)} km totales × ${money(unit)}/km`,amount:rounded(s.freightKm*unit)});
+        result.labels.push(`Fuera de Montevideo · ida y vuelta · ${priceFmt(s.freightKm)} km`);
+        result.notes.push('El recorrido cotizado contempla los kilómetros totales de ida y vuelta ingresados. El sistema no duplica automáticamente la distancia.');
+        result.source='Tarifa fija de flete por kilómetro · Supabase';
       } else if (s.service==='freight'){
         if(!Number.isFinite(s.hours)||s.hours<=0){result.valid=false;result.error='Ingresá una cantidad válida de horas.';return result}
         qty=s.vehicle==='truck'?Math.max(s.hours,rates.freight.truckMinHours):s.hours;
@@ -841,7 +841,7 @@ body{background:#f4f7fc}
       const priorityName=snapshot?.priorities?.[f.priority]?.name||({programmed:'Programado',express:'GoExpress',fast:'GoFast'}[f.priority]||'Programado');
       const header=['*GO CARGO*','_Distribución y logística_','','📄 *COTIZACIÓN*','━━━━━━━━━━━━━━'];
       if(f.customer)header.push(`👤 *Cliente:* ${clean(f.customer)}`);
-      header.push(`*Servicio:* ${clean(r.name)}`);if(f.service==='freightKm')header.push('📍 *Recorrido:* Fuera de Montevideo');else header.push(`*Prioridad:* ${clean(priorityName)}`);
+      header.push(`*Servicio:* ${clean(r.name)}`);if(f.service==='freightKm')header.push('📍 *Recorrido:* Fuera de Montevideo · ida y vuelta');else header.push(`*Prioridad:* ${clean(priorityName)}`);
       if(canInterior(f.service))header.push(`📍 *Destino:* ${f.destination==='mvd'?'Montevideo':'Interior del país'}`);
       header.push('');
       const groups=Array.isArray(f.packageGroups)&&f.packageGroups.length?f.packageGroups:[{weight:f.weight,quantity:f.quantity}];

@@ -352,6 +352,20 @@ body{background:#f4f7fc}
 #appShell .suite-cloud-rate-status{margin:12px 0 0;font-size:12px;line-height:1.5;color:#416083}
 #appShell #freightKmRate[readonly]{background:#edf5ff;border-color:#b8d6f7;font-weight:800;color:#0b4b94}
 @media(max-width:600px){#appShell .suite-cloud-rate-editor{flex-direction:column;align-items:stretch}#appShell .suite-cloud-rate-editor .field{min-width:100%;flex:auto}}
+/* Direcciones y rutas de Google para fletes */
+#appShell .suite-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
+#appShell .suite-map-grid input{min-height:45px;width:100%;padding:10px;border:1px solid #ccdae9;border-radius:10px}
+#appShell .google-autocomplete{width:100%;min-width:0}#appShell .google-autocomplete gmp-place-autocomplete{display:block;width:100%;min-height:44px}
+#appShell .suite-route-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 11px}
+#appShell .suite-route-actions label{display:flex;align-items:center;gap:7px;font-size:12px;color:#2b4e75;font-weight:700}
+#appShell .suite-route-status{background:#edf5ff;padding:10px 12px;border-radius:9px;font-size:12px;line-height:1.5;color:#30557d;margin:0 0 13px}
+#appShell .suite-route-summary{font-weight:900;font-size:13px;color:#0a569c;margin:0 0 12px}
+#appShell .suite-google-settings{margin:0 0 17px;border-color:#bdd9f5}
+#appShell .suite-google-settings-row{display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+#appShell .suite-google-settings-row .field{flex:1 1 230px;min-width:0}
+#appShell .suite-google-settings-row input{width:100%;border:1px solid #c9d9eb;min-height:45px;padding:9px;border-radius:10px}
+#appShell #freightKm[readonly]{background:#e9f4ff;border-color:#aad0f6;font-weight:850}
+@media(max-width:600px){#appShell .suite-map-grid{grid-template-columns:1fr}#appShell .suite-route-actions .btn{width:100%}}
   </style>
 </head>
 <body>
@@ -473,7 +487,14 @@ body{background:#f4f7fc}
 <section class="panel suite-distance-panel hidden" id="freightKmCard">
   <div class="panel-head"><span class="section-number">02</span><h3>Flete por kilómetro · fuera de Montevideo</h3></div>
   <div class="panel-body">
-    <div class="suite-freight-fields">
+    <div class="suite-map-grid">
+ <div class="field"><label>Origen</label><div id="originGoogleWidget" class="google-autocomplete hidden"></div><input id="freightOrigin" type="text" placeholder="Ej.: Montevideo, Uruguay" autocomplete="off"></div>
+ <div class="field"><label>Destino</label><div id="destinationGoogleWidget" class="google-autocomplete hidden"></div><input id="freightDestination" type="text" placeholder="Ej.: Colonia del Sacramento" autocomplete="off"></div>
+</div>
+<div class="suite-route-actions"><button id="googleCalculate" class="btn primary" type="button" disabled>Calcular ruta ida y vuelta</button><label><input id="freightManual" type="checkbox" checked> Ingresar kilómetros manualmente</label></div>
+<p id="googleRouteStatus" class="suite-route-status" role="status" aria-live="polite">Google Maps todavía no está configurado. Podés cotizar ingresando los km de ida y vuelta manualmente.</p>
+<p id="googleRouteSummary" class="suite-route-summary hidden"></p>
+<div class="suite-freight-fields">
       <div class="field"><label for="freightKm">Kilómetros totales a recorrer (IDA + VUELTA)</label><input id="freightKm" type="number" min="0.1" max="100000" step="0.1" inputmode="decimal" value="" placeholder="Ej.: 250" /><small>Ingresá la suma de los kilómetros de IDA y VUELTA. Ej.: 130 km de ida + 130 km de vuelta = 260 km totales. No ingreses solo la ida.</small></div>
       <div class="field"><label for="freightKmRate">Tarifa fija por kilómetro ($U, sin IVA)</label><input id="freightKmRate" type="text" value="" readonly aria-readonly="true" placeholder="Consultar Supabase" /><small id="freightKmRateInfo">La tarifa fija se obtiene de Supabase. Solo administradores pueden modificarla en Tarifas y ajustes.</small></div>
     </div>
@@ -503,8 +524,13 @@ body{background:#f4f7fc}
         </div>
         <p id="cloudKmRateStatus" class="suite-cloud-rate-status" role="status" aria-live="polite">Iniciá sesión para consultar el valor central.</p>
       </section>
-      <div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: la tarifa fija por kilómetro de fletes al interior sí se sincroniza en Supabase. Las demás tarifas de esta sección continúan siendo locales.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.8.1 · nube</footer>
+      <section class="rates-card suite-google-settings">
+ <h3>Google Maps · Direcciones y kilómetros automáticos</h3>
+ <p>Usá una clave pública de Google Maps para navegador, restringida al dominio del Cotizador. Se requiere facturación y las API correspondientes habilitadas en Google Cloud.</p>
+ <div class="suite-google-settings-row"><div class="field"><label for="googleBrowserKey">Clave de Google Maps para navegador</label><input id="googleBrowserKey" type="text" placeholder="AIza…" autocomplete="off" spellcheck="false"></div><button id="googleSaveKey" type="button" class="btn primary" disabled>Guardar Google Maps en Supabase</button></div>
+ <p id="googleKeyStatus" class="suite-route-status" role="status">Sin configurar.</p>
+</section><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: la tarifa fija por kilómetro de fletes al interior sí se sincroniza en Supabase. Las demás tarifas de esta sección continúan siendo locales.</p></section>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.9 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -574,6 +600,7 @@ body{background:#f4f7fc}
       $('cloudKmRateStatus').textContent=globalKmFetching?'Consultando Supabase…':globalKmError?`Error de sincronización: ${globalKmError}`:ready?`Tarifa vigente: ${money(globalKmRate)}/km sin IVA · Compartida con todos los dispositivos · Última actualización: ${new Date(globalKmRow.updated_at).toLocaleString('es-UY')}`:'No hay tarifa fija configurada. Solo el administrador puede asignarla.';
       if(!admin&&connected())$('cloudKmRateStatus').textContent+=' Tu usuario tiene acceso de consulta.';
       if(!connected())$('cloudKmRateStatus').textContent='Iniciá sesión para consultar la tarifa compartida.';
+      googleSettingsUI();
     }
     async function refreshGlobalKmRate(){
       if(!connected()){globalKmRate=null;globalKmReady=false;globalKmRow=null;globalKmError='';syncGlobalRateUI();update();return}
@@ -582,7 +609,7 @@ body{background:#f4f7fc}
       syncGlobalRateUI();update();
       globalKmFetching=(async()=>{
         try{
-          const query=`?select=empresa_id,precio_km,updated_at,updated_by&empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&limit=1`;
+          const query=`?select=empresa_id,precio_km,google_maps_browser_key,updated_at,updated_by&empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&limit=1`;
           const records=await cloudFetch('cotizador_tarifas_flete_km','GET',query);
           if(!Array.isArray(records)||records.length!==1)throw Error('No se encontró la tarifa central de GoCargo.');
           globalKmRow=records[0];
@@ -590,6 +617,7 @@ body{background:#f4f7fc}
           globalKmReady=true;
           globalKmError='';
           rates.freight.interiorPerKm=globalKmRate??0;
+          await activateGoogleMaps();
         }catch(err){
           globalKmRate=null;globalKmRow=null;globalKmReady=false;globalKmError=err.message;
         }finally{
@@ -609,7 +637,7 @@ body{background:#f4f7fc}
       try{
         if(!globalKmRow)await refreshGlobalKmRate();
         if(!globalKmRow)throw Error('No se encontró el registro central; recargá la página.');
-        const query=`?empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&updated_at=eq.${encodeURIComponent(globalKmRow.updated_at)}&select=precio_km,updated_at,updated_by,empresa_id`;
+        const query=`?empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&updated_at=eq.${encodeURIComponent(globalKmRow.updated_at)}&select=precio_km,google_maps_browser_key,updated_at,updated_by,empresa_id`;
         const result=await cloudFetch('cotizador_tarifas_flete_km','PATCH',query,{precio_km:value,updated_by:currentUser().id},{Prefer:'return=representation'});
         if(!Array.isArray(result)||result.length!==1)throw Error('La tarifa cambió en otro dispositivo. Actualizá antes de guardar.');
         globalKmRow=result[0];globalKmRate=Number(result[0].precio_km);globalKmReady=true;globalKmError='';
@@ -617,6 +645,116 @@ body{background:#f4f7fc}
         toast(`Tarifa fija actualizada a ${money(globalKmRate)}/km en Supabase.`);
       }catch(err){globalKmReady=false;globalKmRate=null;globalKmError=err.message;toast('No se pudo actualizar la tarifa.');}
       finally{globalKmSaving=false;syncGlobalRateUI();update()}
+    }
+    let googleMapsKeyLoaded='',googleMapsScriptLoading=null,googleWidgetsSet=false,googleOriginPlace=null,googleDestinationPlace=null,googleRoundTrip=null,googleTaskId=0,googleBusy=false;
+    const usingGoogle=()=>!$('freightManual').checked;
+    function routeStatus(message){$('googleRouteStatus').textContent=message}
+    function routeReset(message='Las direcciones cambiaron. Volvé a calcular el recorrido.'){
+      ++googleTaskId;googleRoundTrip=null;$('googleRouteSummary').classList.add('hidden');
+      if(usingGoogle())$('freightKm').value='';
+      routeStatus(message);update();
+    }
+    function routeModeUI(){
+      $('freightKm').readOnly=usingGoogle();
+      $('googleCalculate').disabled=!usingGoogle()||!globalKmRow?.google_maps_browser_key||googleBusy;
+    }
+    function googleSettingsUI(){
+      const key=globalKmRow?.google_maps_browser_key||'',admin=isRateAdmin();
+      $('googleBrowserKey').disabled=!admin;
+      $('googleSaveKey').disabled=!admin||globalKmSaving||!globalKmRow;
+      if(document.activeElement!==$('googleBrowserKey'))$('googleBrowserKey').value=key;
+      $('googleKeyStatus').textContent=key?'Clave de Google Maps registrada. Verificá que funcione y tenga restricciones de dominio.':'Sin clave de Google Maps. El ingreso manual de kilómetros sigue disponible.';
+    }
+    async function saveGoogleSettings(){
+      if(!isRateAdmin()||!globalKmRow)return;
+      const key=$('googleBrowserKey').value.trim();
+      if(key&&!/^AIza[0-9A-Za-z_-]{35}$/.test(key)){toast('La clave de Google Maps no tiene el formato esperado.');return}
+      globalKmSaving=true;googleSettingsUI();
+      try{
+        const query=`?empresa_id=eq.${encodeURIComponent(cloudEmpresa.empresa_id)}&updated_at=eq.${encodeURIComponent(globalKmRow.updated_at)}&select=empresa_id,precio_km,google_maps_browser_key,updated_at,updated_by`;
+        const rows=await cloudFetch('cotizador_tarifas_flete_km','PATCH',query,{google_maps_browser_key:key||null,updated_by:currentUser().id},{Prefer:'return=representation'});
+        if(!Array.isArray(rows)||rows.length!==1)throw Error('La configuración fue cambiada en otro dispositivo. Actualizá primero.');
+        globalKmRow=rows[0];toast('Configuración de Google guardada en Supabase.');
+        await activateGoogleMaps();
+      }catch(e){toast('No se pudo configurar Google Maps: '+e.message)}
+      finally{globalKmSaving=false;syncGlobalRateUI();update()}
+    }
+    async function loadGoogleAPI(key){
+      if(window.google?.maps?.importLibrary&&googleMapsKeyLoaded===key)return;
+      if(googleMapsScriptLoading)return googleMapsScriptLoading;
+      googleMapsScriptLoading=new Promise((resolve,reject)=>{
+        if(window.google?.maps?.importLibrary){if(googleMapsKeyLoaded&&googleMapsKeyLoaded!==key){reject(new Error('Se cambió la clave de Google Maps. Recargá la página para aplicar la nueva clave.'));return}googleMapsKeyLoaded=key;resolve();return}
+        const script=document.createElement('script');
+        script.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&v=weekly&loading=async&language=es&region=UY';
+        script.async=true;script.onload=()=>{googleMapsKeyLoaded=key;resolve()};
+        script.onerror=()=>reject(new Error('No se pudo cargar Google Maps; verificá la API key y su facturación.'));
+        document.head.appendChild(script);
+      }).finally(()=>googleMapsScriptLoading=null);
+      return googleMapsScriptLoading;
+    }
+    async function activateGoogleMaps(){
+      googleSettingsUI();
+      const key=globalKmRow?.google_maps_browser_key;
+      if(!key){$('freightManual').checked=true;googleRoundTrip=null;googleOriginPlace=null;googleDestinationPlace=null;for(const el of ['freightOrigin','freightDestination'])$(el).classList.remove('hidden');for(const el of ['originGoogleWidget','destinationGoogleWidget'])$(el).classList.add('hidden');routeModeUI();routeStatus('Google Maps no está configurado. Ingresá los kilómetros totales manualmente.');return}
+      try{
+        await loadGoogleAPI(key);
+        await google.maps.importLibrary('routes');
+        const {PlaceAutocompleteElement}=await google.maps.importLibrary('places');
+        if(!googleWidgetsSet){
+          for(const [kind,container] of [['origin','originGoogleWidget'],['destination','destinationGoogleWidget']]){
+            const el=new PlaceAutocompleteElement();
+            el.includedRegionCodes=['uy'];
+            el.setAttribute('placeholder',kind==='origin'?'Buscá el origen':'Buscá el destino');
+            $(container).appendChild(el);
+            el.addEventListener('gmp-select',async ({placePrediction})=>{
+              try{
+                const place=placePrediction.toPlace();
+                await place.fetchFields({fields:['formattedAddress','location','displayName']});
+                if(!place.location)throw Error('La ubicación no pudo verificarse.');
+                if(kind==='origin'){googleOriginPlace=place;$('freightOrigin').value=place.formattedAddress||place.displayName}
+                else{googleDestinationPlace=place;$('freightDestination').value=place.formattedAddress||place.displayName}
+                routeReset('Ubicación seleccionada. Calculando ida y vuelta…');
+                if(googleOriginPlace&&googleDestinationPlace&&usingGoogle())calculateRoundTrip();
+              }catch(e){routeStatus('Error en dirección: '+e.message)}
+            });
+          }
+          googleWidgetsSet=true;
+          $('freightManual').checked=false;
+        }
+        for(const id of ['freightOrigin','freightDestination'])$(id).classList.add('hidden');
+        for(const id of ['originGoogleWidget','destinationGoogleWidget'])$(id).classList.remove('hidden');
+        routeModeUI();
+        if(!googleRoundTrip)routeStatus('Buscá origen y destino en Google. Calcularemos ambos trayectos por carretera.');
+      }catch(err){
+        $('freightManual').checked=true;
+        routeModeUI();routeStatus('Google no disponible: '+err.message+'. Podés ingresar kilómetros manualmente.');
+      }
+    }
+    async function calculateRoundTrip(){
+      if(!usingGoogle())return;
+      const origin=googleOriginPlace||$('freightOrigin').value.trim(),destination=googleDestinationPlace||$('freightDestination').value.trim();
+      if(!origin||!destination){routeStatus('Seleccioná origen y destino antes de calcular.');return}
+      const task=++googleTaskId;googleBusy=true;routeModeUI();routeStatus('Calculando la ruta de ida y vuelta con Google…');
+      try{
+        const {Route}=await google.maps.importLibrary('routes');
+        const args={travelMode:'DRIVING',routingPreference:'TRAFFIC_UNAWARE',fields:['distanceMeters']};
+        const [out,back]=await Promise.all([
+          Route.computeRoutes({...args,origin,destination}),
+          Route.computeRoutes({...args,origin:destination,destination:origin})
+        ]);
+        if(task!==googleTaskId||!usingGoogle())return;
+        const ida=out?.routes?.[0]?.distanceMeters,vuelta=back?.routes?.[0]?.distanceMeters;
+        if(!Number.isFinite(ida)||!Number.isFinite(vuelta)||ida<=0||vuelta<=0)throw Error('Google no devolvió distancia válida para ambos sentidos.');
+        const km=Math.round((ida+vuelta)/100)/10;
+        if(km<=0||km>100000)throw Error('La ruta excede el rango admitido.');
+        $('freightKm').value=km.toFixed(1);
+        googleRoundTrip={origin:$('freightOrigin').value,destination:$('freightDestination').value,idaKm:Math.round(ida/100)/10,vueltaKm:Math.round(vuelta/100)/10,totalKm:km,source:'Google Maps Routes'};
+        $('googleRouteSummary').textContent=`IDA: ${priceFmt(googleRoundTrip.idaKm)} km + VUELTA: ${priceFmt(googleRoundTrip.vueltaKm)} km = ${priceFmt(km)} km`;
+        $('googleRouteSummary').classList.remove('hidden');
+        routeStatus('Distancia calculada con Google Maps. Se aplica la tarifa fija por kilómetro.');
+        update();
+      }catch(err){if(task===googleTaskId){$('freightKm').value='';googleRoundTrip=null;routeStatus('Error al calcular: '+err.message+' Activá el modo manual si necesitás continuar.');update()}}
+      finally{googleBusy=false;routeModeUI()}
     }
     let cloudSession=null, cloudEmpresa=null, cloudHistory=[], cloudLoading=false, cloudRefreshing=null, authChecking=true;
     let priority='programmed';
@@ -626,7 +764,7 @@ body{background:#f4f7fc}
     function getPackageGroups(){
       return [{weight:number($('weight').value),quantity:number($('quantity').value)},...Array.from($('extraPackageGroups').querySelectorAll('.extra-package-group')).map(el=>({weight:number(el.querySelector('[data-group-weight]').value),quantity:number(el.querySelector('[data-group-qty]').value)}))];
     }
-    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),freightKm:$('freightKm').value.trim()===''?NaN:number($('freightKm').value),freightKmRate:hasGlobalKmRate()?globalKmRate:NaN,palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
+    function getInput(){const service=$('service').value;return {service,destination:$('destination').value,priority,weight:number($('weight').value),quantity:number($('quantity').value),packageGroups:['package','return'].includes(service)?getPackageGroups():[],distance:number($('distance').value),freightKm:$('freightKm').value.trim()===''?NaN:number($('freightKm').value),freightOrigin:$('freightOrigin').value.trim(),freightDestination:$('freightDestination').value.trim(),freightRoute:googleRoundTrip?{...googleRoundTrip}:null,freightManual:$('freightManual').checked,freightKmRate:hasGlobalKmRate()?globalKmRate:NaN,palletSize:$('palletSize').value,vehicle:$('vehicle').value,hours:number($('hours').value),unitSize:$('unitSize').value,months:number($('months').value),customer:$('customer').value.trim()}}
     function addPackageGroup(weight=2,qty=1){
       const container=$('extraPackageGroups');
       if(container.children.length+1>=MAX_PACKAGE_GROUPS)return;
@@ -736,7 +874,8 @@ body{background:#f4f7fc}
         unit=s.freightKmRate;
         result.lines.push({name:`Flete ida y vuelta: ${priceFmt(s.freightKm)} km totales × ${money(unit)}/km`,amount:rounded(s.freightKm*unit)});
         result.labels.push(`Fuera de Montevideo · ida y vuelta · ${priceFmt(s.freightKm)} km`);
-        result.notes.push('El recorrido cotizado contempla los kilómetros totales de ida y vuelta ingresados. El sistema no duplica automáticamente la distancia.');
+        if(s.freightOrigin||s.freightDestination)result.labels.push(`${s.freightOrigin||'Origen'} → ${s.freightDestination||'Destino'}`);
+        result.notes.push(s.freightRoute&&!s.freightManual?'Kilómetros de ida y regreso calculados con Google Maps, sujetos a la ruta seleccionada.':'Kilómetros totales de ida y vuelta ingresados manualmente, sin duplicación automática.');
         result.source='Tarifa fija de flete por kilómetro · Supabase';
       } else if (s.service==='freight'){
         if(!Number.isFinite(s.hours)||s.hours<=0){result.valid=false;result.error='Ingresá una cantidad válida de horas.';return result}
@@ -841,7 +980,7 @@ body{background:#f4f7fc}
       const priorityName=snapshot?.priorities?.[f.priority]?.name||({programmed:'Programado',express:'GoExpress',fast:'GoFast'}[f.priority]||'Programado');
       const header=['*GO CARGO*','_Distribución y logística_','','📄 *COTIZACIÓN*','━━━━━━━━━━━━━━'];
       if(f.customer)header.push(`👤 *Cliente:* ${clean(f.customer)}`);
-      header.push(`*Servicio:* ${clean(r.name)}`);if(f.service==='freightKm')header.push('📍 *Recorrido:* Fuera de Montevideo · ida y vuelta');else header.push(`*Prioridad:* ${clean(priorityName)}`);
+      header.push(`*Servicio:* ${clean(r.name)}`);if(f.service==='freightKm'){header.push('📍 *Recorrido:* Fuera de Montevideo · ida y vuelta');if(f.freightOrigin)header.push(`*Origen:* ${clean(f.freightOrigin)}`);if(f.freightDestination)header.push(`*Destino:* ${clean(f.freightDestination)}`);if(f.freightRoute&&!f.freightManual)header.push(`*Ida:* ${priceFmt(f.freightRoute.idaKm)} km · *Vuelta:* ${priceFmt(f.freightRoute.vueltaKm)} km`)}else header.push(`*Prioridad:* ${clean(priorityName)}`);
       if(canInterior(f.service))header.push(`📍 *Destino:* ${f.destination==='mvd'?'Montevideo':'Interior del país'}`);
       header.push('');
       const groups=Array.isArray(f.packageGroups)&&f.packageGroups.length?f.packageGroups:[{weight:f.weight,quantity:f.quantity}];
@@ -1047,7 +1186,7 @@ body{background:#f4f7fc}
       $('weight').value=groups[0].weight;$('quantity').value=groups[0].quantity;
       $('extraPackageGroups').replaceChildren();
       for(const g of groups.slice(1,MAX_PACKAGE_GROUPS))addPackageGroup(g.weight,g.quantity);
-      $('distance').value=f.distance;$('freightKm').value=f.freightKm??'';$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
+      $('distance').value=f.distance;$('freightKm').value=f.freightKm??'';$('freightOrigin').value=f.freightOrigin||'';$('freightDestination').value=f.freightDestination||'';googleRoundTrip=f.freightRoute||null;googleOriginPlace=null;googleDestinationPlace=null;$('freightManual').checked=true;routeModeUI();if(googleRoundTrip){$('googleRouteSummary').textContent=`IDA: ${priceFmt(googleRoundTrip.idaKm)} km + VUELTA: ${priceFmt(googleRoundTrip.vueltaKm)} km = ${priceFmt(googleRoundTrip.totalKm)} km`;$('googleRouteSummary').classList.remove('hidden')}$('palletSize').value=f.palletSize;$('vehicle').value=f.vehicle;$('hours').value=f.hours;$('unitSize').value=f.unitSize;$('months').value=f.months;$('customer').value=f.customer;priority=f.priority;changePage('quote');update()
     }
     // Interacciones
     $('profileToggle').addEventListener('click',()=>setProfileMenu($('profileMenu').classList.contains('hidden')));
@@ -1106,6 +1245,16 @@ body{background:#f4f7fc}
     $('resetRates').addEventListener('click',()=>{if(!confirm('¿Restablecer todas las tarifas a los importes del PDF 2026?'))return;rates=deepClone(DEFAULT_RATES);localStorage.removeItem(LOCAL_RATES);modifiedRates=false;renderRates();update();toast('Tarifas originales restauradas.')});
     $('exportRates').addEventListener('click',()=>{const data=JSON.stringify({product:'GoCargo Cotizador',version:1,exportedAt:new Date().toISOString(),rates},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='GoCargo_Tarifas_2026.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)});
     $('importRates').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const next=migrateRates(parsed.rates||parsed);if(!validRates(next))throw new Error('Tarifas no válidas');rates=next;localStorage.setItem(LOCAL_RATES,JSON.stringify(rates));modifiedRates=true;renderRates();update();toast('Tarifas importadas.') }catch(err){toast('El archivo JSON no tiene el formato esperado.')}finally{e.target.value=''}});
+    $('googleSaveKey').addEventListener('click',saveGoogleSettings);
+    $('googleCalculate').addEventListener('click',calculateRoundTrip);
+    $('freightManual').addEventListener('change',()=>{
+      routeReset($('freightManual').checked?'Ingresá los kilómetros completos de ida y vuelta.':'Elegí origen y destino para calcular con Google.');
+      routeModeUI();if(usingGoogle()&&googleOriginPlace&&googleDestinationPlace)calculateRoundTrip();
+    });
+    ['freightOrigin','freightDestination'].forEach(id=>$(id).addEventListener('input',()=>{
+      if(id==='freightOrigin')googleOriginPlace=null;else googleDestinationPlace=null;
+      routeReset('La dirección cambió. Recalculá el recorrido.');
+    }));
     $('cloudKmRateSave').addEventListener('click',saveGlobalKmRate);
     $('cloudKmRateRefresh').addEventListener('click',refreshGlobalKmRate);
     $('cloudLogin').addEventListener('submit',cloudSignIn);

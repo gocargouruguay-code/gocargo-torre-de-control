@@ -100,155 +100,23 @@
     };
   }
 
-  window.refrescarTodo = async function refrescarTodoConReparacion() {
+  window.refrescarTodo = async function refrescarTodoSoloLectura() {
     const btn = document.getElementById("refreshAllBtn");
     if (btn?.disabled) return;
     const original = btn?.innerHTML || "↻ Actualizar";
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = "↻ Actualizando…";
-      btn.title =
-        "Corrige asignaciones del proveedor activo, reprocesa pedidos abiertos, actualiza el panel y prueba conexiones UES / RyR";
-    }
-
+    if (btn) { btn.disabled = true; btn.innerHTML = "↻ Actualizando…"; }
     try {
-      if (typeof toast === "function") {
-        toast("Corrigiendo asignaciones y sincronizando UES / RyR…");
-      }
-
-      const [uOpen, rOpen] = await Promise.allSettled([
-        apiProvider("UES", "dashboard-list", { query: { kind: "abiertos" } }),
-        apiProvider("RYR", "dashboard-list", { query: { kind: "abiertos" } }),
+      await Promise.all([
+        typeof cargarDashboard === "function" ? cargarDashboard(true) : Promise.resolve(),
+        typeof cargarReviews === "function" ? cargarReviews() : Promise.resolve(),
       ]);
-
-      const porOrden = new Map();
-      const cargar = (provider, res) => {
-        for (const row of rowsDashboard(res)) {
-          const orderCode = codigoOrdenRow(row);
-          if (!orderCode) continue;
-          const set = porOrden.get(orderCode) || new Set();
-          set.add(provider);
-          porOrden.set(orderCode, set);
-        }
-      };
-      if (uOpen.status === "fulfilled") cargar("UES", uOpen.value);
-      if (rOpen.status === "fulfilled") cargar("RYR", rOpen.value);
-
-      const jobs = [];
-      const conflictos = [];
-      for (const [orderCode, providers] of porOrden.entries()) {
-        const lista = [...providers];
-        if (lista.length !== 1) {
-          conflictos.push({ orderCode, providers: lista });
-          continue;
-        }
-        jobs.push({ provider: lista[0], orderCode });
-      }
-
-      const resultados = [];
-      let cursor = 0;
-      async function worker() {
-        while (cursor < jobs.length) {
-          const job = jobs[cursor++];
-          try {
-            const repair = await repararAsignacionesProveedor(
-              job.provider,
-              job.orderCode,
-            );
-            const rp = await apiProvider(job.provider, "reprocess", {
-              method: "POST",
-              body: { order_code: job.orderCode },
-            });
-            resultados.push({
-              provider: job.provider,
-              orderCode: job.orderCode,
-              ok: rp?.ok !== false,
-              repaired: repair?.repaired === true,
-              reassigned: Number(repair?.reassignedTaskIds?.length || 0),
-            });
-          } catch (err) {
-            resultados.push({
-              provider: job.provider,
-              orderCode: job.orderCode,
-              ok: false,
-              error: err?.message || String(err),
-            });
-          }
-        }
-      }
-
-      await Promise.all([worker(), worker()]);
-      await new Promise((r) => setTimeout(r, 700));
-      await Promise.allSettled([
-        typeof cargarDashboard === "function"
-          ? cargarDashboard(true)
-          : Promise.resolve(),
-        typeof cargarReviews === "function"
-          ? cargarReviews()
-          : Promise.resolve(),
-      ]);
-
-      if (typeof probarConexiones === "function") {
-        try {
-          await probarConexiones();
-        } catch {
-        }
-      }
-
-      const ok = resultados.filter((x) => x.ok).length;
-      const fail = resultados.length - ok;
-      const reasignadas = resultados.reduce(
-        (acc, x) => acc + Number(x.reassigned || 0),
-        0,
-      );
-      const fuentesFallidas = [];
-      if (uOpen.status === "rejected") fuentesFallidas.push("UES");
-      if (rOpen.status === "rejected") fuentesFallidas.push("RyR");
-
       if (typeof toast === "function") {
-        if (jobs.length === 0 && conflictos.length === 0) {
-          toast(
-            fuentesFallidas.length
-              ? `Panel actualizado · no se pudo consultar ${fuentesFallidas.join(" y ")}`
-              : "Panel actualizado · no había pedidos abiertos para sincronizar",
-          );
-        } else if (
-          fail === 0 && conflictos.length === 0 && fuentesFallidas.length === 0
-        ) {
-          toast(
-            `Panel sincronizado · ${ok} pedido${ok === 1 ? "" : "s"} revisado${ok === 1 ? "" : "s"}` +
-              (reasignadas
-                ? ` · ${reasignadas} tarea${reasignadas === 1 ? "" : "s"} reasignada${reasignadas === 1 ? "" : "s"}`
-                : ""),
-          );
-        } else {
-          toast(
-            `Panel sincronizado · ${ok} OK · ${fail} con error` +
-              (conflictos.length
-                ? ` · ${conflictos.length} ORD con UES y RyR abiertos (sin reasignar)`
-                : "") +
-              (fuentesFallidas.length
-                ? ` · sin consultar ${fuentesFallidas.join("/")}`
-                : ""),
-          );
-        }
+        toast("Panel actualizado · sin reasignar ni reprocesar pedidos");
       }
     } catch (err) {
-      if (typeof toast === "function") {
-        toast(err?.message || "No se pudo sincronizar el panel");
-      }
-      try {
-        await Promise.allSettled([
-          cargarDashboard(true),
-          cargarReviews(),
-        ]);
-      } catch {
-      }
+      if (typeof toast === "function") toast(err?.message || "No se pudo actualizar");
     } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = original;
-      }
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
     }
   };
 
@@ -265,7 +133,7 @@
     if (probar) probar.remove();
     if (actualizar) {
       actualizar.title =
-        "Corrige asignaciones del proveedor activo, reprocesa pedidos abiertos, actualiza el panel y prueba conexiones UES / RyR";
+        "Actualiza el tablero sin modificar asignaciones ni estados";
     }
   }
 

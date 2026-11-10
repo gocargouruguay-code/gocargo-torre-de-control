@@ -402,7 +402,11 @@ async function login(){PASSWORD=document.getElementById("password").value;const 
   // Evitar consultas si la Torre no está visible y limitar las recargas
   // automáticas; el botón Actualizar sigue siendo inmediato.
   if(document.hidden)return;
-  Promise.allSettled([cargarDashboard(true),cargarReviews(true)]);
+  // No destruir campos todavía en edición con una recarga de tarjetas.
+  const editando=document.activeElement?.closest?.(".review") &&
+    ["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName||"");
+  if(editando) cargarDashboard(true);
+  else Promise.allSettled([cargarDashboard(true),cargarReviews(true)]);
 },300000)}catch(e){document.getElementById("loginMsg").innerHTML=`<div class="alert err">${e.status===401?"Contraseña incorrecta":esc(e.message)}</div>`}finally{btn.disabled=false}}
 
 function proxyPartialInfo(h){
@@ -1937,6 +1941,7 @@ async function completarDatosRyr(id,button){
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
     const r=await apiRyrDatos("complete",{method:"POST",body});
+    clearDiagCache("RYR",id);
     accion.mostrar(`<div class="alert ok">✓ ${esc(r.detalle||r.ryrOrderCode||"Completado")}</div>`);
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
@@ -1980,6 +1985,7 @@ async function corregirLocalidadUes(id,button){
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
     const r=await apiUesDatos("locality-correct",{method:"POST",body});
+    clearDiagCache("UES",id);
     accion.mostrar(`<div class="alert ok">✓ ${esc(r.detalle||"Localidad corregida")}</div>`);
     toast(r.trackingNumber?`Guía UES creada: ${r.trackingNumber}`:"Localidad corregida");
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
@@ -2008,6 +2014,7 @@ async function completarDatos(id,button){
     if(nombreDestinatario)body.nombreDestinatario=nombreDestinatario;
 
     const r=await apiUesDatos("complete",{method:"POST",body});
+    clearDiagCache("UES",id);
     accion.mostrar(`<div class="alert ok">✓ ${esc(r.trackingNumber||r.detalle||"Completado")}</div>`);
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){

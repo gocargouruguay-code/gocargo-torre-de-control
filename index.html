@@ -265,6 +265,23 @@ function apiDatosProvider(provider,action,opts={}){
     :apiUesDatos(action,opts);
 }
 
+// Los diagnósticos no se disparan al refrescar el panel.
+// Caché de cinco minutos POR pestaña/ORD para reutilizar los datos recientes.
+const REVIEW_DIAG_CACHE=new Map();
+const REVIEW_DIAG_INFLIGHT=new Map();
+const REVIEW_DIAG_TTL_MS=5*60*1000;
+function diagKey(provider,id){return String(provider).toUpperCase()+":"+String(id);}
+function diagCached(provider,id){
+  const data=REVIEW_DIAG_CACHE.get(diagKey(provider,id));
+  return data&&Date.now()-data.at<REVIEW_DIAG_TTL_MS?data:null;
+}
+function clearDiagCache(provider,id){REVIEW_DIAG_CACHE.delete(diagKey(provider,id));}
+function copyDiagCache(row){
+  const cached=diagCached(row.provider,row.id);
+  if(!cached||cached.data===null)return row;
+  return {...row,...cached.data,provider:row.provider,id:row.id,source_type:row.source_type};
+}
+
 function esCasoDatosUes(r){
   const motivo=norm(r.motivo);
   return motivo.includes("faltan datos obligatorios para ues")||
@@ -273,6 +290,7 @@ function esCasoDatosUes(r){
     motivo.includes("no se pudo normalizar destino")||
     motivo.includes("no se encontro localidad ues")||
     motivo.includes("no existe en el catalogo deptoylocalidad")||
+    motivo.includes("no se pudo resolver departamento/localidad")||
     r?.esCasoGeografia===true||
     Array.isArray(r?.datos_pendientes?.faltantes)||
     Array.isArray(r?.faltantes_actuales);
@@ -822,7 +840,8 @@ async function cargarReviews(silent=false){
     // Refresco automático y botón Actualizar: únicamente Supabase.
     // No pedir datos a SendGround por cada incidencia. La comprobación
     // real se ejecuta solo mediante "Verificar datos" de esa revisión.
-    REVIEWS=[...urBase,...rrBase].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    REVIEWS=[...urBase,...rrBase].map(copyDiagCache)
+      .sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
     // Sincronizar la tarjeta con exactamente los registros que la lista muestra.
     // Las alertas operativas (p.ej. Entrega sin asignar) SON revisiones pendientes.
@@ -845,23 +864,41 @@ async function cargarReviews(silent=false){
   }
 }
 
-async function verificarDatosRevision(provider,id,button){
+async function verificarDatosRevision(provider,id,button,force=false){
   provider=String(provider||"").toUpperCase();
   const actual=REVIEWS.find(r=>String(r.provider||"UES").toUpperCase()===provider&&String(r.id)===String(id));
-  if(!actual || actual.source_type!=="revision" || !["UES","RYR"].includes(provider)){
+  if(!actual||actual.source_type!=="revision"||!["UES","RYR"].includes(provider)){
     toast("La incidencia ya no figura en la lista; actualizá el panel");
     return;
   }
   if(button?.disabled)return;
-  if(button){button.disabled=true;button.textContent="Verificando…";}
+  if(button){button.disabled=true;button.textContent="Diagnosticando…";}
+  const key=diagKey(provider,id);
   try{
-    const nuevo=provider==="RYR"
-      ?await enriquecerRevisionRyrLive(actual)
-      :await enriquecerRevisionUesLive(actual);
+    let nuevo=null;
+    const cached=!force?diagCached(provider,id):null;
+    if(cached){
+      nuevo=cached.data;
+    }else{
+      let ongoing=REVIEW_DIAG_INFLIGHT.get(key);
+      if(!ongoing){
+        ongoing=(provider==="RYR"
+          ?enriquecerRevisionRyrLive(actual)
+          :enriquecerRevisionUesLive(actual));
+        REVIEW_DIAG_INFLIGHT.set(key,ongoing);
+      }
+      try{nuevo=await ongoing;}
+      finally{if(REVIEW_DIAG_INFLIGHT.get(key)===ongoing)REVIEW_DIAG_INFLIGHT.delete(key);}
+      REVIEW_DIAG_CACHE.set(key,{at:Date.now(),data:nuevo});
+    }
     const idx=REVIEWS.findIndex(r=>String(r.provider||"UES").toUpperCase()===provider&&String(r.id)===String(id));
     if(idx<0)return;
-    if(nuevo===null)REVIEWS.splice(idx,1);
-    else REVIEWS[idx]=nuevo;
+    if(nuevo===null){
+      REVIEWS.splice(idx,1);
+      clearDiagCache(provider,id);
+    }else{
+      REVIEWS[idx]={...actual,...nuevo};
+    }
     if(DASHBOARD?.metrics){
       const uCount=REVIEWS.filter(r=>String(r.provider||"UES").toUpperCase()==="UES").length;
       const rCount=REVIEWS.length-uCount;
@@ -872,10 +909,34 @@ async function verificarDatosRevision(provider,id,button){
     }
     renderReviews();
     document.getElementById("reviewCount").textContent=REVIEWS.length;
-    toast(nuevo===null?"La revisión ya está resuelta":"Datos verificados para esta incidencia");
+    toast(nuevo===null?"La revisión ya no está pendiente":
+      cached?"Mostrando diagnóstico reciente de la orden":
+      "Diagnóstico listo: revisá los campos y soluciones sugeridas");
   }catch(err){
-    toast("No se pudo verificar en SendGround: "+(err?.message||String(err)));
-    if(button){button.disabled=false;button.textContent="Verificar datos en SendGround";}
+    toast("No se pudo diagnosticar la ORD: "+(err?.message||String(err)));
+    if(button){button.disabled=false;button.textContent="Diagnosticar y corregir";}
+  }
+}
+
+async function cargarLocalidadesUes(id,select){
+  const code=String(select?.value||"");
+  const dest=document.getElementById("loc-ues-"+id);
+  if(!dest||!/^[0-9]+$/.test(code))return;
+  dest.replaceChildren(new Option("Consultando localidades UES…",""));
+  dest.disabled=true;
+  try{
+    // Esta acción solo llama a UES; NO hace una petición SendGround.
+    const data=await apiUesDatos("localities",{query:{id,departamentoId:code}});
+    const opts=[new Option("— Elegí la localidad correcta —","")];
+    for(const loc of data.localidades||[]){
+      opts.push(new Option(String(loc.nombre),String(loc.departamentoId)+"|"+String(loc.localidadId)));
+    }
+    dest.replaceChildren(...opts);
+  }catch(err){
+    dest.replaceChildren(new Option("No se pudieron cargar localidades",""));
+    toast("Error consultando localidades UES: "+(err?.message||String(err)));
+  }finally{
+    dest.disabled=false;
   }
 }
 
@@ -959,7 +1020,7 @@ function renderReviews(){
         </div>
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
-          ${esDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
+          ${esDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this,${Boolean(diagCached("RYR",r.id))})">${diagCached("RYR",r.id)?"Verificar nuevamente":"Diagnosticar y corregir"}</button>`:""}
           ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
         </div>
       </div>`;
@@ -992,13 +1053,20 @@ function renderReviews(){
     const esCasoDatos=esCasoDatosUes(r);
     const esCasoGeo=r.esCasoGeografia===true||
       norm(r.motivo).includes("no se pudo normalizar destino")||
-      norm(r.motivo).includes("no se encontro localidad ues");
+      norm(r.motivo).includes("no se encontro localidad ues")||
+      norm(r.motivo).includes("no existe en el catalogo deptoylocalidad")||
+      norm(r.motivo).includes("no se pudo resolver departamento/localidad");
     const sugeridas=Array.isArray(r.localidades_sugeridas)?r.localidades_sugeridas:[];
     const disponibles=Array.isArray(r.localidades_disponibles)?r.localidades_disponibles:[];
     const sugeridasIds=new Set(sugeridas.map(x=>String(x.localidadId)));
     const otrasLocalidades=disponibles.filter(x=>!sugeridasIds.has(String(x.localidadId)));
-    const geoActual=r.geografia_actual||{};
+    const snapshotGeo=r.datos_pendientes?.location||{};
+    const geoActual=r.geografia_actual||{
+      departamento:snapshotGeo.state||snapshotGeo.city||"",
+      localidad:snapshotGeo.district||snapshotGeo.city||""
+    };
     const depUes=r.departamento_ues||{};
+    const depDisponibles=Array.isArray(r.departamentos_disponibles)?r.departamentos_disponibles:[];
 
     const noEditables=faltantes.filter(v=>{
       const n=norm(v);
@@ -1009,7 +1077,7 @@ function renderReviews(){
     });
 
     const motivoVisible=esCasoGeo
-      ?`La localidad de SendGround no coincide exactamente con el catálogo de UES. Elegí la localidad correcta y la Torre la guardará también en SendGround.`
+      ?`Hay un problema de departamento/localidad al cargar en UES. La Torre te permite elegir una localidad oficial y corregirla en SendGround.`
       :sincronizado
       ?(
         faltantes.length
@@ -1024,20 +1092,29 @@ function renderReviews(){
           SendGround: <strong>${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"—")}</strong>
           ${geoActual.departamento?` · Departamento: <strong>${esc(geoActual.departamento)}</strong>`:""}
         </div>
-        ${r.geografia_error?`<div class="alert err" style="margin-bottom:8px">${esc(r.geografia_error)}</div>`:""}
-        ${disponibles.length?`
-          <div class="data-field" style="min-width:300px;max-width:520px">
+        ${r.geografia_error?`<div class="alert warn" style="margin-bottom:8px">${esc(r.geografia_error)}</div>`:""}
+        ${depDisponibles.length?`
+          <div class="data-field" style="min-width:260px;max-width:520px">
+            <label>Departamento UES</label>
+            <select class="input" id="dep-ues-${r.id}" onchange="cargarLocalidadesUes(${r.id},this)">
+              <option value="">— Elegí el departamento —</option>
+              ${depDisponibles.map(dep=>`<option value="${esc(String(dep.id))}" ${String(dep.id)===String(depUes.id)?"selected":""}>${esc(dep.nombre)}</option>`).join("")}
+            </select>
+          </div>
+        `:""}
+        ${r.datos_sendground_actualizados===true?`
+          <div class="data-field" style="min-width:280px;max-width:520px">
             <label>Localidad correcta en UES${depUes.nombre?` · ${esc(depUes.nombre)}`:""}</label>
             <select class="input" id="loc-ues-${r.id}">
               <option value="">— Elegí la localidad correcta —</option>
-              ${sugeridas.map((x,i)=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}" ${i===0?"selected":""}>${esc(x.nombre)}${i===0?" · sugerida":""}</option>`).join("")}
+              ${sugeridas.map(x=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}">${esc(x.nombre)} · sugerida</option>`).join("")}
               ${otrasLocalidades.length?`<option disabled>──────── Otras localidades ────────</option>`:""}
               ${otrasLocalidades.map(x=>`<option value="${esc(String(x.departamentoId))}|${esc(String(x.localidadId))}">${esc(x.nombre)}</option>`).join("")}
             </select>
           </div>
           <button class="btn primary small" style="margin-top:8px" onclick="corregirLocalidadUes(${r.id},this)">Guardar en SendGround y crear guía</button>
-          <div class="muted" style="font-size:11px;margin-top:6px">Las primeras opciones son las más parecidas a “${esc(geoActual.localidad||geoActual.localidadesCandidatas?.[0]||"")}”. Al confirmar, se actualizan ciudad/localidad en SendGround y luego se vuelve a validar UES.</div>
-        `:`<div class="alert warn">No fue posible obtener localidades del catálogo UES para este departamento.</div>`}
+          <div class="muted" style="font-size:11px;margin-top:6px">Confirmá departamento y localidad UES antes de guardar. Solo se actualizará esta ORD.</div>
+        `:`<div class="muted" style="font-size:11px;margin-top:6px">Elegí «Diagnosticar y corregir» para consultar esta ORD y cargar las localidades oficiales de UES. No se verifica automáticamente cada cinco minutos.</div>`}
       </div>
     `:"";
 
@@ -1069,7 +1146,7 @@ function renderReviews(){
       </div>
       <div class="review-actions">
         <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
-        ${esCasoDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('UES',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
+        ${esCasoDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('UES',${Number(r.id)},this,${Boolean(diagCached("UES",r.id))})">${diagCached("UES",r.id)?"Verificar nuevamente":"Diagnosticar y corregir"}</button>`:""}
         ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>`:""}
       </div>
     </div>`;

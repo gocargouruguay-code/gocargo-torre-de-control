@@ -300,10 +300,10 @@ async function enriquecerRevisionUesLive(r){
     // El refresco de tablero no debe cerrar alertas silenciosamente.
     // Las revisiones se resuelven con una acción explícita del operador.
     return enriched;
-  }catch{
-    // Compatibilidad: si ues-datos no responde, conservamos
-    // la revisión original servida por ues-admin.
-    return r;
+  }catch(err){
+    // Esta consulta solo es manual: mostrar el fallo al operador en
+    // lugar de indicar silenciosamente que ya fue verificado.
+    throw err;
   }
 }
 
@@ -334,10 +334,9 @@ async function enriquecerRevisionRyrLive(r){
     // No resolver revisiones mediante POST al solo mostrar/refrescar el
     // panel. La acción explícita de resolver conserva el control humano.
     return enriched;
-  }catch{
-    // Compatibilidad durante despliegue: si ryr-datos todavía no está
-    // publicado, la Torre conserva la revisión actual de ryr-admin.
-    return r;
+  }catch(err){
+    // El operador pidió expresamente esta comprobación contra SendGround.
+    throw err;
   }
 }
 
@@ -815,18 +814,16 @@ async function cargarReviews(silent=false){
       };
     });
 
-    const [urLive,rrLive]=await Promise.all([
-      Promise.all(urBase.map(enriquecerRevisionUesLive)).then(rows=>rows.filter(Boolean)),
-      Promise.all(rrBase.map(enriquecerRevisionRyrLive)).then(rows=>rows.filter(Boolean))
-    ]);
-
-    REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    // Refresco automático y botón Actualizar: únicamente Supabase.
+    // No pedir datos a SendGround por cada incidencia. La comprobación
+    // real se ejecuta solo mediante "Verificar datos" de esa revisión.
+    REVIEWS=[...urBase,...rrBase].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
     // Sincronizar la tarjeta con exactamente los registros que la lista muestra.
     // Las alertas operativas (p.ej. Entrega sin asignar) SON revisiones pendientes.
     if(DASHBOARD?.metrics){
-      const uRev=urLive.length;
-      const rRev=rrLive.length;
+      const uRev=urBase.length;
+      const rRev=rrBase.length;
       DASHBOARD.metrics.revisionPendiente=uRev+rRev;
       if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uRev;
       if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rRev;
@@ -838,6 +835,40 @@ async function cargarReviews(silent=false){
     if(!PASSWORD)consultarConteo();
   }catch(e){
     if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function verificarDatosRevision(provider,id,button){
+  provider=String(provider||"").toUpperCase();
+  const actual=REVIEWS.find(r=>String(r.provider||"UES").toUpperCase()===provider&&String(r.id)===String(id));
+  if(!actual || actual.source_type!=="revision" || !["UES","RYR"].includes(provider)){
+    toast("La incidencia ya no figura en la lista; actualizá el panel");
+    return;
+  }
+  if(button?.disabled)return;
+  if(button){button.disabled=true;button.textContent="Verificando…";}
+  try{
+    const nuevo=provider==="RYR"
+      ?await enriquecerRevisionRyrLive(actual)
+      :await enriquecerRevisionUesLive(actual);
+    const idx=REVIEWS.findIndex(r=>String(r.provider||"UES").toUpperCase()===provider&&String(r.id)===String(id));
+    if(idx<0)return;
+    if(nuevo===null)REVIEWS.splice(idx,1);
+    else REVIEWS[idx]=nuevo;
+    if(DASHBOARD?.metrics){
+      const uCount=REVIEWS.filter(r=>String(r.provider||"UES").toUpperCase()==="UES").length;
+      const rCount=REVIEWS.length-uCount;
+      DASHBOARD.metrics.revisionPendiente=REVIEWS.length;
+      if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uCount;
+      if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rCount;
+      renderDashboard();
+    }
+    renderReviews();
+    document.getElementById("reviewCount").textContent=REVIEWS.length;
+    toast(nuevo===null?"La revisión ya está resuelta":"Datos verificados para esta incidencia");
+  }catch(err){
+    toast("No se pudo verificar en SendGround: "+(err?.message||String(err)));
+    if(button){button.disabled=false;button.textContent="Verificar datos en SendGround";}
   }
 }
 
@@ -901,7 +932,7 @@ function renderReviews(){
           ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="ryr-nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
           <button class="btn primary small" onclick="completarDatosRyr(${r.id},this)">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
         </div>
-        ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+        ${noEditables.length?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. Usá «Verificar datos» para confirmar el cambio.</div>`:""}
         ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
       `:"";
 
@@ -921,6 +952,7 @@ function renderReviews(){
         </div>
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
+          ${esDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
           ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
         </div>
       </div>`;
@@ -1011,7 +1043,7 @@ function renderReviews(){
         ${necesitaNombre?`<div class="data-field"><label>Destinatario</label><input class="input" id="nombre-${r.id}" placeholder="Nombre del destinatario"></div>`:""}
         <button class="btn primary small" onclick="completarDatos(${r.id},this)">${faltantes.length?"Completar / verificar y crear":"Verificar y crear"}</button>
       </div>`:""}
-      ${noEditables.length&&!esCasoGeo?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. La Torre volverá a verificarlo automáticamente.</div>`:""}
+      ${noEditables.length&&!esCasoGeo?`<div class="muted" style="font-size:11px;margin-top:6px">Corregir en SendGround: ${esc(noEditables.join(", "))}. Usá «Verificar datos» para confirmar el cambio.</div>`:""}
       ${sincronizado?'<div class="muted" style="font-size:11px;margin-top:5px">Estado verificado contra los datos actuales de SendGround.</div>':""}
     `:"";
 
@@ -1030,6 +1062,7 @@ function renderReviews(){
       </div>
       <div class="review-actions">
         <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
+        ${esCasoDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('UES',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
         ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>`:""}
       </div>
     </div>`;
@@ -1895,7 +1928,7 @@ async function completarDatos(id,button){
     setTimeout(()=>Promise.all([cargarReviews(),cargarDashboard(true)]),900);
   }catch(e){
     accion.mostrar(`<div class="alert err">${esc(e?.message||"No se pudo completar la acción")}</div>`);
-    // La próxima recarga vuelve a leer los datos actuales desde SendGround.
+    // La próxima recarga solo lee Supabase. La verificación externa es manual.
     setTimeout(()=>cargarReviews(),1600);
   }finally{
     accion.finalizar();

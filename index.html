@@ -817,15 +817,13 @@ async function cargarReviews(silent=false){
     // Refresco automático y botón Actualizar: únicamente Supabase.
     // No pedir datos a SendGround por cada incidencia. La comprobación
     // real se ejecuta solo mediante "Verificar datos" de esa revisión.
-    const urLive=urBase;
-    const rrLive=rrBase;
-    REVIEWS=[...urLive,...rrLive].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    REVIEWS=[...urBase,...rrBase].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
 
     // Sincronizar la tarjeta con exactamente los registros que la lista muestra.
     // Las alertas operativas (p.ej. Entrega sin asignar) SON revisiones pendientes.
     if(DASHBOARD?.metrics){
-      const uRev=urLive.length;
-      const rRev=rrLive.length;
+      const uRev=urBase.length;
+      const rRev=rrBase.length;
       DASHBOARD.metrics.revisionPendiente=uRev+rRev;
       if(DASHBOARD._ues?.metrics)DASHBOARD._ues.metrics.revisionPendiente=uRev;
       if(DASHBOARD._ryr?.metrics)DASHBOARD._ryr.metrics.revisionPendiente=rRev;
@@ -843,7 +841,7 @@ async function cargarReviews(silent=false){
 async function verificarDatosRevision(provider,id,button){
   provider=String(provider||"").toUpperCase();
   const actual=REVIEWS.find(r=>String(r.provider||"UES").toUpperCase()===provider&&String(r.id)===String(id));
-  if(!actual || !["UES","RYR"].includes(provider)){
+  if(!actual || actual.source_type!=="revision" || !["UES","RYR"].includes(provider)){
     toast("La incidencia ya no figura en la lista; actualizá el panel");
     return;
   }
@@ -954,7 +952,7 @@ function renderReviews(){
         </div>
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
-          ${esDatos&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
+          ${esDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
           ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
         </div>
       </div>`;
@@ -1064,7 +1062,7 @@ function renderReviews(){
       </div>
       <div class="review-actions">
         <button class="btn secondary small" onclick="abrirReviewUes(${r.id})">Ver detalle</button>
-        ${esCasoDatos&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('UES',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
+        ${esCasoDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('UES',${Number(r.id)},this)">Verificar datos en SendGround</button>`:""}
         ${r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('UES',${r.id},'${esc(r.order_code)}')">Marcar resuelto</button>`:""}
       </div>
     </div>`;

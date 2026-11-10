@@ -106,8 +106,9 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
   <main id="app" class="hidden">
     <div class="hero">
       <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
-      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Actualiza el tablero y las revisiones sin modificar órdenes ni asignaciones">↻ Actualizar</button></div>
+      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Actualiza el tablero y comprueba únicamente las ORD marcadas con error, sin cambiar estados">↻ Actualizar</button><span id="lastRefreshAt" class="muted" role="status" aria-live="polite" style="font-size:11px;align-self:center"></span></div>
     </div>
+    <div id="refreshErrorResults" class="hidden" aria-live="polite" style="margin-bottom:16px"></div>
 
     <div id="metrics" class="metrics"></div>
     <div id="health" class="health-grid"></div>
@@ -207,6 +208,7 @@ async function apiProvider(provider,action,{method="GET",body=null,query={}}={})
   const qs=new URLSearchParams({action,...query});
   const res=await fetch(apiBase(provider)+"?"+qs,{
     method,
+    cache:method==="GET"?"no-store":"default",
     headers:{
       ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
       ...(body?{"Content-Type":"application/json"}:{})
@@ -244,6 +246,7 @@ async function apiRyrDatos(action,{method="GET",body=null,query={}}={}){
   const qs=new URLSearchParams({action,...query});
   const res=await fetch(API_BASE_RYR_DATOS+"?"+qs,{
     method,
+    cache:method==="GET"?"no-store":"default",
     headers:{
       ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
       ...(body?{"Content-Type":"application/json"}:{})
@@ -524,9 +527,11 @@ async function cargarDashboard(silent=false){
       }
     };
     renderDashboard();
+    return {ok:true,providers:{UES:uesRes.status==="fulfilled",RYR:ryrRes.status==="fulfilled"}};
   }catch(e){
     if(!silent)throw e;
     document.getElementById("topStatus").innerHTML='<span class="dot red"></span><span>Error de panel</span>';
+    return {ok:false,error:e?.message||String(e),providers:{UES:false,RYR:false}};
   }
 }
 function ryrHealthEntries(r){
@@ -833,8 +838,10 @@ async function cargarReviews(silent=false){
     renderReviews();
     document.getElementById("reviewCount").textContent=REVIEWS.length;
     if(!PASSWORD)consultarConteo();
+    return {ok:true,providers:{UES:u.status==="fulfilled",RYR:r.status==="fulfilled"},count:REVIEWS.length};
   }catch(e){
     if(!silent)el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+    return {ok:false,error:e?.message||String(e),providers:{UES:false,RYR:false}};
   }
 }
 
@@ -1960,19 +1967,103 @@ function codigoOrdenRow(row){
   return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
 }
 async function refrescarTodo(){
-  // Refrescar panel = solo lectura. Las reparaciones y cambios de estado
-  // son acciones explícitas por orden desde Torre de Control.
+  // Botón manual: solo se consultan ORD ya marcadas con error técnico.
+  // El temporizador de 5 minutos no dispara esta verificación externa.
   const btn=document.getElementById("refreshAllBtn");
-  if(btn?.disabled)return;
-  const original=btn?.innerHTML||"↻ Actualizar";
-  if(btn){btn.disabled=true;btn.innerHTML="↻ Actualizando…";}
+  const status=document.getElementById("lastRefreshAt");
+  const report=document.getElementById("refreshErrorResults");
+  if(!btn||btn.disabled)return;
+  const original=btn.innerHTML;
+  btn.disabled=true;
+  btn.textContent="↻ Verificando errores…";
+  if(status)status.textContent="Consultando UES y RyR…";
+  if(report){report.classList.remove("hidden");report.innerHTML='<div class="card" style="padding:14px">Actualizando panel y buscando órdenes con error…</div>';}
   try{
-    await Promise.all([cargarDashboard(true),cargarReviews()]);
-    toast("Panel actualizado · sin reasignar ni reprocesar pedidos");
+    const dashboard=await cargarDashboard(true);
+    const reviews=await cargarReviews(true);
+    const panelsOk=dashboard?.ok===true&&reviews?.ok===true;
+    const panelMissing=["UES","RYR"].filter(p=>
+      dashboard?.providers?.[p]!==true||reviews?.providers?.[p]!==true
+    );
+    // Selección desde la misma métrica visible de "Errores pendientes".
+    const [u,r]=await Promise.allSettled([
+      apiProvider("UES","dashboard-list",{query:{kind:"erroresPendientes"}}),
+      apiProvider("RYR","dashboard-list",{query:{kind:"erroresPendientes"}})
+    ]);
+    const sourceErrors=[];
+    if(u.status==="rejected")sourceErrors.push("UES: "+(u.reason?.message||"No disponible"));
+    if(r.status==="rejected")sourceErrors.push("RyR: "+(r.reason?.message||"No disponible"));
+    const candidates=[];
+    const unique=new Set();
+    for(const [provider,out] of [["UES",u],["RYR",r]]){
+      if(out.status!=="fulfilled")continue;
+      for(const row of (Array.isArray(out.value?.rows)?out.value.rows:[])){
+        const code=String(row.order_code||row.code||row.query||"").trim().toUpperCase();
+        if(!/^ORD[A-Z0-9_-]+$/.test(code))continue;
+        const key=provider+":"+code;
+        if(unique.has(key))continue;
+        unique.add(key);
+        candidates.push({provider,orderCode:code});
+      }
+    }
+    // Límite de seguridad para evitar un nuevo barrido masivo.
+    const MAX=25;
+    const targets=candidates.slice(0,MAX);
+    const results=new Array(targets.length);
+    let next=0;
+    async function verificarLote(){
+      while(next<targets.length){
+        const i=next++;
+        const target=targets[i];
+        if(status)status.textContent="Verificando "+(i+1)+"/"+targets.length+" órdenes…";
+        try{
+          const data=target.provider==="UES"
+            ?await apiProvider("UES","error-status",{query:{orderCode:target.orderCode}})
+            :await apiRyrDatos("error-status",{query:{orderCode:target.orderCode}});
+          results[i]={...target,data};
+        }catch(err){
+          results[i]={...target,error:err?.message||String(err)};
+        }
+      }
+    }
+    await Promise.all([verificarLote(),verificarLote()]);
+    const time=new Intl.DateTimeFormat("es-UY",{
+      hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:"America/Montevideo"
+    }).format(new Date());
+    const failed=results.filter(x=>x.error||x.data?.ok===false).length;
+    const pending=results.filter(x=>!x.error&&x.data?.errorActual===true).length;
+    const resolved=results.filter(x=>!x.error&&x.data?.errorActual===false).length;
+    const extra=Math.max(0,candidates.length-MAX);
+    const warnings=[...sourceErrors,...panelMissing.map(p=>p+": panel no disponible")];
+    if(!panelsOk&&warnings.length===0)warnings.push(dashboard?.error||reviews?.error||"Error de panel");
+    if(extra)warnings.push(extra+" órdenes no consultadas por el límite de 25");
+    const lines=results.map(item=>{
+      if(item.error||item.data?.ok===false){
+        return `<div style="padding:9px 0;border-top:1px solid #dfe6ee"><b class="mono">${esc(item.orderCode)}</b> · ${esc(item.provider)} <span class="badge red">No verificado</span><div class="muted">${esc(item.error||item.data?.detail||"Consulta no completada")}</div></div>`;
+      }
+      const data=item.data;
+      const tag=data.errorActual===false?"green":"yellow";
+      const label=data.eligible===false?"Sin error activo registrado":
+        data.errorActual===false?"Error superado en SendGround":"Error registrado";
+      const details=[data.estadoActual,
+        data.estadoGoCargo?"GoCargo: "+data.estadoGoCargo:null,
+        data.detalle].filter(Boolean).map(esc).join(" · ");
+      return `<div style="padding:9px 0;border-top:1px solid #dfe6ee"><b class="mono">${esc(item.orderCode)}</b> · ${esc(item.provider)} <span class="badge ${tag}">${esc(label)}</span><div class="muted">${details}</div></div>`;
+    }).join("");
+    if(report){
+      report.innerHTML=`<div class="card" style="padding:15px"><b>Estado actual de las órdenes con error</b><div class="muted" style="font-size:12px;margin:5px 0 9px">Verificado a las ${esc(time)} · ${targets.length} órdenes consultadas · ${pending} errores registrados · ${resolved} sin error activo identificado · ${failed} sin verificar</div>${warnings.length?`<div class="alert warn">${warnings.map(esc).join(" · ")}</div>`:""}${lines||'<div class="muted">No hay órdenes marcadas con error para consultar.</div>'}<div class="muted" style="font-size:11px;margin-top:9px">Consulta puntual y de solo lectura. No modifica responsables, tareas ni borra historial de errores.</div></div>`;
+    }
+    const complete=panelsOk&&panelMissing.length===0&&warnings.length===0&&failed===0;
+    if(status)status.textContent=(complete?"Verificado: ":"Parcial: ")+time;
+    toast(complete?"Panel actualizado y errores verificados":
+      "Actualización parcial · revisá el detalle de las órdenes");
   }catch(e){
-    toast("No se pudo actualizar el panel: "+(e?.message||String(e)));
+    if(status)status.textContent="Error al actualizar";
+    if(report)report.innerHTML=`<div class="alert err">${esc(e?.message||String(e))}</div>`;
+    toast("Error actualizando: "+(e?.message||String(e)));
   }finally{
-    if(btn){btn.disabled=false;btn.innerHTML=original;}
+    btn.disabled=false;
+    btn.innerHTML=original;
   }
 }
 </script>

@@ -297,23 +297,8 @@ async function enriquecerRevisionUesLive(r){
         live.datos_sendground_actualizados===true
     };
 
-    // Igual que RyR: si los datos ya fueron corregidos directamente
-    // en SendGround, cerramos solamente la alerta de DATOS.
-    // Un refresco de la Torre NO ejecuta ues-proxy.
-    if(
-      enriched.esCasoGeografia!==true&&
-      Array.isArray(enriched.faltantes_actuales)&&
-      enriched.faltantes_actuales.length===0
-    ){
-      try{
-        const rec=await apiUesDatos("reconcile",{
-          method:"POST",
-          body:{id:r.id}
-        });
-        if(rec.resolved)return null;
-      }catch{}
-    }
-
+    // El refresco de tablero no debe cerrar alertas silenciosamente.
+    // Las revisiones se resuelven con una acción explícita del operador.
     return enriched;
   }catch{
     // Compatibilidad: si ues-datos no responde, conservamos
@@ -346,15 +331,8 @@ async function enriquecerRevisionRyrLive(r){
       datos_sendground_actualizados:live.datos_sendground_actualizados===true
     };
 
-    // Si el operador ya corrigió el problema directamente en SendGround,
-    // cerramos solamente la alerta de DATOS. No ejecutamos ryr-proxy desde
-    // una actualización de pantalla y no tocamos estados externos.
-    if(Array.isArray(enriched.faltantes_actuales)&&enriched.faltantes_actuales.length===0){
-      try{
-        const rec=await apiRyrDatos("reconcile",{method:"POST",body:{id:r.id}});
-        if(rec.resolved)return null;
-      }catch{}
-    }
+    // No resolver revisiones mediante POST al solo mostrar/refrescar el
+    // panel. La acción explícita de resolver conserva el control humano.
     return enriched;
   }catch{
     // Compatibilidad durante despliegue: si ryr-datos todavía no está
@@ -400,7 +378,12 @@ async function consultarConteo(){
 consultarConteo();
 document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
 
-async function login(){PASSWORD=document.getElementById("password").value;const btn=document.getElementById("loginBtn");btn.disabled=true;document.getElementById("loginMsg").innerHTML="";try{await cargarDashboard();document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");await cargarReviews();autoTimer=setInterval(()=>Promise.all([cargarDashboard(true),cargarReviews(true)]),60000)}catch(e){document.getElementById("loginMsg").innerHTML=`<div class="alert err">${e.status===401?"Contraseña incorrecta":esc(e.message)}</div>`}finally{btn.disabled=false}}
+async function login(){PASSWORD=document.getElementById("password").value;const btn=document.getElementById("loginBtn");btn.disabled=true;document.getElementById("loginMsg").innerHTML="";try{await cargarDashboard();document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");await cargarReviews();autoTimer=setInterval(()=>{
+  // Evitar consultas si la Torre no está visible y limitar las recargas
+  // automáticas; el botón Actualizar sigue siendo inmediato.
+  if(document.hidden)return;
+  Promise.allSettled([cargarDashboard(true),cargarReviews(true)]);
+},300000)}catch(e){document.getElementById("loginMsg").innerHTML=`<div class="alert err">${e.status===401?"Contraseña incorrecta":esc(e.message)}</div>`}finally{btn.disabled=false}}
 
 function proxyPartialInfo(h){
   const r=h?.last_result;
@@ -596,8 +579,7 @@ function renderDashboard(){
   const hb=Object.fromEntries((u.heartbeats||[]).map(x=>[x.component,x]));
   const uesComps=[
     ["ues-webhook","Webhook","Tiempo real / 24×7"],
-    ["ues-proxy","Creación de guías","14:00–18:00 / 30 min"],
-    ["ues-poller","Poller de respaldo","22:00 / diario"]
+    ["ues-proxy","Creación de guías","14:00–16:00 / 30 min"]
   ];
 
   for(const [key,title,schedule] of uesComps){

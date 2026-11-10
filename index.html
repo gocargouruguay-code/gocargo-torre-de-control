@@ -106,7 +106,7 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
   <main id="app" class="hidden">
     <div class="hero">
       <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
-      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Corrige asignaciones del proveedor activo, reprocesa pedidos abiertos, actualiza el panel y prueba conexiones UES / RyR">↻ Actualizar</button></div>
+      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Actualiza el tablero y las revisiones sin modificar órdenes ni asignaciones">↻ Actualizar</button></div>
     </div>
 
     <div id="metrics" class="metrics"></div>
@@ -1945,95 +1945,17 @@ function codigoOrdenRow(row){
   return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
 }
 async function refrescarTodo(){
+  // Refrescar panel = solo lectura. Las reparaciones y cambios de estado
+  // son acciones explícitas por orden desde Torre de Control.
   const btn=document.getElementById("refreshAllBtn");
   if(btn?.disabled)return;
   const original=btn?.innerHTML||"↻ Actualizar";
   if(btn){btn.disabled=true;btn.innerHTML="↻ Actualizando…";}
-
   try{
-    toast("Corrigiendo asignaciones y sincronizando pedidos abiertos de UES y RyR…");
-
-    // IMPORTANTE: "Actualizar" debe DESCUBRIR problemas nuevos, no solamente
-    // reprocesar alertas que ya existen. Por eso recorremos todos los pedidos
-    // abiertos de ambos proveedores. Cada reproceso ejecuta el poller de UNA ORD
-    // del lado servidor (sin exponer secretos en el navegador) y actualiza, entre
-    // otras cosas, las alertas de Entrega GoCargo sin asignar.
-    const [uOpen,rOpen]=await Promise.allSettled([
-      apiProvider("UES","dashboard-list",{query:{kind:"abiertos"}}),
-      apiProvider("RYR","dashboard-list",{query:{kind:"abiertos"}})
-    ]);
-
-    const jobs=[];
-    const seen=new Set();
-    const addJobs=(provider,res)=>{
-      for(const row of rowsDashboard(res)){
-        const orderCode=codigoOrdenRow(row);
-        if(!orderCode)continue;
-        const key=`${provider}:${orderCode}`;
-        if(seen.has(key))continue;
-        seen.add(key);
-        jobs.push({provider,orderCode});
-      }
-    };
-    if(uOpen.status==="fulfilled")addJobs("UES",uOpen.value);
-    if(rOpen.status==="fulfilled")addJobs("RYR",rOpen.value);
-
-    const resultados=[];
-    // Máximo dos reprocesos simultáneos para no presionar SendGround ni los proveedores.
-    let cursor=0;
-    async function worker(){
-      while(cursor<jobs.length){
-        const job=jobs[cursor++];
-        try{
-          // Primero corregimos ownership: toda tarea Warehouse todavía abierta
-          // debe pertenecer al proveedor activo. Completed/Canceled no se tocan.
-          const repair=await repararAsignacionesProveedor(job.provider,job.orderCode);
-          const r=await apiProvider(job.provider,"reprocess",{
-            method:"POST",
-            body:{order_code:job.orderCode}
-          });
-          resultados.push({
-            provider:job.provider,
-            orderCode:job.orderCode,
-            ok:r?.ok!==false,
-            repaired:repair?.repaired===true,
-            reassigned:Number(repair?.reassignedTaskIds?.length||0)
-          });
-        }catch(e){
-          resultados.push({provider:job.provider,orderCode:job.orderCode,ok:false,error:e?.message||String(e)});
-        }
-      }
-    }
-    await Promise.all([worker(),worker()]);
-
-    // Dejamos que los pollers terminen de persistir last_error / cierres y luego
-    // releemos todo. cargarReviews además reconcilia alertas históricas de UES.
-    await new Promise(r=>setTimeout(r,700));
     await Promise.all([cargarDashboard(true),cargarReviews()]);
-
-    // "Actualizar" también reemplaza al antiguo botón "Probar conexiones".
-    try{await probarConexiones()}catch{}
-
-    const ok=resultados.filter(x=>x.ok).length;
-    const fail=resultados.length-ok;
-    const repaired=resultados.filter(x=>x.repaired).length;
-    const reassigned=resultados.reduce((acc,x)=>acc+Number(x.reassigned||0),0);
-    const fuentesFallidas=[];
-    if(uOpen.status==="rejected")fuentesFallidas.push("UES");
-    if(rOpen.status==="rejected")fuentesFallidas.push("RyR");
-
-    if(jobs.length===0){
-      toast(fuentesFallidas.length
-        ?`Panel actualizado · no se pudo consultar ${fuentesFallidas.join(" y ")}`
-        :"Panel actualizado · no había pedidos abiertos para sincronizar");
-    }else if(fail===0&&fuentesFallidas.length===0){
-      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} revisado${ok===1?"":"s"}${reassigned?` · ${reassigned} tarea${reassigned===1?"":"s"} reasignada${reassigned===1?"":"s"} en ${repaired} pedido${repaired===1?"":"s"}`:""}`);
-    }else{
-      toast(`Panel sincronizado · ${ok} pedido${ok===1?"":"s"} OK · ${fail} con error${fuentesFallidas.length?` · sin consultar ${fuentesFallidas.join("/")}`:""}`);
-    }
+    toast("Panel actualizado · sin reasignar ni reprocesar pedidos");
   }catch(e){
-    toast(e?.message||"No se pudo sincronizar el panel");
-    try{await Promise.all([cargarDashboard(true),cargarReviews()]);}catch{}
+    toast("No se pudo actualizar el panel: "+(e?.message||String(e)));
   }finally{
     if(btn){btn.disabled=false;btn.innerHTML=original;}
   }

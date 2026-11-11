@@ -572,8 +572,8 @@ function ryrHealthEntries(r){
 
 function ryrComponentTitle(key){
   const k=norm(key);
-  if(k.includes("webhook"))return "Webhook RyR";
-  if(k.includes("proxy"))return "Creación RyR";
+  if(k.includes("webhook"))return "Webhook";
+  if(k.includes("proxy"))return "Creación de envíos";
   if(k.includes("poller"))return "Poller RyR";
   return `RyR · ${key}`;
 }
@@ -581,7 +581,7 @@ function ryrComponentTitle(key){
 function ryrComponentSchedule(key,r){
   const k=norm(key),s=r?.schedules||{};
   if(k.includes("webhook"))return s.webhook||s.ryrWebhook||"Tiempo real / según eventos RyR";
-  if(k.includes("proxy"))return s.proxy||s.ryrProxy||"Creación / según programación RyR";
+  if(k.includes("proxy"))return s.proxy||s.ryrProxy||"14:00–16:00 / 30 min";
   if(k.includes("poller"))return s.poller||s.ryrPoller||"Reconciliación / según programación RyR";
   return "Según configuración RyR";
 }
@@ -629,7 +629,10 @@ function renderDashboard(){
       const st=componentState(h);if(st.c==="red")anyRed=true;
       const friendly=componentFriendlyMessage(h);
       const last=h.last_activity_at||h.updated_at||h.last_success_at||h.last_started_at;
-      cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${esc(title)}<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">Última actividad: <b>${fmt(last)}</b><br>Programación: ${esc(schedule)}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}">${esc(friendly)}</div>`:""}</div>`);
+      const ultimo=key==="ryr-webhook"?r.ultimoWebhook:null;
+      const lastConfirmed=ultimo?.received_at||last;
+      const lastEvent=ultimo?`<br>Último evento: <b>${esc(ultimo.evento_nombre||"—")}</b> · ${esc(ultimo.order_code||ultimo.ryr_order_code||"sin mapear")}`:"";
+      cards.push(`<div class="card health-card clickable-card" role="button" tabindex="0" onclick="abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirComponenteProveedor('RYR','${esc(key)}','${esc(title)}','${esc(schedule)}')}"><div class="health-head"><span class="dot ${st.c}"></span>${esc(title)}<span class="badge ${st.c}">${st.t}</span><span class="badge green provider-chip">RyR</span></div><div class="health-meta">Última actividad: <b>${fmt(lastConfirmed)}</b><br>Programación: ${esc(schedule)}${lastEvent}</div>${friendly?`<div class="${st.c==="yellow"?"health-warning":"health-error"}" title="${esc(friendly)}">${esc(friendly)}</div>`:""}</div>`);
     }
   }else{
     const rm=r.metrics||{};

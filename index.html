@@ -1025,6 +1025,7 @@ function renderReviews(){
         <div class="review-actions">
           <button class="btn secondary small" onclick="${open}">Ver detalle</button>
           ${esDatos&&r.source_type==="revision"&&r.id?`<button class="btn secondary small" onclick="verificarDatosRevision('RYR',${Number(r.id)},this,${Boolean(diagCached("RYR",r.id))})">${diagCached("RYR",r.id)?"Verificar nuevamente":"Diagnosticar y corregir"}</button>`:""}
+          ${r.source_type==="missing_link"&&/^ORD[A-Z0-9]+$/.test(String(r.order_code||""))?`<button class="btn primary small" onclick="diagnosticarTransferenciaRyr('${esc(r.order_code)}')">Diagnosticar y corregir</button>`:""}
           ${!esDatos&&r.resolvable!==false&&r.id?`<button class="btn secondary small" onclick="resolverCaso('RYR',${r.id},'${esc(r.order_code||"")}')">Marcar resuelto</button>`:""}
         </div>
       </div>`;
@@ -1590,6 +1591,20 @@ function renderPreviewManual(orderCode,provider,pack){
   const pickup=o.pickupName?`<div class="k">Pick Up</div><div class="v">${esc(o.pickupName)}</div>`:"";
 
   el.innerHTML=`${problems}<div class="manual-provider-state">${providerState("UES",pack.UES)}${providerState("RyR",pack.RYR)}</div><div class="manual-summary"><div class="card detail-card"><div class="detail-title">SendGround</div><div class="kv"><div class="k">Orden</div><div class="v mono">${esc(orderCode)}</div><div class="k">Destinatario</div><div class="v">${esc(o.recipientName||"—")}</div><div class="k">Teléfono</div><div class="v mono">${esc(o.telephone||"—")}</div><div class="k">Dirección</div><div class="v">${esc(o.address||"—")}</div>${pickup}</div></div><div class="card detail-card"><div class="detail-title">Transferencia</div><div class="kv"><div class="k">Task ID</div><div class="v mono">${esc(t.taskId??"—")}</div><div class="k">Location ID</div><div class="v mono">${esc(t.locationId??"—")}</div><div class="k">Estado</div><div class="v">${esc(t.statusId??"—")}</div><div class="k">Proveedor elegido</div><div class="v"><span class="badge ${provider==="RYR"?"green":"blue"}">${provider}</span></div></div></div><div class="card detail-card"><div class="detail-title">Control</div><div class="kv"><div class="k">Depósito esperado</div><div class="v mono">${esc(s.expectedPickupLocationId??"—")}</div><div class="k">Excepción</div><div class="v">${s.requiresException?"Sí, exacta y auditada":"No"}</div><div class="k">Faltantes</div><div class="v">${Array.isArray(s.missingFields)&&s.missingFields.length?esc(s.missingFields.join(", ")):"Ninguno"}</div></div></div></div>${manualOverride}${exception}${duplicateInfo}${button}`;
+}
+
+// Solo se consulta SendGround al elegir la ORD específica, nunca en el refresco.
+async function diagnosticarTransferenciaRyr(orderCode){
+  const code=String(orderCode||"").trim().toUpperCase();
+  if(!/^ORD[A-Z0-9]+$/.test(code)){toast("Código de orden inválido");return;}
+  const input=document.getElementById("manualOrder");
+  const provider=document.getElementById("manualProvider");
+  if(!input||!provider){toast("No se encontró el módulo de envío manual");return;}
+  input.value=code;
+  provider.value="RYR";
+  limpiarPreviewManual();
+  input.closest(".manual-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+  await previsualizarOrdenManual();
 }
 
 async function previsualizarOrdenManual(){

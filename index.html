@@ -106,7 +106,7 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
   <main id="app" class="hidden">
     <div class="hero">
       <div><h1>GoCargo / UES / RyR</h1><p>Estado operativo y revisión de pedidos UES y RyR en una sola pantalla.</p></div>
-      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Comprueba incidencias, repara asignaciones seguras y sincroniza hasta 4 ORD pendientes por clic">↻ Actualizar</button><span id="lastRefreshAt" class="muted" role="status" aria-live="polite" style="font-size:11px;align-self:center"></span></div>
+      <div class="hero-actions"><button id="lateTransfersBtn" class="btn primary" onclick="procesarTransferenciasAtrasadas()" title="Busca Transferencias completadas que todavía no fueron creadas/vinculadas en UES o RyR y las reprocesa de forma segura">Procesar transferencias atrasadas</button><button id="refreshAllBtn" class="btn secondary" onclick="refrescarTodo()" title="Comprueba incidencias, repara asignaciones seguras y sincroniza hasta 20 ORD pendientes por clic, solo si corresponde">↻ Actualizar</button><span id="lastRefreshAt" class="muted" role="status" aria-live="polite" style="font-size:11px;align-self:center"></span></div>
     </div>
     <div id="refreshErrorResults" class="hidden" aria-live="polite" style="margin-bottom:16px"></div>
 
@@ -2067,11 +2067,11 @@ function codigoOrdenRow(row){
 }
 // Actualización asistida de incidencias: manual, serial y de tráfico acotado.
 // El refresco automático de cinco minutos SOLO lee Supabase.
-// Cada clic selecciona hasta 4 ORD, no vuelve a consultar una misma ORD
+// Cada clic selecciona hasta 20 ORD con incidencia, no vuelve a consultar una misma ORD
 // dentro de 3 minutos y rota entre pendientes para no dejar casos sin mirar.
 const ERROR_STATUS_CACHE=new Map();
 const ERROR_STATUS_TTL_MS=3*60*1000;
-const ERROR_STATUS_BATCH=4;
+const ERROR_STATUS_BATCH=20;
 const ERROR_STATUS_MIN_INTERVAL_MS=30*1000;
 let ERROR_STATUS_LAST_CHECK=0;
 function refreshOrderCode(row){
@@ -2232,7 +2232,7 @@ async function refrescarTodo(){
         ${warnings.length?`<div class="alert warn">${warnings.map(esc).join(" · ")}</div>`:""}
         ${lines||'<div class="muted">Sin órdenes nuevas para verificar en este momento.</div>'}
         <div class="muted" style="font-size:11px;margin-top:9px">
-          Máximo 4 ORD por clic. Solo consultas y acciones puntuales; no se cambian responsables existentes, no se cancelan entregas automáticamente y no se consultan todas las órdenes de SendGround.
+          Máximo 20 ORD con incidencia por clic, solo cuando corresponda. Solo consultas y acciones puntuales; no se cambian responsables existentes, no se cancelan entregas automáticamente y no se consultan todas las órdenes de SendGround.
         </div></div>`;
     if(status)status.textContent="Actualizado: "+time;
     toast(results.some(r=>r.state==="resolved")

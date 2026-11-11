@@ -2050,6 +2050,14 @@ function codigoOrdenRow(row){
   const code=String(row?.query||row?.order_code||row?.gocargo_order_code||row?.code||"").trim().toUpperCase();
   return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
 }
+// Protección de tráfico del botón manual (independiente de cron):
+// a lo sumo 4 ORD nuevas por ejecución y las mismas ORD no vuelven
+// a consultarse en 15 minutos dentro de esta sesión.
+const ERROR_STATUS_CACHE=new Map();
+const ERROR_STATUS_TTL_MS=15*60*1000;
+const ERROR_STATUS_BATCH=4;
+const ERROR_STATUS_MIN_INTERVAL_MS=60*1000;
+let ERROR_STATUS_LAST_CHECK=0;
 async function refrescarTodo(){
   // Botón manual: solo se consultan ORD ya marcadas con error técnico.
   // El temporizador de 5 minutos no dispara esta verificación externa.
@@ -2090,9 +2098,23 @@ async function refrescarTodo(){
         candidates.push({provider,orderCode:code});
       }
     }
-    // Límite de seguridad para evitar un nuevo barrido masivo.
-    const MAX=25;
-    const targets=candidates.slice(0,MAX);
+    // Las consultas del operador también tienen presupuesto.
+    // CERO tareas externas al refrescar automáticamente y máximo
+    // 4 ORD nuevas por clic manual (máximo 8 lecturas V1 si todas son RyR).
+    const now=Date.now();
+    for(const [key,saved] of ERROR_STATUS_CACHE){
+      if(now-saved.at>ERROR_STATUS_TTL_MS)ERROR_STATUS_CACHE.delete(key);
+    }
+    const cachedResults=[];
+    const unchecked=[];
+    for(const item of candidates){
+      const saved=ERROR_STATUS_CACHE.get(item.provider+":"+item.orderCode);
+      if(saved)cachedResults.push({...item,...saved.result,cached:true});
+      else unchecked.push(item);
+    }
+    const throttled=now-ERROR_STATUS_LAST_CHECK<ERROR_STATUS_MIN_INTERVAL_MS;
+    const targets=throttled?[]:unchecked.slice(0,ERROR_STATUS_BATCH);
+    if(targets.length)ERROR_STATUS_LAST_CHECK=now;
     const results=new Array(targets.length);
     let next=0;
     async function verificarLote(){
@@ -2105,23 +2127,34 @@ async function refrescarTodo(){
             ?await apiProvider("UES","error-status",{query:{orderCode:target.orderCode}})
             :await apiRyrDatos("error-status",{query:{orderCode:target.orderCode}});
           results[i]={...target,data};
+          ERROR_STATUS_CACHE.set(target.provider+":"+target.orderCode,{
+            at:Date.now(),result:{data}
+          });
         }catch(err){
           results[i]={...target,error:err?.message||String(err)};
+          // Evitar martillar la API si SendGround está fallando.
+          ERROR_STATUS_CACHE.set(target.provider+":"+target.orderCode,{
+            at:Date.now(),result:{error:err?.message||String(err)}
+          });
         }
       }
     }
-    await Promise.all([verificarLote(),verificarLote()]);
+    // Un solo verificador a la vez: máximo una ORD en vuelo,
+    // no crear ráfagas paralelas.
+    await verificarLote();
+    const allResults=[...cachedResults,...results];
     const time=new Intl.DateTimeFormat("es-UY",{
       hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:"America/Montevideo"
     }).format(new Date());
-    const failed=results.filter(x=>x.error||x.data?.ok===false).length;
-    const pending=results.filter(x=>!x.error&&x.data?.errorActual===true).length;
-    const resolved=results.filter(x=>!x.error&&x.data?.errorActual===false).length;
-    const extra=Math.max(0,candidates.length-MAX);
+    const failed=allResults.filter(x=>x.error||x.data?.ok===false).length;
+    const pending=allResults.filter(x=>!x.error&&x.data?.errorActual===true).length;
+    const resolved=allResults.filter(x=>!x.error&&x.data?.errorActual===false).length;
+    const extra=Math.max(0,unchecked.length-targets.length);
     const warnings=[...sourceErrors,...panelMissing.map(p=>p+": panel no disponible")];
     if(!panelsOk&&warnings.length===0)warnings.push(dashboard?.error||reviews?.error||"Error de panel");
-    if(extra)warnings.push(extra+" órdenes no consultadas por el límite de 25");
-    const lines=results.map(item=>{
+    if(extra)warnings.push(extra+" órdenes aún sin verificar. Máximo "+ERROR_STATUS_BATCH+" nuevas por actualización.");
+    if(throttled&&unchecked.length)warnings.push("Consultas externas pausadas durante un minuto para proteger la API de SendGround.");
+    const lines=allResults.map(item=>{
       if(item.error||item.data?.ok===false){
         return `<div style="padding:9px 0;border-top:1px solid #dfe6ee"><b class="mono">${esc(item.orderCode)}</b> · ${esc(item.provider)} <span class="badge red">No verificado</span><div class="muted">${esc(item.error||item.data?.detail||"Consulta no completada")}</div></div>`;
       }
@@ -2135,7 +2168,7 @@ async function refrescarTodo(){
       return `<div style="padding:9px 0;border-top:1px solid #dfe6ee"><b class="mono">${esc(item.orderCode)}</b> · ${esc(item.provider)} <span class="badge ${tag}">${esc(label)}</span><div class="muted">${details}</div></div>`;
     }).join("");
     if(report){
-      report.innerHTML=`<div class="card" style="padding:15px"><b>Estado actual de las órdenes con error</b><div class="muted" style="font-size:12px;margin:5px 0 9px">Verificado a las ${esc(time)} · ${targets.length} órdenes consultadas · ${pending} errores registrados · ${resolved} sin error activo identificado · ${failed} sin verificar</div>${warnings.length?`<div class="alert warn">${warnings.map(esc).join(" · ")}</div>`:""}${lines||'<div class="muted">No hay órdenes marcadas con error para consultar.</div>'}<div class="muted" style="font-size:11px;margin-top:9px">Consulta puntual y de solo lectura. No modifica responsables, tareas ni borra historial de errores.</div></div>`;
+      report.innerHTML=`<div class="card" style="padding:15px"><b>Estado actual de las órdenes con error</b><div class="muted" style="font-size:12px;margin:5px 0 9px">Actualizado a las ${esc(time)} · ${targets.length} ORD consultadas ahora · ${cachedResults.length} resultados reutilizados de los últimos 15 minutos · ${pending} errores registrados · ${resolved} sin error activo identificado · ${failed} sin verificar</div>${warnings.length?`<div class="alert warn">${warnings.map(esc).join(" · ")}</div>`:""}${lines||'<div class="muted">No hay órdenes marcadas con error para consultar.</div>'}<div class="muted" style="font-size:11px;margin-top:9px">Sincronización visual solo desde Supabase. Solo el botón manual consulta SendGround para hasta cuatro ORD nuevas y nunca cambia responsables, tareas ni borra errores.</div></div>`;
     }
     const complete=panelsOk&&panelMissing.length===0&&warnings.length===0&&failed===0;
     if(status)status.textContent=(complete?"Verificado: ":"Parcial: ")+time;

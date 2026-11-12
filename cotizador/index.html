@@ -530,12 +530,12 @@ body{background:#f4f7fc}
       </section>
       <section class="rates-card suite-google-settings">
  <h3>Google Maps · Reutilizar la integración de Pedidos Online</h3>
- <p>El backend de pedidos de GoCargo ya consulta Google Distance Matrix mediante una clave de servidor. Indicá la dirección HTTPS de ese backend para utilizar la misma integración, sin crear ni publicar una clave adicional. La opción de una clave de navegador queda disponible solo como alternativa.</p>
+ <p>GoCargo utiliza un servicio protegido de Google Routes API con su propia clave de servidor, separado del sistema de pedidos online. Indicá el backend HTTPS donde está publicado el servicio. La clave de navegador es una alternativa opcional.</p>
  <div class="suite-google-settings-row"><div class="field"><label for="googleBackendUrl">URL del backend de Pedidos Online</label><input id="googleBackendUrl" type="url" placeholder="https://tu-backend.up.railway.app" autocomplete="url" spellcheck="false"></div></div>
  <div class="suite-google-settings-row"><div class="field"><label for="googleBrowserKey">Clave opcional de Google Maps para navegador</label><input id="googleBrowserKey" type="text" placeholder="AIza…" autocomplete="off" spellcheck="false"></div><button id="googleSaveKey" type="button" class="btn primary" disabled>Guardar Google Maps en Supabase</button></div>
  <p id="googleKeyStatus" class="suite-route-status" role="status">Sin configurar.</p>
 </section><div class="rates-grid" id="ratesGrid"></div><p class="credit">Importante: la tarifa fija por kilómetro de fletes al interior sí se sincroniza en Supabase. Las demás tarifas de esta sección continúan siendo locales.</p></section>
-    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.10 · nube</footer>
+    <footer class="footer">GoCargo · Distribución y logística · <a href="https://www.gocargo.com.uy" target="_blank" rel="noopener noreferrer">www.gocargo.com.uy</a> · Cotizador v1.11 · nube</footer>
   </main>
 </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -766,15 +766,19 @@ body{background:#f4f7fc}
       try{
         let ida,vuelta;
         if(backend){
-          const fetchDistance=async(from,to)=>{
-            const url=backend+'/api/distance?orig='+encodeURIComponent(from)+'&dest='+encodeURIComponent(to);
-            const response=await fetch(url,{headers:{Accept:'application/json'},mode:'cors'});
-            const body=await response.json().catch(()=>({}));
-            if(!response.ok||!Number.isFinite(Number(body.km))||Number(body.km)<=0)
-              throw Error(body.error||body.status||'El backend de pedidos no devolvió distancia válida.');
-            return Number(body.km)*1000;
-          };
-          [ida,vuelta]=await Promise.all([fetchDistance(origin,destination),fetchDistance(destination,origin)]);
+          // Clave propia de Routes API en Railway; requiere sesión de GoCargo.
+          // No utiliza la clave antigua de /api/distance de Pedidos Online.
+          const token=await validToken();
+          const response=await fetch(backend+'/api/cotizador/flete-ruta',{
+            method:'POST',mode:'cors',
+            headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:'Bearer '+token},
+            body:JSON.stringify({origin,destination})
+          });
+          const body=await response.json().catch(()=>({}));
+          if(!response.ok)throw Error(body.error||'No se pudo obtener el recorrido.');
+          if(!Number.isFinite(body.idaKm)||!Number.isFinite(body.vueltaKm)||body.idaKm<=0||body.vueltaKm<=0)
+            throw Error('El servidor no devolvió distancias válidas de ida y regreso.');
+          ida=body.idaKm*1000;vuelta=body.vueltaKm*1000;
         }else{
           const {Route}=await google.maps.importLibrary('routes');
           const args={travelMode:'DRIVING',routingPreference:'TRAFFIC_UNAWARE',fields:['distanceMeters']};
@@ -789,7 +793,7 @@ body{background:#f4f7fc}
         const km=Math.round((ida+vuelta)/100)/10;
         if(km<=0||km>100000)throw Error('La ruta excede el rango admitido.');
         $('freightKm').value=km.toFixed(1);
-        googleRoundTrip={origin:$('freightOrigin').value,destination:$('freightDestination').value,idaKm:Math.round(ida/100)/10,vueltaKm:Math.round(vuelta/100)/10,totalKm:km,source:backend?'Google Distance Matrix vía Pedidos Online':'Google Maps Routes'};
+        googleRoundTrip={origin:$('freightOrigin').value,destination:$('freightDestination').value,idaKm:Math.round(ida/100)/10,vueltaKm:Math.round(vuelta/100)/10,totalKm:km,source:backend?'Google Routes API vía GoCargo':'Google Maps Routes'};
         $('googleRouteSummary').textContent=`IDA: ${priceFmt(googleRoundTrip.idaKm)} km + VUELTA: ${priceFmt(googleRoundTrip.vueltaKm)} km = ${priceFmt(km)} km`;
         $('googleRouteSummary').classList.remove('hidden');
         routeStatus('Distancia calculada con Google Maps. Se aplica la tarifa fija por kilómetro.');

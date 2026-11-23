@@ -1504,6 +1504,11 @@ async function procesarTransferenciasAtrasadas(){
 
     toast(resumen.join(" · "));
     alert((failed?"Proceso completado con observaciones.\n\n":"Proceso completado.\n\n")+resumen.join("\n"));
+    // Un alta/vínculo puede haber resuelto una incidencia que estaba cacheada
+    // por Actualizar. Invalidar solo la caché local no genera tráfico externo;
+    // la próxima acción parte del estado administrativo recién recargado.
+    ERROR_STATUS_CACHE.clear();
+    ERROR_STATUS_LAST_CHECK=0;
     await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
   }catch(e){
     alert(`No se pudieron procesar las transferencias atrasadas.\n\n${e.message||e}`);

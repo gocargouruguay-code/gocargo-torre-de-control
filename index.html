@@ -1755,11 +1755,17 @@ async function buscarEstadoClaveExterna(){
     if(ues.state==="PENDIENTE_CARGA")pending.push("UES");
     if(ryr.state==="PENDIENTE_CARGA")pending.push("RyR");
 
+    const errors=[];
+    if(String(ues.state||"").toUpperCase()==="ERROR")errors.push("UES");
+    if(String(ryr.state||"").toUpperCase()==="ERROR")errors.push("RyR");
+
     let summary;
     if(loaded.length===2){
       summary='<div class="alert err"><b>Atención:</b> la misma ORD aparece cargada en UES y RyR. Revisar posible duplicado entre proveedores.</div>';
     }else if(loaded.length===1){
       summary=`<div class="alert ok"><b>${esc(orderCode)}</b> está cargada en <b>${esc(loaded[0])}</b> por clave externa exacta.</div>`;
+    }else if(errors.length){
+      summary=`<div class="alert warn"><b>${esc(orderCode)}</b>: no se pudo completar la verificación en <b>${esc(errors.join(" y "))}</b>. No se considera “no cargada” mientras exista un error de consulta.</div>`;
     }else if(pending.length){
       summary=`<div class="alert warn"><b>${esc(orderCode)}</b> todavía no está cargada en los proveedores consultados. Figura pendiente de carga en <b>${esc(pending.join(" y "))}</b>.</div>`;
     }else{

@@ -2088,10 +2088,23 @@ function refreshOrderCode(row){
   return /^ORD[A-Z0-9_-]+$/.test(code)?code:"";
 }
 function requiresManualReview(row){
-  const detail=String([row?.title,row?.subtitle,row?.motivo,row?.evento,row?.error,row?.detail].filter(Boolean).join(" ")).toLowerCase();
-  // Nunca cancelar una entrega completada ni alterar una excepción de proveedor
-  // por el simple clic en Actualizar. Tampoco crear envíos sin datos validados.
-  return /no entregado|persona ausente|recoordinado|creaci[oó]n de env[ií]o|datos obligatorios|localidad|direcci[oó]n|tel[eé]fono|duplicad|cancelad|extraviad|hurta|pieza rota/.test(detail);
+  const current=norm(row?.evento||row?.title||row?.subtitle||"");
+  const detail=norm([row?.title,row?.subtitle,row?.motivo,row?.evento,row?.error,row?.detail]
+    .filter(Boolean).join(" "));
+
+  // Una alerta "Proceso estancado" debe poder intentar reparación +
+  // reconciliación aunque su texto histórico mencione una Entrega fallida,
+  // Almacenamiento cancelado o "Cancelada (5)". Esas palabras describen el
+  // bloqueo anterior, no necesariamente el estado actual.
+  if(current.includes("proceso estancado"))return false;
+
+  // Casos de datos/duplicados siguen requiriendo intervención explícita.
+  if(/creacion de envio|datos obligatorios|localidad|direccion|telefono|duplicad/.test(detail))
+    return true;
+
+  // Estados sensibles solo son manuales cuando SON el evento actual, no cuando
+  // aparecen citados dentro del historial técnico de otra incidencia.
+  return /no entregado|persona ausente|recoordinado|cancelado|cancelada|extraviad|hurta|pieza rota/.test(current);
 }
 async function refrescarTodo(){
   const btn=document.getElementById("refreshAllBtn");

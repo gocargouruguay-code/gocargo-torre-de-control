@@ -175,6 +175,16 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
     </div>
 
     <div class="card manual-card">
+      <div class="manual-head"><div><h2>Vincular orden existente</h2><p>Adoptá una orden Retiro + Entrega cargada manualmente en RyR. No crea otra orden ni modifica la referencia externa remota.</p></div></div>
+      <div class="manual-row">
+        <div><label style="margin-top:0">Orden GoCargo</label><input id="existingGoOrder" class="input mono" placeholder="ORD4B68" oninput="clearExistingLink()" /></div>
+        <div><label style="margin-top:0">Orden RyR</label><input id="existingRyrOrder" class="input mono" placeholder="ORD4B30" oninput="clearExistingLink()" /></div>
+        <button class="btn primary" id="existingPreviewBtn" onclick="previewExistingLink()">Previsualizar vinculación</button>
+      </div>
+      <div id="existingLinkResult" class="manual-preview"></div>
+    </div>
+
+    <div class="card manual-card">
       <div class="manual-head">
         <div><h2>Cambiar proveedor</h2><p>Cambia una ORD entre UES y RyR de forma controlada. La Torre verifica ambos proveedores antes de modificar nada y evita crear una segunda guía cuando la misma ORD ya existe en UES.</p></div>
       </div>
@@ -1808,6 +1818,50 @@ function renderPreviewRetiroEntrega(data){
     </div>
     <div class="detail-actions" style="margin-top:12px">${applyButton}${transitButtons}</div>
     <div id="reverseTransitState"></div>`;
+}
+
+let EXISTING_LINK_PREVIEW=null;
+function clearExistingLink(){
+  EXISTING_LINK_PREVIEW=null;
+  document.getElementById("existingLinkResult").innerHTML="";
+}
+function existingLinkCodes(){
+  return {orderCode:document.getElementById("existingGoOrder").value.trim().toUpperCase(),
+    ryrOrderCode:document.getElementById("existingRyrOrder").value.trim().toUpperCase()};
+}
+function renderExistingLink(d){
+  const el=document.getElementById("existingLinkResult");
+  const blockers=Array.isArray(d.blockers)?d.blockers:[];
+  const status=d.linked||d.alreadyLinked?"Vínculo confirmado":d.canApply?"Vinculación disponible":"Vinculación bloqueada";
+  el.innerHTML='<div class="alert '+(d.linked||d.alreadyLinked||d.canApply?'ok':'err')+'"><b>'+esc(status)+'</b>'+ (blockers.length?'<br>'+blockers.map(esc).join('<br>'):'')+'</div>'+
+    '<div class="detail-card"><div class="detail-title">GoCargo → RyR</div><b class="mono">'+esc(d.orderCode)+' → '+esc(d.ryrOrderCode)+'</b>'+
+    '<div>Vínculo anterior: '+esc(d.previousOrderCode||"Ninguno")+'</div><div>ID RyR: '+esc(d.remoteId??"—")+'</div><div>Estado RyR: '+esc(d.remoteStatus||"—")+'</div>'+
+    '<div>Referencia externa: '+esc(d.externalReference||"Vacía")+'</div><div>Bultos GoCargo / RyR: '+esc(d.packageCount)+' / '+esc(d.remotePackageCount)+'</div></div>'+
+    '<div class="manual-summary">'+reverseTaskLabel(d.pickup,"Retiro GoCargo")+reverseTaskLabel(d.delivery,"Entrega GoCargo")+reverseTaskLabel(d.remotePickup,"Retiro RyR")+reverseTaskLabel(d.remoteDelivery,"Entrega RyR")+'</div>'+
+    (d.canApply?'<div class="detail-actions"><button class="btn primary" onclick="applyExistingLink()">Confirmar vínculo interno</button></div>':'')+
+    '<div class="muted" style="font-size:12px;margin-top:8px">La referencia externa de RyR no se edita. El vínculo interno permite identificar futuros webhooks.</div>';
+}
+async function previewExistingLink(){
+  const c=existingLinkCodes(),el=document.getElementById("existingLinkResult"),btn=document.getElementById("existingPreviewBtn");
+  EXISTING_LINK_PREVIEW=null;
+  if(!Object.values(c).every(v=>/^ORD[A-Z0-9_-]+$/.test(v))){el.innerHTML='<div class="alert err">Ingresá ambas órdenes válidas.</div>';return;}
+  btn.disabled=true;el.innerHTML='<div class="alert warn">Verificando ambas órdenes y vínculos anteriores…</div>';
+  try{
+    const d=await apiRyrReverse("link-preview",{query:c});
+    if(JSON.stringify(c)!==JSON.stringify(existingLinkCodes()))return;
+    EXISTING_LINK_PREVIEW=d;renderExistingLink(d);
+  }catch(e){el.innerHTML='<div class="alert err">'+esc(e.message)+'</div>';}
+  finally{btn.disabled=false;}
+}
+async function applyExistingLink(){
+  const d=EXISTING_LINK_PREVIEW,c=existingLinkCodes(),el=document.getElementById("existingLinkResult");
+  if(!d?.canApply||d.orderCode!==c.orderCode||d.ryrOrderCode!==c.ryrOrderCode)return previewExistingLink();
+  if(!confirm("¿Vincular "+c.orderCode+" con "+c.ryrOrderCode+"? No se creará ninguna orden remota."))return;
+  EXISTING_LINK_PREVIEW=null;el.innerHTML='<div class="alert warn">Revalidando y guardando vínculo…</div>';
+  try{
+    const result=await apiRyrReverse("link-apply",{method:"POST",query:c,body:{orderCode:c.orderCode}});
+    renderExistingLink(result);
+  }catch(e){if(e.data?.blockers)renderExistingLink(e.data);else el.innerHTML='<div class="alert err">'+esc(e.message)+'</div>';}
 }
 
 async function previsualizarRetiroEntrega(){

@@ -147,6 +147,35 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
 
     <div class="card manual-card">
       <div class="manual-head">
+        <div>
+          <h2>Retiro + Entrega con proveedor</h2>
+          <p>Usá este modo cuando el proveedor debe retirar la mercadería en el origen y entregarla directamente en el destino. La Torre no crea ni fuerza rutas de Tránsito: solo asigna cuando SendGround ya expone un <span class="mono">stopId</span> real.</p>
+        </div>
+      </div>
+      <div class="manual-row">
+        <div>
+          <label style="margin-top:0">Orden SendGround</label>
+          <input id="reverseOrder" class="input mono" placeholder="ORD4B25"
+            onkeydown="if(event.key==='Enter') previsualizarRetiroEntrega()"
+            oninput="limpiarPreviewRetiroEntrega()" />
+        </div>
+        <div>
+          <label style="margin-top:0">Proveedor</label>
+          <select id="reverseProvider" class="input" onchange="limpiarPreviewRetiroEntrega()">
+            <option value="RYR">RyR</option>
+            <option value="UES" disabled>UES · levante API no disponible</option>
+          </select>
+        </div>
+        <button class="btn primary" id="reversePreviewBtn" onclick="previsualizarRetiroEntrega()">Previsualizar</button>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:8px">
+        RyR: retiro en origen + entrega en destino soportado por Customer API. UES queda deshabilitado hasta contar con un endpoint oficial de levantes.
+      </div>
+      <div id="reverseResult" class="manual-preview"></div>
+    </div>
+
+    <div class="card manual-card">
+      <div class="manual-head">
         <div><h2>Cambiar proveedor</h2><p>Cambia una ORD entre UES y RyR de forma controlada. La Torre verifica ambos proveedores antes de modificar nada y evita crear una segunda guía cuando la misma ORD ya existe en UES.</p></div>
       </div>
       <div class="manual-row">
@@ -185,6 +214,7 @@ const API_PROVIDER_SWITCH_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functi
 const API_PROVIDER_SWITCH_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-provider-switch";
 const API_ASSIGNMENT_REPAIR_UES = "https://fksbytkpdbcjbwakunpp.supabase.co/functions/v1/ues-assignment-repair";
 const API_ASSIGNMENT_REPAIR_RYR = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-assignment-repair";
+const API_RYR_REVERSE = "https://ruonmntlrtrtbmvzbnik.supabase.co/functions/v1/ryr-reverse";
 let PASSWORD = "";
 let REVIEWS = [];
 let DASHBOARD = null;
@@ -195,6 +225,7 @@ let METRIC_ROWS = [];
 let SEARCH_ROWS = [];
 let MANUAL_PREVIEW = null;
 let PROVIDER_SWITCH_PREVIEW = null;
+let REVERSE_PREVIEW = null;
 let autoTimer = null;
 
 const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
@@ -263,6 +294,25 @@ function apiDatosProvider(provider,action,opts={}){
   return String(provider||"UES").toUpperCase()==="RYR"
     ?apiRyrDatos(action,opts)
     :apiUesDatos(action,opts);
+}
+
+async function apiRyrReverse(action,{method="GET",body=null,query={}}={}){
+  const qs=new URLSearchParams({action,...query});
+  const res=await fetch(API_RYR_REVERSE+"?"+qs,{
+    method,
+    cache:method==="GET"?"no-store":"default",
+    headers:{
+      ...(PASSWORD?{"X-Admin-Password":PASSWORD}:{}),
+      ...(body?{"Content-Type":"application/json"}:{})
+    },
+    body:body?JSON.stringify(body):null
+  });
+  let data;
+  try{data=await res.json()}catch{data={error:`HTTP ${res.status}`}}
+  if(!res.ok)throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{
+    status:res.status,data,provider:"RYR"
+  });
+  return data;
 }
 
 // Los diagnósticos no se disparan al refrescar el panel.
@@ -1679,6 +1729,205 @@ async function enviarOrdenManual(){
     await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
   }catch(e){
     el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+
+function limpiarPreviewRetiroEntrega(){
+  REVERSE_PREVIEW=null;
+  const el=document.getElementById("reverseResult");
+  if(el)el.innerHTML="";
+}
+
+function reverseLocationLabel(loc){
+  if(!loc)return "—";
+  const name=loc.name||"";
+  const address=loc.address||[loc.street,loc.houseNumber,loc.city].filter(Boolean).join(" ");
+  return [name,address].filter(Boolean).join(" · ")||"—";
+}
+
+function reverseTaskLabel(task,label){
+  if(!task)return `<div class="detail-card"><div class="detail-title">${esc(label)}</div><div class="alert err">No encontrada</div></div>`;
+  const route=Number(task.stopId||0)>0
+    ?`<span class="badge green">Ruteada · stopId ${esc(task.stopId)}</span>`
+    :'<span class="badge yellow">Pendiente de ruteo</span>';
+  const worker=Number(task.assignedWorkerId||0)>0
+    ?` · worker ${esc(task.assignedWorkerId)}`
+    :" · sin responsable";
+  return `<div class="detail-card">
+    <div class="detail-title">${esc(label)}</div>
+    <div><b class="mono">${esc(task.taskId||"—")}</b>${esc(worker)}</div>
+    <div style="margin-top:8px">${route}</div>
+  </div>`;
+}
+
+function renderPreviewRetiroEntrega(data){
+  const el=document.getElementById("reverseResult");
+  if(!el)return;
+
+  const blockers=Array.isArray(data?.blockers)?data.blockers:[];
+  const allowed=data?.canApply===true || data?.alreadyLinked===true;
+  const providerCode=data?.providerOrderCode||"";
+  const status=data?.alreadyLinked
+    ?'<div class="alert ok"><b>La ORD ya está vinculada en modo Retiro + Entrega.</b></div>'
+    :blockers.length
+    ?`<div class="alert err"><b>No se puede crear todavía.</b><br>${blockers.map(esc).join("<br>")}</div>`
+    :'<div class="alert ok"><b>✓ Flujo inverso válido.</b> RyR puede retirar en el origen y entregar en el destino.</div>';
+
+  const applyButton=!data?.alreadyLinked && data?.canApply===true
+    ?`<button class="btn primary" onclick="crearRetiroEntrega()">Crear Retiro + Entrega en RyR</button>`
+    :"";
+  const transitButtons=data?.alreadyLinked
+    ?`<button class="btn secondary" onclick="consultarRuteoRetiroEntrega('${esc(data.orderCode)}')">Comprobar ruteo</button>`
+    :"";
+
+  el.innerHTML=`${status}
+    <div class="manual-summary">
+      <div class="detail-card">
+        <div class="detail-title">Origen / Retiro</div>
+        <div style="font-size:13px;font-weight:700">${esc(reverseLocationLabel(data.origin))}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-title">Destino / Entrega</div>
+        <div style="font-size:13px;font-weight:700">${esc(reverseLocationLabel(data.destination))}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-title">Proveedor</div>
+        <div style="font-size:13px;font-weight:700">RyR${providerCode?` · <span class="mono">${esc(providerCode)}</span>`:""}</div>
+        <div class="muted" style="font-size:11px;margin-top:5px">requiresCollection = true</div>
+      </div>
+    </div>
+    <div class="manual-summary" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${reverseTaskLabel(data.pickup,"Retiro GoCargo")}
+      ${reverseTaskLabel(data.delivery,"Entrega GoCargo")}
+    </div>
+    <div class="detail-actions" style="margin-top:12px">${applyButton}${transitButtons}</div>
+    <div id="reverseTransitState"></div>`;
+}
+
+async function previsualizarRetiroEntrega(){
+  const input=document.getElementById("reverseOrder");
+  const provider=document.getElementById("reverseProvider")?.value||"RYR";
+  const el=document.getElementById("reverseResult");
+  const btn=document.getElementById("reversePreviewBtn");
+  const orderCode=String(input?.value||"").trim().toUpperCase();
+
+  if(!/^ORD[A-Z0-9_-]+$/.test(orderCode)){
+    el.innerHTML='<div class="alert err">Ingresá una ORD válida, por ejemplo ORD4B25.</div>';
+    return;
+  }
+  if(provider!=="RYR"){
+    el.innerHTML='<div class="alert warn">UES todavía no dispone de un endpoint de levantes confirmado para automatizar este flujo.</div>';
+    return;
+  }
+
+  input.value=orderCode;
+  const old=btn?.textContent||"Previsualizar";
+  if(btn){btn.disabled=true;btn.textContent="Verificando…";}
+  el.innerHTML='<div class="alert warn">Validando Retiro, Entrega, origen, destino y duplicados en RyR…</div>';
+
+  try{
+    const data=await apiRyrReverse("preview",{query:{orderCode}});
+    REVERSE_PREVIEW=data;
+    renderPreviewRetiroEntrega(data);
+  }catch(e){
+    REVERSE_PREVIEW=null;
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=old;}
+  }
+}
+
+async function crearRetiroEntrega(){
+  const state=REVERSE_PREVIEW;
+  const orderCode=String(document.getElementById("reverseOrder")?.value||"").trim().toUpperCase();
+  const provider=document.getElementById("reverseProvider")?.value||"RYR";
+  const el=document.getElementById("reverseResult");
+
+  if(!state||state.orderCode!==orderCode||provider!=="RYR"){
+    return previsualizarRetiroEntrega();
+  }
+
+  el.innerHTML='<div class="alert warn">Revalidando la ORD antes de crear la gestión inversa…</div>';
+  try{
+    const fresh=await apiRyrReverse("preview",{query:{orderCode}});
+    REVERSE_PREVIEW=fresh;
+    if(fresh.alreadyLinked){
+      renderPreviewRetiroEntrega(fresh);
+      return;
+    }
+    if(fresh.canApply!==true){
+      renderPreviewRetiroEntrega(fresh);
+      return;
+    }
+
+    const origin=reverseLocationLabel(fresh.origin);
+    const destination=reverseLocationLabel(fresh.destination);
+    if(!confirm(`¿Crear en RyR el flujo Retiro + Entrega para ${orderCode}?\n\nRetiro: ${origin}\nEntrega: ${destination}\n\nLa creación no fuerza rutas ni responsables de Tránsito.`)){
+      renderPreviewRetiroEntrega(fresh);
+      return;
+    }
+
+    el.innerHTML='<div class="alert warn">Creando/vinculando Retiro + Entrega en RyR…</div>';
+    const result=await apiRyrReverse("apply",{
+      method:"POST",
+      body:{orderCode},
+      query:{orderCode}
+    });
+
+    const updated=await apiRyrReverse("preview",{query:{orderCode}});
+    REVERSE_PREVIEW=updated;
+    renderPreviewRetiroEntrega(updated);
+    const transit=document.getElementById("reverseTransitState");
+    if(transit){
+      transit.innerHTML=`<div class="alert ok"><b>✓ ${esc(result.detalle||"Gestión creada")}</b>
+        ${result.providerOrderCode?` · RyR <span class="mono">${esc(result.providerOrderCode)}</span>`:""}
+        <br>La Torre esperará una ruta real antes de habilitar la asignación de Tránsito.</div>`;
+    }
+    toast(`${orderCode}: Retiro + Entrega vinculado a RyR`);
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function consultarRuteoRetiroEntrega(orderCodeArg){
+  const orderCode=String(orderCodeArg||document.getElementById("reverseOrder")?.value||"").trim().toUpperCase();
+  const el=document.getElementById("reverseTransitState")||document.getElementById("reverseResult");
+  el.innerHTML='<div class="alert warn">Comprobando la tarea de Tránsito actual y su stopId…</div>';
+
+  try{
+    const s=await apiRyrReverse("transit-status",{query:{orderCode}});
+    const target=s.target;
+    const route=Number(target?.stopId||0)>0
+      ?`stopId <span class="mono">${esc(target.stopId)}</span>`
+      :"sin stopId";
+    if(s.ready){
+      el.innerHTML=`<div class="alert ok"><b>Ruta real disponible.</b> ${route}. SendGround habilita intentar la asignación de Tránsito.<br>
+        <button class="btn primary" style="margin-top:9px" onclick="asignarTransitoRetiroEntrega('${esc(orderCode)}')">Asignar Tránsito</button></div>`;
+    }else{
+      el.innerHTML=`<div class="alert warn"><b>${esc(s.reason||"Todavía no se puede asignar.")}</b><br>Tarea: ${esc(target?.taskId||"—")} · ${route}. No se modificó nada.</div>`;
+    }
+  }catch(e){
+    el.innerHTML=`<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+
+async function asignarTransitoRetiroEntrega(orderCodeArg){
+  const orderCode=String(orderCodeArg||"").trim().toUpperCase();
+  const el=document.getElementById("reverseTransitState")||document.getElementById("reverseResult");
+  if(!confirm(`¿Intentar asignar la tarea de Tránsito ruteada de ${orderCode} a la ruta ya existente? La Torre verificará el resultado por relectura.`))return;
+
+  el.innerHTML='<div class="alert warn">Asignando sobre la ruta existente y verificando SendGround…</div>';
+  try{
+    const result=await apiRyrReverse("assign-transit",{
+      method:"POST",body:{orderCode},query:{orderCode}
+    });
+    el.innerHTML=`<div class="alert ok"><b>✓ ${esc(result.detalle)}</b><br>Tarea <span class="mono">${esc(result.target?.taskId||"—")}</span> · worker ${esc(result.target?.assignedWorkerId||"—")} · stopId ${esc(result.target?.stopId||"—")}</div>`;
+    toast(`${orderCode}: Tránsito asignado`);
+    await Promise.allSettled([cargarReviews(true),cargarDashboard(true)]);
+  }catch(e){
+    el.innerHTML=`<div class="alert err"><b>No se confirmó la asignación.</b><br>${esc(e.message)}<br>No se dio por aplicada ninguna modificación.</div>`;
   }
 }
 

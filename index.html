@@ -1797,6 +1797,11 @@ function renderPreviewRetiroEntrega(data){
         <div class="muted" style="font-size:11px;margin-top:5px">requiresCollection = true</div>
       </div>
     </div>
+    <div class="detail-card" style="margin-top:10px">
+      <div class="detail-title">Bultos</div>
+      <div style="font-size:13px;font-weight:800">${esc(data.packageInfo?.resumen||"—")}</div>
+      <div class="muted" style="font-size:11px;margin-top:5px">Cantidad total: ${esc(data.packageInfo?.total??0)} · Tipo de origen: GoCargo</div>
+    </div>
     <div class="manual-summary" style="grid-template-columns:repeat(2,minmax(0,1fr))">
       ${reverseTaskLabel(data.pickup,"Retiro GoCargo")}
       ${reverseTaskLabel(data.delivery,"Entrega GoCargo")}
@@ -1863,7 +1868,8 @@ async function crearRetiroEntrega(){
 
     const origin=reverseLocationLabel(fresh.origin);
     const destination=reverseLocationLabel(fresh.destination);
-    if(!confirm(`¿Crear en RyR el flujo Retiro + Entrega para ${orderCode}?\n\nRetiro: ${origin}\nEntrega: ${destination}\n\nLa creación no fuerza rutas ni responsables de Tránsito.`)){
+    const packages=fresh.packageInfo?.resumen||"Sin detalle de bultos";
+    if(!confirm(`¿Crear en RyR el flujo Retiro + Entrega para ${orderCode}?\n\nRetiro: ${origin}\nEntrega: ${destination}\nBultos: ${packages}\n\nLa creación no fuerza rutas ni responsables de Tránsito.`)){
       renderPreviewRetiroEntrega(fresh);
       return;
     }

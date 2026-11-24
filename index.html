@@ -85,6 +85,12 @@ body:has(#login:not(.hidden)) .container{min-height:100vh;min-height:100dvh;disp
 #login #loginMsg{margin-top:12px}
 @media(max-width:600px){.topbar{padding:11px 14px;min-height:65px}.topbar .brand{font-size:15px}.topbar .brand small{font-size:9px;display:block}.suite-control-icon{height:40px;width:40px}#login{padding:26px 23px}.container{padding:0 13px 48px}}
 
+.existing-link-success{display:flex;align-items:center;gap:16px;padding:20px 22px;margin:12px 0 18px;border:2px solid #16834a;border-radius:14px;background:#e2f7e9;color:#105e34;box-shadow:0 3px 12px rgba(22,131,74,.14)}
+.existing-link-success-icon{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;border-radius:50%;background:#16834a;color:#fff;font-size:30px;font-weight:800}
+.existing-link-success-title{font-size:clamp(19px,2.4vw,25px);line-height:1.2;font-weight:800;margin-bottom:5px}
+.existing-link-success-codes{font-size:clamp(16px,2vw,19px);font-weight:800;overflow-wrap:anywhere}
+.existing-link-success-note{font-size:13px;line-height:1.4;margin-top:5px}
+@media(max-width:600px){.existing-link-success{padding:15px 12px;gap:11px}.existing-link-success-icon{flex-basis:40px;width:40px;height:40px;font-size:25px}}
 </style>
 </head>
 <body>
@@ -1837,7 +1843,9 @@ function existingOriginLabel(loc){
 function renderExistingOriginReview(d){
   if(!d.originReviewRequired)return "";
   const side=(loc,label)=>'<div class="detail-card"><div class="detail-title">'+esc(label)+'</div><b>'+esc(existingOriginLabel(loc))+'</b><div class="muted" style="margin-top:6px">Coordenadas: '+esc(loc?.latitude??"—")+' / '+esc(loc?.longitude??"—")+'</div></div>';
-  return '<div class="alert warn" style="margin-top:12px"><b>Los orígenes tienen coordenadas diferentes.</b><br>Compará las direcciones antes de continuar.</div>'+
+  const linked=d.linked===true||d.alreadyLinked===true;
+  const notice=linked?'<div class="muted" style="margin-top:14px;font-size:13px"><b>Detalle del origen:</b> '+(d.originConfirmed?'Diferencia de coordenadas confirmada manualmente.':'Las coordenadas difieren; el vínculo interno ya existe.')+'</div>':'<div class="alert warn" style="margin-top:12px"><b>Los orígenes tienen coordenadas diferentes.</b><br>Compará las direcciones antes de continuar.</div>';
+  return notice+
     '<div class="manual-summary">'+side(d.goOrigin,"Origen GoCargo")+side(d.ryrOrigin,"Origen RyR")+'</div>'+
     (d.canConfirmOrigin?'<div class="alert warn"><b>¿Confirmás que ambas direcciones corresponden al mismo origen?</b><div class="detail-actions" style="margin-top:10px"><button class="btn primary" onclick="applyExistingLink(true)">Sí, vincular igualmente</button><button class="btn secondary" onclick="declineExistingOrigin()">No, mantener bloqueo</button></div></div>':'');
 }
@@ -1852,7 +1860,12 @@ function renderExistingLink(d){
   const el=document.getElementById("existingLinkResult");
   const blockers=Array.isArray(d.blockers)?d.blockers:[];
   const status=d.linked||d.alreadyLinked?"Vínculo confirmado":d.canApply?"Vinculación disponible":d.canConfirmOrigin?"Confirmación de origen requerida":"Vinculación bloqueada";
-  el.innerHTML='<div class="alert '+(d.linked||d.alreadyLinked||d.canApply?'ok':d.canConfirmOrigin?'warn':'err')+'"><b>'+esc(status)+'</b>'+ (blockers.length?'<br>'+blockers.map(esc).join('<br>'):'')+'</div>'+
+  const linked=d.linked===true||d.alreadyLinked===true;
+  const banner=linked?
+    '<div class="existing-link-success" role="status" aria-live="polite"><span class="existing-link-success-icon" aria-hidden="true">✓</span><div><div class="existing-link-success-title">'+(d.linked?'¡VINCULACIÓN EXITOSA!':'VÍNCULO CONFIRMADO')+'</div><div class="existing-link-success-codes">GoCargo '+esc(d.orderCode)+' → RyR '+esc(d.ryrOrderCode)+'</div><div class="existing-link-success-note">Las órdenes están relacionadas en la integración. No se creó ninguna orden nueva.</div></div></div>'+
+    (blockers.length?'<div class="alert warn"><b>Observaciones de la verificación</b><br>'+blockers.map(esc).join('<br>')+'</div>':''):
+    '<div class="alert '+(d.canApply?'ok':d.canConfirmOrigin?'warn':'err')+'"><b>'+esc(status)+'</b>'+(blockers.length?'<br>'+blockers.map(esc).join('<br>'):'')+'</div>';
+  el.innerHTML=banner+
     '<div class="detail-card"><div class="detail-title">GoCargo → RyR</div><b class="mono">'+esc(d.orderCode)+' → '+esc(d.ryrOrderCode)+'</b>'+
     '<div>Vínculo anterior: '+esc(d.previousOrderCode||"Ninguno")+'</div><div>ID RyR: '+esc(d.remoteId??"—")+'</div><div>Estado RyR: '+esc(d.remoteStatus||"—")+'</div>'+
     '<div>Referencia externa: '+esc(d.externalReference||"Vacía")+'</div><div>Bultos GoCargo / RyR: '+esc(d.packageCount)+' / '+esc(d.remotePackageCount)+'</div></div>'+

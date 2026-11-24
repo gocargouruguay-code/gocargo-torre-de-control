@@ -1829,15 +1829,35 @@ function existingLinkCodes(){
   return {orderCode:document.getElementById("existingGoOrder").value.trim().toUpperCase(),
     ryrOrderCode:document.getElementById("existingRyrOrder").value.trim().toUpperCase()};
 }
+function existingOriginLabel(loc){
+  if(!loc)return "No disponible";
+  const address=loc.address||[loc.street,loc.houseNumber].filter(Boolean).join(" ");
+  return [loc.name,address,loc.city].filter(Boolean).join(" · ")||"No disponible";
+}
+function renderExistingOriginReview(d){
+  if(!d.originReviewRequired)return "";
+  const side=(loc,label)=>'<div class="detail-card"><div class="detail-title">'+esc(label)+'</div><b>'+esc(existingOriginLabel(loc))+'</b><div class="muted" style="margin-top:6px">Coordenadas: '+esc(loc?.latitude??"—")+' / '+esc(loc?.longitude??"—")+'</div></div>';
+  return '<div class="alert warn" style="margin-top:12px"><b>Los orígenes tienen coordenadas diferentes.</b><br>Compará las direcciones antes de continuar.</div>'+
+    '<div class="manual-summary">'+side(d.goOrigin,"Origen GoCargo")+side(d.ryrOrigin,"Origen RyR")+'</div>'+
+    (d.canConfirmOrigin?'<div class="alert warn"><b>¿Confirmás que ambas direcciones corresponden al mismo origen?</b><div class="detail-actions" style="margin-top:10px"><button class="btn primary" onclick="applyExistingLink(true)">Sí, vincular igualmente</button><button class="btn secondary" onclick="declineExistingOrigin()">No, mantener bloqueo</button></div></div>':'');
+}
+function declineExistingOrigin(){
+  EXISTING_LINK_PREVIEW=null;
+  const el=document.getElementById("existingLinkResult");
+  const actions=el.querySelectorAll("button");
+  actions.forEach(b=>b.disabled=true);
+  el.insertAdjacentHTML("beforeend",'<div class="alert warn">Vinculación no realizada. Volvé a previsualizar para revisar nuevamente.</div>');
+}
 function renderExistingLink(d){
   const el=document.getElementById("existingLinkResult");
   const blockers=Array.isArray(d.blockers)?d.blockers:[];
-  const status=d.linked||d.alreadyLinked?"Vínculo confirmado":d.canApply?"Vinculación disponible":"Vinculación bloqueada";
-  el.innerHTML='<div class="alert '+(d.linked||d.alreadyLinked||d.canApply?'ok':'err')+'"><b>'+esc(status)+'</b>'+ (blockers.length?'<br>'+blockers.map(esc).join('<br>'):'')+'</div>'+
+  const status=d.linked||d.alreadyLinked?"Vínculo confirmado":d.canApply?"Vinculación disponible":d.canConfirmOrigin?"Confirmación de origen requerida":"Vinculación bloqueada";
+  el.innerHTML='<div class="alert '+(d.linked||d.alreadyLinked||d.canApply?'ok':d.canConfirmOrigin?'warn':'err')+'"><b>'+esc(status)+'</b>'+ (blockers.length?'<br>'+blockers.map(esc).join('<br>'):'')+'</div>'+
     '<div class="detail-card"><div class="detail-title">GoCargo → RyR</div><b class="mono">'+esc(d.orderCode)+' → '+esc(d.ryrOrderCode)+'</b>'+
     '<div>Vínculo anterior: '+esc(d.previousOrderCode||"Ninguno")+'</div><div>ID RyR: '+esc(d.remoteId??"—")+'</div><div>Estado RyR: '+esc(d.remoteStatus||"—")+'</div>'+
     '<div>Referencia externa: '+esc(d.externalReference||"Vacía")+'</div><div>Bultos GoCargo / RyR: '+esc(d.packageCount)+' / '+esc(d.remotePackageCount)+'</div></div>'+
     '<div class="manual-summary">'+reverseTaskLabel(d.pickup,"Retiro GoCargo")+reverseTaskLabel(d.delivery,"Entrega GoCargo")+reverseTaskLabel(d.remotePickup,"Retiro RyR")+reverseTaskLabel(d.remoteDelivery,"Entrega RyR")+'</div>'+
+    renderExistingOriginReview(d)+
     (d.canApply?'<div class="detail-actions"><button class="btn primary" onclick="applyExistingLink()">Confirmar vínculo interno</button></div>':'')+
     '<div class="muted" style="font-size:12px;margin-top:8px">La referencia externa de RyR no se edita. El vínculo interno permite identificar futuros webhooks.</div>';
 }
@@ -1853,13 +1873,13 @@ async function previewExistingLink(){
   }catch(e){el.innerHTML='<div class="alert err">'+esc(e.message)+'</div>';}
   finally{btn.disabled=false;}
 }
-async function applyExistingLink(){
+async function applyExistingLink(confirmOrigin=false){
   const d=EXISTING_LINK_PREVIEW,c=existingLinkCodes(),el=document.getElementById("existingLinkResult");
-  if(!d?.canApply||d.orderCode!==c.orderCode||d.ryrOrderCode!==c.ryrOrderCode)return previewExistingLink();
+  if(!d||!(d.canApply||(confirmOrigin===true&&d.canConfirmOrigin&&d.originReviewKey))||d.orderCode!==c.orderCode||d.ryrOrderCode!==c.ryrOrderCode)return previewExistingLink();
   if(!confirm("¿Vincular "+c.orderCode+" con "+c.ryrOrderCode+"? No se creará ninguna orden remota."))return;
   EXISTING_LINK_PREVIEW=null;el.innerHTML='<div class="alert warn">Revalidando y guardando vínculo…</div>';
   try{
-    const result=await apiRyrReverse("link-apply",{method:"POST",query:c,body:{orderCode:c.orderCode}});
+    const result=await apiRyrReverse("link-apply",{method:"POST",query:c,body:{orderCode:c.orderCode,confirmSameOrigin:confirmOrigin===true,originReviewKey:confirmOrigin===true?d.originReviewKey:null}});
     renderExistingLink(result);
   }catch(e){if(e.data?.blockers)renderExistingLink(e.data);else el.innerHTML='<div class="alert err">'+esc(e.message)+'</div>';}
 }
